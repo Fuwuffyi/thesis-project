@@ -338,7 +338,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
    endif()
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
    target_compile_options(${PROJECT_NAME} PRIVATE
-      $<$<CONFIG:Release>:-fvectorize>n
+      $<$<CONFIG:Release>:-fvectorize>
       $<$<CONFIG:Release>:-ftree-vectorize>
       $<$<CONFIG:Release>:-fipa-pta>
       $<$<CONFIG:RelWithDebInfo>:-fvectorize>
@@ -347,4 +347,15 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
       $<$<CONFIG:Release>:-flto>
       $<$<CONFIG:MinSizeRel>:-flto>
    )
+endif()
+
+if(WIN32 AND CMAKE_GENERATOR MATCHES "Visual Studio")
+    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>"
+        VS_DEBUGGER_COMMAND_ARGUMENTS ""
+        VS_DEBUGGER_ENVIRONMENT "PATH=%PATH%"
+    )
+    source_group("Source Files" FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
+    set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 endif()
