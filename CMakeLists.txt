@@ -167,6 +167,17 @@ if(NOT OpenGL_FOUND)
    message(FATAL_ERROR "OpenGL not found.")
 endif()
 
+# GLAD loader
+fetchContent_Declare(
+   glad
+   GIT_REPOSITORY https://github.com/Dav1dde/glad.git
+   GIT_TAG v2.0.8
+   GIT_PROGRESS TRUE
+   SOURCE_SUBDIR cmake
+)
+FetchContent_MakeAvailable(glad)
+glad_add_library(glad_gl_core_46 STATIC REPRODUCIBLE LOADER API gl:core=4.6)
+
 # GLFW
 FetchContent_Declare(
    glfw
@@ -280,6 +291,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
    imgui
    Vulkan::Vulkan
    OpenGL::GL
+   glad_gl_core_46
 )
 
 # Include directories

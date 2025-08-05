@@ -6,6 +6,9 @@ pkgs.mkShell {
       cmake
       pkg-config
       clang_21
+      # Needed for GLAD
+      python314
+      python3Packages.jinja2
       # OpenGL
       libGL
       # Vulkan
