@@ -3,8 +3,8 @@
 
 class GLRenderer : public IRenderer {
 public:
-    void Init(GLFWwindow* windowHandle) override;
-    void RenderFrame() override;
-    void Cleanup() override;
+   void Init(GLFWwindow* windowHandle) override;
+   void RenderFrame() override;
+   void Cleanup() override;
 };
 
