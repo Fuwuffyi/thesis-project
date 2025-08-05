@@ -278,9 +278,12 @@ add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
 
 # Source files
-add_executable(${PROJECT_NAME}
-   src/main.cpp
+file(GLOB_RECURSE SOURCE_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
 )
+
+add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
