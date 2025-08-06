@@ -8,7 +8,7 @@
 
 int main() {
    try {
-      constexpr GraphicsAPI api = GraphicsAPI::OpenGL;
+      constexpr GraphicsAPI api = GraphicsAPI::Vulkan;
       // Create the window
       WindowDesc windowDesc{
          .title = "Graphics Engine",
@@ -18,7 +18,7 @@ int main() {
          .resizable = false
       };
 
-      Window window(windowDesc, GraphicsAPI::OpenGL);
+      Window window(windowDesc, api);
 
       // Create the renderer
       std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api, window);

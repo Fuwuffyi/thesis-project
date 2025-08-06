@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../core/IRenderer.hpp"
 
 class GLRenderer : public IRenderer {
