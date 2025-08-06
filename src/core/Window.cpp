@@ -96,3 +96,6 @@ uint32_t Window::GetHeight() const {
    return m_height;
 }
 
+GraphicsAPI Window::GetAPI() const {
+   return m_api;
+}
