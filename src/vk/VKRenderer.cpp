@@ -6,7 +6,13 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
-void VKRenderer::Init(GLFWwindow* windowHandle) {
+VKRenderer::VKRenderer(GLFWwindow* windowHandle) : IRenderer(windowHandle) {
+}
+
+VKRenderer::~VKRenderer() {
+   ImGui_ImplVulkan_Shutdown();
+   ImGui_ImplGlfw_Shutdown();
+   ImGui::DestroyContext();
 }
 
 void VKRenderer::RenderFrame() {
@@ -18,8 +24,3 @@ void VKRenderer::RenderFrame() {
    // ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
 }
 
-void VKRenderer::Cleanup() {
-   ImGui_ImplVulkan_Shutdown();
-   ImGui_ImplGlfw_Shutdown();
-   ImGui::DestroyContext();
-}

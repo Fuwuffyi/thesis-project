@@ -21,8 +21,7 @@ int main() {
       Window window(windowDesc, GraphicsAPI::OpenGL);
 
       // Create the renderer
-      std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api);
-      renderer->Init(window.GetNativeWindow());
+      std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api, window);
 
       // Main loop
       while (!window.ShouldClose()) {
@@ -34,7 +33,6 @@ int main() {
       }
 
       // Clean up resources
-      renderer->Cleanup();
    } catch (const std::exception& err) {
       std::println("Error: {}", err.what());
       return EXIT_FAILURE;

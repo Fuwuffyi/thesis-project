@@ -4,7 +4,10 @@
 #include "GraphicsAPI.hpp"
 #include <memory>
 
+// Forward declaration of the window class
+class Window;
+
 class RendererFactory {
 public:
-    static std::unique_ptr<IRenderer> CreateRenderer(GraphicsAPI api);
+    static std::unique_ptr<IRenderer> CreateRenderer(GraphicsAPI api, const Window& win);
 };

@@ -5,9 +5,13 @@ struct GLFWwindow;
 
 class IRenderer {
 public:
-   virtual void Init(GLFWwindow* windowHandle) = 0;
    virtual void RenderFrame() = 0;
-   virtual void Cleanup() = 0;
    virtual ~IRenderer() = default;
+
+   IRenderer(const IRenderer&) = delete;
+   IRenderer& operator=(const IRenderer&) = delete;
+protected:
+   IRenderer(GLFWwindow* windowHandle);
+   GLFWwindow* m_windowHandle = nullptr;
 };
 

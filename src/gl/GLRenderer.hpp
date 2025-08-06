@@ -2,11 +2,8 @@
 
 class GLRenderer : public IRenderer {
 public:
-   void Init(GLFWwindow* windowHandle) override;
+   GLRenderer(GLFWwindow* windowHandle);
+   ~GLRenderer() override;
    void RenderFrame() override;
-   void Cleanup() override;
-
-private:
-   GLFWwindow* m_windowHandle = nullptr;
 };
 

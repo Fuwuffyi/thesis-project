@@ -6,10 +6,12 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-void GLRenderer::Init(GLFWwindow* windowHandle) {
+GLRenderer::GLRenderer(GLFWwindow* windowHandle)
+:
+   IRenderer(windowHandle)
+{
    // Set context for current window
-   m_windowHandle = windowHandle;
-   glfwMakeContextCurrent(windowHandle);
+   glfwMakeContextCurrent(m_windowHandle);
 
    // Load OpenGL function pointers
    if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
@@ -18,18 +20,24 @@ void GLRenderer::Init(GLFWwindow* windowHandle) {
 
    // Set initial viewport
    int32_t width, height;
-   glfwGetFramebufferSize(windowHandle, &width, &height);
+   glfwGetFramebufferSize(m_windowHandle, &width, &height);
    glViewport(0, 0, width, height);
 
    // Initialize ImGui
    IMGUI_CHECKVERSION();
    ImGui::CreateContext();
-   if (!ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)windowHandle, true)) {
+   if (!ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)m_windowHandle, true)) {
       throw std::runtime_error("ImGUI initialization failed");
    }
    if (!ImGui_ImplOpenGL3_Init("#version 460")) {
       throw std::runtime_error("ImGUI initialization failed");
    }
+}
+
+GLRenderer::~GLRenderer() {
+   ImGui_ImplOpenGL3_Shutdown();
+   ImGui_ImplGlfw_Shutdown();
+   ImGui::DestroyContext();
 }
 
 void GLRenderer::RenderFrame() {
@@ -51,11 +59,5 @@ void GLRenderer::RenderFrame() {
 
    // Swap buffers
    glfwSwapBuffers(m_windowHandle);
-}
-
-void GLRenderer::Cleanup() {
-   ImGui_ImplOpenGL3_Shutdown();
-   ImGui_ImplGlfw_Shutdown();
-   ImGui::DestroyContext();
 }
 

@@ -2,8 +2,8 @@
 
 class VKRenderer : public IRenderer {
 public:
-   void Init(GLFWwindow* windowHandle) override;
+   VKRenderer(GLFWwindow* windowHandle);
+   ~VKRenderer();
    void RenderFrame() override;
-   void Cleanup() override;
 };
 
