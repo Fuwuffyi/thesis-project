@@ -9,29 +9,31 @@
 int main() {
    try {
       constexpr GraphicsAPI api = GraphicsAPI::OpenGL;
+      // Create the window
       WindowDesc windowDesc{
          .title = "Graphics Engine",
          .width = 900,
          .height = 900,
-         .vsync = true,
-         .resizable = true
+         .vsync = false,
+         .resizable = false
       };
 
       Window window(windowDesc, GraphicsAPI::OpenGL);
 
+      // Create the renderer
       std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api);
       renderer->Init(window.GetNativeWindow());
 
+      // Main loop
       while (!window.ShouldClose()) {
          window.PollEvents();
          if (glfwGetKey(window.GetNativeWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(window.GetNativeWindow(), true);
          }
-
-         glad_glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-         glad_glClear(GL_COLOR_BUFFER_BIT);
          renderer->RenderFrame();
       }
+
+      // Clean up resources
       renderer->Cleanup();
    } catch (const std::exception& err) {
       std::println("Error: {}", err.what());

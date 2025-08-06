@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.25)
 # Set project name and version
 project(ThesisProject VERSION 1.0.0 LANGUAGES C CXX)
 
+# Export compile commands for Clangd lsp
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Set language standards
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

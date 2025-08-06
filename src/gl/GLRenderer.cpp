@@ -7,9 +7,21 @@
 #include "imgui_impl_opengl3.h"
 
 void GLRenderer::Init(GLFWwindow* windowHandle) {
+   // Set context for current window
+   m_windowHandle = windowHandle;
+   glfwMakeContextCurrent(windowHandle);
+
+   // Load OpenGL function pointers
    if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
       throw std::runtime_error("GLAD init failed");
    }
+
+   // Set initial viewport
+   int32_t width, height;
+   glfwGetFramebufferSize(windowHandle, &width, &height);
+   glViewport(0, 0, width, height);
+
+   // Initialize ImGui
    IMGUI_CHECKVERSION();
    ImGui::CreateContext();
    if (!ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)windowHandle, true)) {
@@ -21,12 +33,24 @@ void GLRenderer::Init(GLFWwindow* windowHandle) {
 }
 
 void GLRenderer::RenderFrame() {
+   // Clear the screen
+   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+   glClear(GL_COLOR_BUFFER_BIT);
+
+   // Render ImGUI
    ImGui_ImplOpenGL3_NewFrame();
    ImGui_ImplGlfw_NewFrame();
    ImGui::NewFrame();
+
+   // Show window
    ImGui::ShowDemoWindow();
+
+   // End ImGUI Render
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+   // Swap buffers
+   glfwSwapBuffers(m_windowHandle);
 }
 
 void GLRenderer::Cleanup() {
