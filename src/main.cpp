@@ -4,40 +4,39 @@
 
 #include "core/GraphicsAPI.hpp"
 #include "core/Window.hpp"
-#include "gl/GLRenderer.hpp"
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-   glad_glViewport(0, 0, width, height);
-}
+#include "core/RendererFactory.hpp"
 
 int main() {
-   Window window({
-      "A window",
-      900,
-      900,
-      0,
-      false
-   }, GraphicsAPI::OpenGL);
-   GLRenderer renderer;
-   glfwMakeContextCurrent(window.GetNativeWindow());
-   renderer.Init(window.GetNativeWindow());
-   glad_glViewport(0, 0, 800, 600);
-   glfwSetFramebufferSizeCallback(window.GetNativeWindow(), framebuffer_size_callback);
+   try {
+      constexpr GraphicsAPI api = GraphicsAPI::OpenGL;
+      WindowDesc windowDesc{
+         .title = "Graphics Engine",
+         .width = 900,
+         .height = 900,
+         .vsync = true,
+         .resizable = true
+      };
 
-   while (!glfwWindowShouldClose(window.GetNativeWindow())) {
-      if (glfwGetKey(window.GetNativeWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-         glfwSetWindowShouldClose(window.GetNativeWindow(), true);
+      Window window(windowDesc, GraphicsAPI::OpenGL);
+
+      std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api);
+      renderer->Init(window.GetNativeWindow());
+
+      while (!window.ShouldClose()) {
+         window.PollEvents();
+         if (glfwGetKey(window.GetNativeWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+            glfwSetWindowShouldClose(window.GetNativeWindow(), true);
+         }
+
+         glad_glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+         glad_glClear(GL_COLOR_BUFFER_BIT);
+         renderer->RenderFrame();
       }
-
-      glad_glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-      glad_glClear(GL_COLOR_BUFFER_BIT);
-
-      renderer.RenderFrame();
-
-      glfwSwapBuffers(window.GetNativeWindow());
-      glfwPollEvents();
+      renderer->Cleanup();
+   } catch (const std::exception& err) {
+      std::println("Error: {}", err.what());
+      return EXIT_FAILURE;
    }
-   renderer.Cleanup();
    return EXIT_SUCCESS;
 }
 
