@@ -7,9 +7,10 @@
 
 struct QueueFamilyIndices {
    std::optional<uint32_t> graphicsFamily;
+   std::optional<uint32_t> presentFamily;
 
    bool HasAllValues() {
-      return graphicsFamily.has_value();
+      return graphicsFamily.has_value() && presentFamily.has_value();
    }
 };
 
@@ -32,6 +33,8 @@ private:
    // Functions to setup vulkan validation layers (debug info)
    bool CheckValidationLayerSupport() const;
    void GetDebugMessenger();
+   // Functions to set up surface
+   void GetSurface();
    // Functions to setup the physical device
    void GetPhysicalDevice();
    uint32_t RateDevice(const VkPhysicalDevice& device);
@@ -42,8 +45,11 @@ private:
 private:
    VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
    VkInstance m_instance = VK_NULL_HANDLE;
+   VkSurfaceKHR m_surface = VK_NULL_HANDLE;
    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
    VkDevice m_logicalDevice = VK_NULL_HANDLE;
    QueueFamilyIndices m_queueFamilies{};
+   VkQueue m_graphicsQueue;
+   VkQueue m_presentQueue;
 };
 
