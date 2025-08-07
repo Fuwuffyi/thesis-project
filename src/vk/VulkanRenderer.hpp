@@ -52,6 +52,12 @@ private:
    static std::vector<char> ReadFile(const std::string& filename);
    void CreateGraphicsPipeline();
    VkShaderModule CreateShaderModule(const std::vector<char>& code);
+   // Functions to set up framebuffers
+   void CreateFramebuffers();
+   // Functions to set up command pool
+   void CreateCommandPool();
+   void CreateCommandBuffer();
+   void RecordCommandBuffer(const VkCommandBuffer& commandBuffer, const uint32_t imageIndex);
 private:
    std::unique_ptr<VulkanInstance> m_instance;
    std::unique_ptr<VulkanDebugMessenger> m_debugMessenger;
@@ -64,10 +70,13 @@ private:
    VkFormat m_swapchainImageFormat;
    VkExtent2D m_swapchainExtent;
    std::vector<VkImageView> m_swapchainImageViews;
+   std::vector<VkFramebuffer> m_swapchainFramebuffers;
    VkQueue m_graphicsQueue;
    VkQueue m_presentQueue;
    VkRenderPass m_renderPass;
    VkPipelineLayout m_pipelineLayout;
    VkPipeline m_graphicsPipeline;
+   VkCommandPool m_commandPool;
+   VkCommandBuffer m_commandBuffer;
 };
 
