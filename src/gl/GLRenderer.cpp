@@ -12,17 +12,14 @@ GLRenderer::GLRenderer(GLFWwindow* windowHandle)
 {
    // Set context for current window
    glfwMakeContextCurrent(m_windowHandle);
-
    // Load OpenGL function pointers
    if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
       throw std::runtime_error("GLAD init failed");
    }
-
    // Set initial viewport
    int32_t width, height;
    glfwGetFramebufferSize(m_windowHandle, &width, &height);
    glViewport(0, 0, width, height);
-
    // Initialize ImGui
    IMGUI_CHECKVERSION();
    ImGui::CreateContext();
@@ -44,19 +41,15 @@ void GLRenderer::RenderFrame() {
    // Clear the screen
    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
    glClear(GL_COLOR_BUFFER_BIT);
-
    // Render ImGUI
    ImGui_ImplOpenGL3_NewFrame();
    ImGui_ImplGlfw_NewFrame();
    ImGui::NewFrame();
-
    // Show window
    ImGui::ShowDemoWindow();
-
    // End ImGUI Render
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
    // Swap buffers
    glfwSwapBuffers(m_windowHandle);
 }

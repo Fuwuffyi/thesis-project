@@ -5,6 +5,12 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
+struct SwapChainSupportDetails {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
+};
+
 struct QueueFamilyIndices {
    std::optional<uint32_t> graphicsFamily;
    std::optional<uint32_t> presentFamily;
@@ -40,8 +46,15 @@ private:
    uint32_t RateDevice(const VkPhysicalDevice& device);
    void GetQueueFamilies(const VkPhysicalDevice& device);
    bool IsDeviceSuitable(const VkPhysicalDevice& device);
+   bool CheckDeviceExtensionSupport(const VkPhysicalDevice& device);
    // Functions to setup the logical device
    void GetLogicalDevice();
+   // Functions to set up Swapchain
+   void GetSwapchain();
+   SwapChainSupportDetails QuerySwapChainSupport(const VkPhysicalDevice& device) const;
+   VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) const;
+   VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) const;
+   VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
 private:
    VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
    VkInstance m_instance = VK_NULL_HANDLE;
@@ -49,6 +62,7 @@ private:
    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
    VkDevice m_logicalDevice = VK_NULL_HANDLE;
    QueueFamilyIndices m_queueFamilies{};
+   VkSwapchainKHR m_swapchain;
    VkQueue m_graphicsQueue;
    VkQueue m_presentQueue;
 };
