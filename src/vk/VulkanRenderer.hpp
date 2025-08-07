@@ -30,8 +30,6 @@ public:
    ~VulkanRenderer();
    void RenderFrame() override;
 private:
-   // Functions to set up surface
-   void GetSurface();
    // Functions to setup the physical device
    void GetPhysicalDevice();
    uint32_t RateDevice(const VkPhysicalDevice& device);
