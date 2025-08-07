@@ -46,6 +46,12 @@ private:
    VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
    // Functions to set up image views
    void GetImageViews();
+   // Functions to set up a render pass
+   void CreateRenderPass();
+   // Functions to set up a graphics pipeline
+   static std::vector<char> ReadFile(const std::string& filename);
+   void CreateGraphicsPipeline();
+   VkShaderModule CreateShaderModule(const std::vector<char>& code);
 private:
    std::unique_ptr<VulkanInstance> m_instance;
    std::unique_ptr<VulkanDebugMessenger> m_debugMessenger;
@@ -60,5 +66,8 @@ private:
    std::vector<VkImageView> m_swapchainImageViews;
    VkQueue m_graphicsQueue;
    VkQueue m_presentQueue;
+   VkRenderPass m_renderPass;
+   VkPipelineLayout m_pipelineLayout;
+   VkPipeline m_graphicsPipeline;
 };
 

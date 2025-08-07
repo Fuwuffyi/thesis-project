@@ -14,7 +14,7 @@ GLRenderer::GLRenderer(GLFWwindow* windowHandle)
    glfwMakeContextCurrent(m_windowHandle);
    // Load OpenGL function pointers
    if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
-      throw std::runtime_error("GLAD init failed");
+      throw std::runtime_error("GLAD init failed.");
    }
    // Set initial viewport
    int32_t width, height;
@@ -24,10 +24,10 @@ GLRenderer::GLRenderer(GLFWwindow* windowHandle)
    IMGUI_CHECKVERSION();
    ImGui::CreateContext();
    if (!ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)m_windowHandle, true)) {
-      throw std::runtime_error("ImGUI initialization failed");
+      throw std::runtime_error("ImGUI initialization failed.");
    }
    if (!ImGui_ImplOpenGL3_Init("#version 460")) {
-      throw std::runtime_error("ImGUI initialization failed");
+      throw std::runtime_error("ImGUI initialization failed.");
    }
 }
 
