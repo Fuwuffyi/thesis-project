@@ -2,6 +2,7 @@
 
 #include "../core/IRenderer.hpp"
 #include "VulkanInstance.hpp"
+#include "VulkanDebugMessenger.hpp"
 #include <memory>
 #include <vulkan/vulkan.h>
 #include <optional>
@@ -28,16 +29,6 @@ public:
    ~VulkanRenderer();
    void RenderFrame() override;
 private:
-   // Callback for validation layers
-   static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
-      VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-      VkDebugUtilsMessageTypeFlagsEXT messageType,
-      const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-      void* pUserData);
-
-   // Functions to setup vulkan validation layers (debug info)
-   bool CheckValidationLayerSupport() const;
-   void GetDebugMessenger();
    // Functions to set up surface
    void GetSurface();
    // Functions to setup the physical device
@@ -57,8 +48,8 @@ private:
    // Functions to set up image views
    void GetImageViews();
 private:
-   VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
    std::unique_ptr<VulkanInstance> m_instance;
+   std::unique_ptr<VulkanDebugMessenger> m_debugMessenger;
    VkSurfaceKHR m_surface = VK_NULL_HANDLE;
    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
    VkDevice m_logicalDevice = VK_NULL_HANDLE;
