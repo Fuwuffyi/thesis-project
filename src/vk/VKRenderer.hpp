@@ -63,6 +63,9 @@ private:
    VkDevice m_logicalDevice = VK_NULL_HANDLE;
    QueueFamilyIndices m_queueFamilies{};
    VkSwapchainKHR m_swapchain;
+   std::vector<VkImage> m_swapchainImages;
+   VkFormat m_swapchainImageFormat;
+   VkExtent2D m_swapchainExtent;
    VkQueue m_graphicsQueue;
    VkQueue m_presentQueue;
 };

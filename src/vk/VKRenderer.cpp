@@ -338,6 +338,13 @@ void VKRenderer::GetSwapchain() {
                             nullptr, &m_swapchain) != VK_SUCCESS) {
       throw std::runtime_error("Failed to create swap chain.");
    }
+   vkGetSwapchainImagesKHR(m_logicalDevice, m_swapchain,
+                           &imageCount, nullptr);
+   m_swapchainImages.resize(imageCount);
+   vkGetSwapchainImagesKHR(m_logicalDevice, m_swapchain,
+                           &imageCount, m_swapchainImages.data());
+   m_swapchainImageFormat = surfaceFormat.format;
+   m_swapchainExtent = extent;
 }
 
 SwapChainSupportDetails VKRenderer::QuerySwapChainSupport(const VkPhysicalDevice& device) const {
