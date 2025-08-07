@@ -56,11 +56,13 @@ private:
    void CreateFramebuffers();
    // Functions to set up command pool
    void CreateCommandPool();
-   void CreateCommandBuffer();
+   void CreateCommandBuffers();
    void RecordCommandBuffer(const VkCommandBuffer& commandBuffer, const uint32_t imageIndex);
    // Functions to set up synchronization for drawing
    void CreateSynchronizationObjects();
 private:
+   constexpr static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+   uint32_t m_currentFrame = 0;
    std::unique_ptr<VulkanInstance> m_instance;
    std::unique_ptr<VulkanDebugMessenger> m_debugMessenger;
    std::unique_ptr<VulkanSurface> m_surface;
@@ -79,9 +81,9 @@ private:
    VkPipelineLayout m_pipelineLayout;
    VkPipeline m_graphicsPipeline;
    VkCommandPool m_commandPool;
-   VkCommandBuffer m_commandBuffer;
-   VkSemaphore m_imageAvailableSemaphore;
-   VkSemaphore m_renderFinishedSemaphore;
-   VkFence m_inFlightFence;
+   std::vector<VkCommandBuffer> m_commandBuffers;
+   std::vector<VkSemaphore> m_imageAvailableSemaphores;
+   std::vector<VkSemaphore> m_renderFinishedSemaphores;
+   std::vector<VkFence> m_inFlightFences;
 };
 

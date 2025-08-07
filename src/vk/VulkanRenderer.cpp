@@ -42,7 +42,7 @@ VulkanRenderer::VulkanRenderer(GLFWwindow* windowHandle) :
    CreateGraphicsPipeline();
    CreateFramebuffers();
    CreateCommandPool();
-   CreateCommandBuffer();
+   CreateCommandBuffers();
    CreateSynchronizationObjects();
 
    // Initialize ImGui
@@ -562,14 +562,15 @@ void VulkanRenderer::CreateCommandPool() {
    }
 }
 
-void VulkanRenderer::CreateCommandBuffer() {
+void VulkanRenderer::CreateCommandBuffers() {
+   m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
    VkCommandBufferAllocateInfo allocInfo{};
    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
    allocInfo.commandPool = m_commandPool;
    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-   allocInfo.commandBufferCount = 1;
+   allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
    if (vkAllocateCommandBuffers(m_logicalDevice,
-                                &allocInfo, &m_commandBuffer) != VK_SUCCESS) {
+                                &allocInfo, m_commandBuffers.data()) != VK_SUCCESS) {
       throw std::runtime_error("Failed to allocate command buffers.");
    }
 }
@@ -617,22 +618,31 @@ void VulkanRenderer::RecordCommandBuffer(const VkCommandBuffer& commandBuffer, c
 }
 
 void VulkanRenderer::CreateSynchronizationObjects() {
+   m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+   m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+   m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
    VkSemaphoreCreateInfo semaphoreInfo{};
    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
    VkFenceCreateInfo fenceInfo{};
    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-   if (vkCreateSemaphore(m_logicalDevice, &semaphoreInfo, nullptr, &m_imageAvailableSemaphore) != VK_SUCCESS ||
-      vkCreateSemaphore(m_logicalDevice, &semaphoreInfo, nullptr, &m_renderFinishedSemaphore) != VK_SUCCESS ||
-      vkCreateFence(m_logicalDevice, &fenceInfo, nullptr, &m_inFlightFence) != VK_SUCCESS) {
-      throw std::runtime_error("Failed to create semaphores.");
+   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+      if (vkCreateSemaphore(m_logicalDevice, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+         vkCreateSemaphore(m_logicalDevice, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
+         vkCreateFence(m_logicalDevice, &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS) {
+
+         throw std::runtime_error("failed to create synchronization objects for a frame!");
+      }
    }
 }
 
 VulkanRenderer::~VulkanRenderer() {
-   vkDestroySemaphore(m_logicalDevice, m_imageAvailableSemaphore, nullptr);
-   vkDestroySemaphore(m_logicalDevice, m_renderFinishedSemaphore, nullptr);
-   vkDestroyFence(m_logicalDevice, m_inFlightFence, nullptr);
+   vkDeviceWaitIdle(m_logicalDevice);
+   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+      vkDestroySemaphore(m_logicalDevice, m_renderFinishedSemaphores[i], nullptr);
+      vkDestroySemaphore(m_logicalDevice, m_imageAvailableSemaphores[i], nullptr);
+      vkDestroyFence(m_logicalDevice, m_inFlightFences[i], nullptr);
+   }
    vkDestroyCommandPool(m_logicalDevice, m_commandPool, nullptr);
    for (const VkFramebuffer& framebuffer : m_swapchainFramebuffers) {
       vkDestroyFramebuffer(m_logicalDevice, framebuffer, nullptr);
@@ -645,36 +655,38 @@ VulkanRenderer::~VulkanRenderer() {
    }
    vkDestroySwapchainKHR(m_logicalDevice, m_swapchain, nullptr);
    vkDestroyDevice(m_logicalDevice, nullptr);
+   /*
    ImGui_ImplVulkan_Shutdown();
    ImGui_ImplGlfw_Shutdown();
    ImGui::DestroyContext();
+   */
 }
 
 void VulkanRenderer::RenderFrame() {
    // Wait for previous farme
-   vkWaitForFences(m_logicalDevice, 1, &m_inFlightFence, VK_TRUE, UINT64_MAX);
-   vkResetFences(m_logicalDevice, 1, &m_inFlightFence);
+   vkWaitForFences(m_logicalDevice, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+   vkResetFences(m_logicalDevice, 1, &m_inFlightFences[m_currentFrame]);
    // Get the next image of the swapchain
    uint32_t imageIndex;
    vkAcquireNextImageKHR(m_logicalDevice, m_swapchain, UINT64_MAX,
-                         m_imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+                         m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
    // Setup command buffer to draw the triangle
-   vkResetCommandBuffer(m_commandBuffer, 0);
-   RecordCommandBuffer(m_commandBuffer, imageIndex);
+   vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
+   RecordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
    // Submit the command buffer
    VkSubmitInfo submitInfo{};
    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-   VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore};
+   VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphores[m_currentFrame]};
    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
    submitInfo.waitSemaphoreCount = 1;
    submitInfo.pWaitSemaphores = waitSemaphores;
    submitInfo.pWaitDstStageMask = waitStages;
    submitInfo.commandBufferCount = 1;
-   submitInfo.pCommandBuffers = &m_commandBuffer;
-   VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphore};
+   submitInfo.pCommandBuffers = &m_commandBuffers[m_currentFrame];
+   VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[m_currentFrame]};
    submitInfo.signalSemaphoreCount = 1;
    submitInfo.pSignalSemaphores = signalSemaphores;
-   if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFence) != VK_SUCCESS) {
+   if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS) {
       throw std::runtime_error("failed to submit draw command buffer!");
    }
 
@@ -687,6 +699,7 @@ void VulkanRenderer::RenderFrame() {
    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffer);
    */
 
+   // Finish frame and present
    VkPresentInfoKHR presentInfo{};
    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
    presentInfo.waitSemaphoreCount = 1;
@@ -697,5 +710,7 @@ void VulkanRenderer::RenderFrame() {
    presentInfo.pImageIndices = &imageIndex;
    presentInfo.pResults = nullptr;
    vkQueuePresentKHR(m_presentQueue, &presentInfo);
+   // Increase frame counter
+   m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
