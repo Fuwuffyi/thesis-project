@@ -34,6 +34,7 @@ VKRenderer::VKRenderer(GLFWwindow* windowHandle) : IRenderer(windowHandle) {
    GetPhysicalDevice();
    GetLogicalDevice();
    GetSwapchain();
+   GetImageViews();
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VKRenderer::DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -412,7 +413,34 @@ VkExtent2D VKRenderer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabili
    }
 }
 
+void VKRenderer::GetImageViews() {
+   m_swapchainImageViews.resize(m_swapchainImages.size());
+   for (size_t i = 0; i < m_swapchainImages.size(); ++i) {
+      VkImageViewCreateInfo createInfo{};
+      createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+      createInfo.image = m_swapchainImages[i];
+      createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+      createInfo.format = m_swapchainImageFormat;
+      createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+      createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+      createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+      createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+      createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      createInfo.subresourceRange.baseMipLevel = 0;
+      createInfo.subresourceRange.levelCount = 1;
+      createInfo.subresourceRange.baseArrayLayer = 0;
+      createInfo.subresourceRange.layerCount = 1;
+      if (vkCreateImageView(m_logicalDevice, &createInfo,
+                            nullptr, &m_swapchainImageViews[i]) != VK_SUCCESS) {
+         throw std::runtime_error("Failed to create image views.");
+      }
+   }
+}
+
 VKRenderer::~VKRenderer() {
+   for (const VkImageView& imageView : m_swapchainImageViews) {
+      vkDestroyImageView(m_logicalDevice, imageView, nullptr);
+   }
    vkDestroySwapchainKHR(m_logicalDevice, m_swapchain, nullptr);
    vkDestroyDevice(m_logicalDevice, nullptr);
    if (enableValidationLayers) {

@@ -55,6 +55,8 @@ private:
    VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) const;
    VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) const;
    VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
+   // Functions to set up image views
+   void GetImageViews();
 private:
    VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
    VkInstance m_instance = VK_NULL_HANDLE;
@@ -66,6 +68,7 @@ private:
    std::vector<VkImage> m_swapchainImages;
    VkFormat m_swapchainImageFormat;
    VkExtent2D m_swapchainExtent;
+   std::vector<VkImageView> m_swapchainImageViews;
    VkQueue m_graphicsQueue;
    VkQueue m_presentQueue;
 };
