@@ -13,7 +13,10 @@ static void error_callback(int error, const char* description) {
    std::println("GLFW Error {}: {}", error, description);
 }
 
-Window::Window(const WindowDesc& desc, GraphicsAPI api) {
+Window::Window(const WindowDesc& desc, GraphicsAPI api)
+:
+   m_api(api)
+{
    // Set error callback
    glfwSetErrorCallback(error_callback);
    // Initialie GLFW
