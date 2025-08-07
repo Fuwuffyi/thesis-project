@@ -2,6 +2,7 @@
 
 #include "../core/IRenderer.hpp"
 #include "VulkanInstance.hpp"
+#include "VulkanSurface.hpp"
 #include "VulkanDebugMessenger.hpp"
 #include <memory>
 #include <vulkan/vulkan.h>
@@ -50,7 +51,7 @@ private:
 private:
    std::unique_ptr<VulkanInstance> m_instance;
    std::unique_ptr<VulkanDebugMessenger> m_debugMessenger;
-   VkSurfaceKHR m_surface = VK_NULL_HANDLE;
+   std::unique_ptr<VulkanSurface> m_surface;
    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
    VkDevice m_logicalDevice = VK_NULL_HANDLE;
    QueueFamilyIndices m_queueFamilies{};

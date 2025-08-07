@@ -30,19 +30,13 @@ const std::vector<const char*> deviceExtensions = {
 VulkanRenderer::VulkanRenderer(GLFWwindow* windowHandle) :
    IRenderer(windowHandle),
    m_instance(std::make_unique<VulkanInstance>(deviceExtensions, validationLayers, enableValidationLayers)),
-   m_debugMessenger(std::make_unique<VulkanDebugMessenger>(*m_instance.get()))
+   m_debugMessenger(std::make_unique<VulkanDebugMessenger>(*m_instance.get())),
+   m_surface(std::make_unique<VulkanSurface>(*m_instance.get(), m_windowHandle))
 {
-   GetSurface();
    GetPhysicalDevice();
    GetLogicalDevice();
    GetSwapchain();
    GetImageViews();
-}
-
-void VulkanRenderer::GetSurface() {
-   if (glfwCreateWindowSurface(m_instance->Get(), m_windowHandle, nullptr, &m_surface) != VK_SUCCESS) {
-      throw std::runtime_error("failed to create window surface!");
-   }
 }
 
 void VulkanRenderer::GetPhysicalDevice() {
@@ -112,7 +106,7 @@ void VulkanRenderer::GetQueueFamilies(const VkPhysicalDevice& device) {
       }
       // Check for present queue
       VkBool32 presentSupport = false;
-      vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_surface,
+      vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_surface->Get(),
                                            &presentSupport);
       if (presentSupport) {
          m_queueFamilies.presentFamily = i;
@@ -203,7 +197,7 @@ void VulkanRenderer::GetSwapchain() {
    }
    VkSwapchainCreateInfoKHR createInfo{};
    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-   createInfo.surface = m_surface;
+   createInfo.surface = m_surface->Get();
    createInfo.minImageCount = imageCount;
    createInfo.imageFormat = surfaceFormat.format;
    createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -241,25 +235,25 @@ void VulkanRenderer::GetSwapchain() {
 SwapChainSupportDetails VulkanRenderer::QuerySwapChainSupport(const VkPhysicalDevice& device) const {
    // Get the surface capabilities
    SwapChainSupportDetails details;
-   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_surface,
+   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_surface->Get(),
                                              &details.capabilities);
    // Query supported surface formats
    uint32_t formatCount;
-   vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface,
+   vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface->Get(),
                                         &formatCount, nullptr);
    if (formatCount != 0) {
       details.formats.resize(formatCount);
-      vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface,
+      vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface->Get(),
                                            &formatCount, details.formats.data());
    }
    // Query supported presentation modes
    uint32_t presentModeCount;
-   vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface,
+   vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface->Get(),
                                              &presentModeCount, nullptr);
 
    if (presentModeCount != 0) {
       details.presentModes.resize(presentModeCount);
-      vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface,
+      vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface->Get(),
                                                 &presentModeCount, details.presentModes.data());
    }
    return details;
@@ -333,7 +327,6 @@ VulkanRenderer::~VulkanRenderer() {
    }
    vkDestroySwapchainKHR(m_logicalDevice, m_swapchain, nullptr);
    vkDestroyDevice(m_logicalDevice, nullptr);
-   vkDestroySurfaceKHR(m_instance->Get(), m_surface, nullptr);
    ImGui_ImplVulkan_Shutdown();
    ImGui_ImplGlfw_Shutdown();
    ImGui::DestroyContext();
