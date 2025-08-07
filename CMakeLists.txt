@@ -17,6 +17,38 @@ set(CMAKE_C_EXTENSIONS OFF)
 # Log compiler
 message(STATUS "Detected compiler: ${CMAKE_CXX_COMPILER_ID}")
 
+# Setup shader compilation
+set(SHADER_SOURCE_DIR "${CMAKE_SOURCE_DIR}/resources/shaders")
+set(SHADER_BINARY_DIR "${CMAKE_BINARY_DIR}/resources/shaders")
+
+file(GLOB_RECURSE GLSL_SHADERS
+   "${SHADER_SOURCE_DIR}/*.vert"
+   "${SHADER_SOURCE_DIR}/*.frag"
+)
+
+# Find program to compile shaders
+find_program(GLSLANG_VALIDATOR glslangValidator HINTS ENV PATH)
+if(NOT GLSLANG_VALIDATOR)
+   message(FATAL_ERROR "glslangValidator not found! Please install Vulkan SDK and ensure it's in your PATH.")
+endif()
+
+# Compile each shader to SPIR-V
+set(COMPILED_SPV_FILES "")
+foreach(GLSL_FILE ${GLSL_SHADERS})
+   get_filename_component(FILE_NAME ${GLSL_FILE} NAME)
+   set(SPV_FILE "${SHADER_BINARY_DIR}/${FILE_NAME}.spv")
+   add_custom_command(
+      OUTPUT ${SPV_FILE}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADER_BINARY_DIR}
+      COMMAND ${GLSLANG_VALIDATOR} -V ${GLSL_FILE} -o ${SPV_FILE}
+      DEPENDS ${GLSL_FILE}
+      COMMENT "Compiling ${FILE_NAME} to SPIR-V"
+      VERBATIM
+   )
+   list(APPEND COMPILED_SPV_FILES ${SPV_FILE})
+endforeach()
+add_custom_target(compile_shaders ALL DEPENDS ${COMPILED_SPV_FILES})
+
 # Build configuration
 # Debug is default
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -282,11 +314,12 @@ target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
 
 # Source files
 file(GLOB_RECURSE SOURCE_FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
+   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
 )
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+add_dependencies(${PROJECT_NAME} compile_shaders)
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -368,12 +401,12 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 endif()
 
 if(WIN32 AND CMAKE_GENERATOR MATCHES "Visual Studio")
-    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>"
-        VS_DEBUGGER_COMMAND_ARGUMENTS ""
-        VS_DEBUGGER_ENVIRONMENT "PATH=%PATH%"
-    )
-    source_group("Source Files" FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
-    set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+   set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+   set_target_properties(${PROJECT_NAME} PROPERTIES
+      VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>"
+      VS_DEBUGGER_COMMAND_ARGUMENTS ""
+      VS_DEBUGGER_ENVIRONMENT "PATH=%PATH%"
+   )
+   source_group("Source Files" FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
+   set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 endif()
