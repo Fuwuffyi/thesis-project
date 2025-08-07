@@ -1,7 +1,7 @@
 #include "RendererFactory.hpp"
 #include "Window.hpp"
 #include "../gl/GLRenderer.hpp"
-#include "../vk/VKRenderer.hpp"
+#include "../vk/VulkanRenderer.hpp"
 #include <stdexcept>
 
 std::unique_ptr<IRenderer> RendererFactory::CreateRenderer(GraphicsAPI api, const Window& win) {
@@ -9,7 +9,7 @@ std::unique_ptr<IRenderer> RendererFactory::CreateRenderer(GraphicsAPI api, cons
         case GraphicsAPI::OpenGL:
             return std::make_unique<GLRenderer>(win.GetNativeWindow());
         case GraphicsAPI::Vulkan:
-            return std::make_unique<VKRenderer>(win.GetNativeWindow());
+            return std::make_unique<VulkanRenderer>(win.GetNativeWindow());
         default:
             throw std::runtime_error("Unsupported Graphics API");
     }

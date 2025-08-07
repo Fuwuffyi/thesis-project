@@ -1,14 +1,16 @@
 #pragma once
 
 #include "../core/IRenderer.hpp"
+#include "VulkanInstance.hpp"
+#include <memory>
+#include <vulkan/vulkan.h>
 #include <optional>
 #include <vector>
-#include <vulkan/vulkan.h>
 
 struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
+   VkSurfaceCapabilitiesKHR capabilities;
+   std::vector<VkSurfaceFormatKHR> formats;
+   std::vector<VkPresentModeKHR> presentModes;
 };
 
 struct QueueFamilyIndices {
@@ -20,10 +22,10 @@ struct QueueFamilyIndices {
    }
 };
 
-class VKRenderer : public IRenderer {
+class VulkanRenderer : public IRenderer {
 public:
-   VKRenderer(GLFWwindow* windowHandle);
-   ~VKRenderer();
+   VulkanRenderer(GLFWwindow* windowHandle);
+   ~VulkanRenderer();
    void RenderFrame() override;
 private:
    // Callback for validation layers
@@ -33,9 +35,6 @@ private:
       const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
       void* pUserData);
 
-   // Functions to setup vulkan instance
-   void CreateInstance();
-   std::vector<const char*> GetRequiredExtensions() const;
    // Functions to setup vulkan validation layers (debug info)
    bool CheckValidationLayerSupport() const;
    void GetDebugMessenger();
@@ -59,7 +58,7 @@ private:
    void GetImageViews();
 private:
    VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
-   VkInstance m_instance = VK_NULL_HANDLE;
+   std::unique_ptr<VulkanInstance> m_instance;
    VkSurfaceKHR m_surface = VK_NULL_HANDLE;
    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
    VkDevice m_logicalDevice = VK_NULL_HANDLE;
