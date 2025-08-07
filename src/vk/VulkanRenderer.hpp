@@ -58,6 +58,8 @@ private:
    void CreateCommandPool();
    void CreateCommandBuffer();
    void RecordCommandBuffer(const VkCommandBuffer& commandBuffer, const uint32_t imageIndex);
+   // Functions to set up synchronization for drawing
+   void CreateSynchronizationObjects();
 private:
    std::unique_ptr<VulkanInstance> m_instance;
    std::unique_ptr<VulkanDebugMessenger> m_debugMessenger;
@@ -78,5 +80,8 @@ private:
    VkPipeline m_graphicsPipeline;
    VkCommandPool m_commandPool;
    VkCommandBuffer m_commandBuffer;
+   VkSemaphore m_imageAvailableSemaphore;
+   VkSemaphore m_renderFinishedSemaphore;
+   VkFence m_inFlightFence;
 };
 
