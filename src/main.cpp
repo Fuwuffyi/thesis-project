@@ -14,7 +14,7 @@ int main() {
          .width = 900,
          .height = 900,
          .vsync = false,
-         .resizable = false
+         .resizable = true
       };
 
       Window window(windowDesc, api);

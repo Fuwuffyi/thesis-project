@@ -60,6 +60,9 @@ private:
    void RecordCommandBuffer(const VkCommandBuffer& commandBuffer, const uint32_t imageIndex);
    // Functions to set up synchronization for drawing
    void CreateSynchronizationObjects();
+   // Functions to setup swapchain recreation
+   void RecreateSwapchain();
+   void CleanupSwapchain();
 private:
    constexpr static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
    uint32_t m_currentFrame = 0;

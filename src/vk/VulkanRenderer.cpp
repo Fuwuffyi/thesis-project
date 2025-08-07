@@ -636,24 +636,35 @@ void VulkanRenderer::CreateSynchronizationObjects() {
    }
 }
 
+void VulkanRenderer::RecreateSwapchain() {
+   vkDeviceWaitIdle(m_logicalDevice);
+   GetSwapchain();
+   GetImageViews();
+   CreateFramebuffers();
+}
+
+void VulkanRenderer::CleanupSwapchain() {
+   for (const VkFramebuffer& framebuffer : m_swapchainFramebuffers) {
+      vkDestroyFramebuffer(m_logicalDevice, framebuffer, nullptr);
+   }
+   for (const VkImageView& imageView : m_swapchainImageViews) {
+      vkDestroyImageView(m_logicalDevice, imageView, nullptr);
+   }
+   vkDestroySwapchainKHR(m_logicalDevice, m_swapchain, nullptr);
+}
+
 VulkanRenderer::~VulkanRenderer() {
    vkDeviceWaitIdle(m_logicalDevice);
+   CleanupSwapchain();
+   vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
+   vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
+   vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
       vkDestroySemaphore(m_logicalDevice, m_renderFinishedSemaphores[i], nullptr);
       vkDestroySemaphore(m_logicalDevice, m_imageAvailableSemaphores[i], nullptr);
       vkDestroyFence(m_logicalDevice, m_inFlightFences[i], nullptr);
    }
    vkDestroyCommandPool(m_logicalDevice, m_commandPool, nullptr);
-   for (const VkFramebuffer& framebuffer : m_swapchainFramebuffers) {
-      vkDestroyFramebuffer(m_logicalDevice, framebuffer, nullptr);
-   }
-   vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
-   vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
-   vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
-   for (const VkImageView& imageView : m_swapchainImageViews) {
-      vkDestroyImageView(m_logicalDevice, imageView, nullptr);
-   }
-   vkDestroySwapchainKHR(m_logicalDevice, m_swapchain, nullptr);
    vkDestroyDevice(m_logicalDevice, nullptr);
    /*
    ImGui_ImplVulkan_Shutdown();
@@ -665,11 +676,17 @@ VulkanRenderer::~VulkanRenderer() {
 void VulkanRenderer::RenderFrame() {
    // Wait for previous farme
    vkWaitForFences(m_logicalDevice, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
-   vkResetFences(m_logicalDevice, 1, &m_inFlightFences[m_currentFrame]);
    // Get the next image of the swapchain
    uint32_t imageIndex;
-   vkAcquireNextImageKHR(m_logicalDevice, m_swapchain, UINT64_MAX,
-                         m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
+   const VkResult nextImageResult = vkAcquireNextImageKHR(m_logicalDevice, m_swapchain, UINT64_MAX,
+                                                          m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
+   if (nextImageResult == VK_ERROR_OUT_OF_DATE_KHR || nextImageResult == VK_SUBOPTIMAL_KHR) {
+      RecreateSwapchain();
+      return;
+   } else if (nextImageResult != VK_SUCCESS) {
+      throw std::runtime_error("Failed to acquire swap chain image.");
+   }
+   vkResetFences(m_logicalDevice, 1, &m_inFlightFences[m_currentFrame]);
    // Setup command buffer to draw the triangle
    vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
    RecordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
@@ -709,7 +726,12 @@ void VulkanRenderer::RenderFrame() {
    presentInfo.pSwapchains = swapChains;
    presentInfo.pImageIndices = &imageIndex;
    presentInfo.pResults = nullptr;
-   vkQueuePresentKHR(m_presentQueue, &presentInfo);
+   const VkResult presentResult = vkQueuePresentKHR(m_presentQueue, &presentInfo);
+   if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
+      RecreateSwapchain();
+   } else if (presentResult != VK_SUCCESS) {
+      throw std::runtime_error("Failed to present swap chain image.");
+   }
    // Increase frame counter
    m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
