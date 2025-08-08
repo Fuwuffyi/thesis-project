@@ -21,7 +21,7 @@ private:
    uint32_t GenerateVertexArray();
    uint32_t GenerateElementBuffer();
    void SetupVertexAttributes();
-
+private:
    uint32_t m_vertexBuffer;
    uint32_t m_vertexArray;
    uint32_t m_elementBuffer;

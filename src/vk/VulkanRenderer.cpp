@@ -1,5 +1,12 @@
 #include "VulkanRenderer.hpp"
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
+
+#include "../core/Vertex.hpp"
+
+#include <cstddef>
 #include <fstream>
 #include <print>
 #include <stdexcept>
@@ -10,15 +17,19 @@
 #include <algorithm>
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan_core.h>
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_vulkan.h"
 
 #ifdef NDEBUG
 constexpr bool enableValidationLayers = false;
 #else
 constexpr bool enableValidationLayers = true;
 #endif
+
+// Testing mesh
+const std::vector<Vertex> vertices = {
+    { { 0.0f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }},
+    { { 0.5f, 0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f }},
+    { { -0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f }}
+};
 
 const std::vector<const char*> validationLayers = {
    "VK_LAYER_KHRONOS_validation"
@@ -42,6 +53,7 @@ VulkanRenderer::VulkanRenderer(GLFWwindow* windowHandle) :
    CreateGraphicsPipeline();
    CreateFramebuffers();
    CreateCommandPool();
+   CreateVertexBuffer();
    CreateCommandBuffers();
    CreateSynchronizationObjects();
 
@@ -411,12 +423,14 @@ void VulkanRenderer::CreateGraphicsPipeline() {
    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
    // Setup non-programmable stages of the pipeline
    // Setup format of the vertex data
+   const VkVertexInputBindingDescription bindingDescription = VulkanRenderer::GetVertexBindingDescription();
+   const std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = VulkanRenderer::GetVertexAttributeDescriptions();
    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-   vertexInputInfo.vertexBindingDescriptionCount = 0;
-   vertexInputInfo.pVertexBindingDescriptions = nullptr;
-   vertexInputInfo.vertexAttributeDescriptionCount = 0;
-   vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+   vertexInputInfo.vertexBindingDescriptionCount = 1;
+   vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+   vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+   vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
    // Setup type of geometry to draw
    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -653,9 +667,46 @@ void VulkanRenderer::CleanupSwapchain() {
    vkDestroySwapchainKHR(m_logicalDevice, m_swapchain, nullptr);
 }
 
+VkVertexInputBindingDescription VulkanRenderer::GetVertexBindingDescription() {
+   VkVertexInputBindingDescription bindingDescription{};
+   bindingDescription.binding = 0;
+   bindingDescription.stride = sizeof(Vertex);
+   bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+   return bindingDescription;
+}
+
+std::array<VkVertexInputAttributeDescription, 3> VulkanRenderer::GetVertexAttributeDescriptions() {
+   std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+   attributeDescriptions[0].binding = 0;
+   attributeDescriptions[0].location = 0;
+   attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+   attributeDescriptions[0].offset = offsetof(Vertex, position);
+   attributeDescriptions[1].binding = 0;
+   attributeDescriptions[1].location = 1;
+   attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+   attributeDescriptions[1].offset = offsetof(Vertex, normal);
+   attributeDescriptions[2].binding = 0;
+   attributeDescriptions[2].location = 2;
+   attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+   attributeDescriptions[2].offset = offsetof(Vertex, uv);
+   return attributeDescriptions;
+}
+
+void VulkanRenderer::CreateVertexBuffer() {
+   VkBufferCreateInfo bufferInfo{};
+   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+   bufferInfo.size = sizeof(Vertex) * vertices.size();
+   bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+   bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+   if (vkCreateBuffer(m_logicalDevice, &bufferInfo, nullptr, &m_vertexBuffer) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to create vertex buffer.");
+   }
+}
+
 VulkanRenderer::~VulkanRenderer() {
    vkDeviceWaitIdle(m_logicalDevice);
    CleanupSwapchain();
+   vkDestroyBuffer(m_logicalDevice, m_vertexBuffer, nullptr);
    vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
    vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
    vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);

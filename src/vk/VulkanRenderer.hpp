@@ -63,6 +63,10 @@ private:
    // Functions to setup swapchain recreation
    void RecreateSwapchain();
    void CleanupSwapchain();
+   // Functions to set up Vertex Buffer
+   static VkVertexInputBindingDescription GetVertexBindingDescription();
+   static std::array<VkVertexInputAttributeDescription, 3> GetVertexAttributeDescriptions();
+   void CreateVertexBuffer(); // Testing vertex buffer
 private:
    constexpr static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
    uint32_t m_currentFrame = 0;
@@ -88,5 +92,6 @@ private:
    std::vector<VkSemaphore> m_imageAvailableSemaphores;
    std::vector<VkSemaphore> m_renderFinishedSemaphores;
    std::vector<VkFence> m_inFlightFences;
+   VkBuffer m_vertexBuffer;
 };
 
