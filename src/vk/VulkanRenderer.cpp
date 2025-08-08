@@ -393,8 +393,8 @@ std::vector<char> VulkanRenderer::ReadFile(const std::string& filename) {
 
 void VulkanRenderer::CreateGraphicsPipeline() {
    // Create shader modules
-   const std::vector<char> vertShaderCode = ReadFile("resources/shaders/triangle.vert.spv");
-   const std::vector<char> fragShaderCode = ReadFile("resources/shaders/triangle.frag.spv");
+   const std::vector<char> vertShaderCode = ReadFile("resources/shaders/test.vert.spv");
+   const std::vector<char> fragShaderCode = ReadFile("resources/shaders/test.frag.spv");
    const VkShaderModule vertShaderModule = CreateShaderModule(vertShaderCode);
    const VkShaderModule fragShaderModule = CreateShaderModule(fragShaderCode);
    // Create shader stages for the programmable stages of the Pipeline
