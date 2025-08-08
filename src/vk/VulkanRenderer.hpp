@@ -66,6 +66,7 @@ private:
    // Functions to set up Vertex Buffer
    static VkVertexInputBindingDescription GetVertexBindingDescription();
    static std::array<VkVertexInputAttributeDescription, 3> GetVertexAttributeDescriptions();
+   uint32_t FindMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags& properties) const;
    void CreateVertexBuffer(); // Testing vertex buffer
 private:
    constexpr static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
@@ -93,5 +94,6 @@ private:
    std::vector<VkSemaphore> m_renderFinishedSemaphores;
    std::vector<VkFence> m_inFlightFences;
    VkBuffer m_vertexBuffer;
+   VkDeviceMemory m_vertexBufferMemory;
 };
 

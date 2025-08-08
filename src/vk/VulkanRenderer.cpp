@@ -624,7 +624,10 @@ void VulkanRenderer::RecordCommandBuffer(const VkCommandBuffer& commandBuffer, c
    scissor.extent = m_swapchainExtent;
    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
    // Draw the triangle
-   vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+   VkBuffer vertexBuffers[] = {m_vertexBuffer};
+   VkDeviceSize offsets[] = {0};
+   vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+   vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
    vkCmdEndRenderPass(commandBuffer);
    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
       throw std::runtime_error("Failed to record command buffer.");
@@ -692,6 +695,17 @@ std::array<VkVertexInputAttributeDescription, 3> VulkanRenderer::GetVertexAttrib
    return attributeDescriptions;
 }
 
+uint32_t VulkanRenderer::FindMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags& properties) const {
+   VkPhysicalDeviceMemoryProperties memProperties;
+   vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memProperties);
+   for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i) {
+      if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+         return i;
+      }
+   }
+   throw std::runtime_error("Failed to find suitable memory type.");
+}
+
 void VulkanRenderer::CreateVertexBuffer() {
    VkBufferCreateInfo bufferInfo{};
    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -701,12 +715,28 @@ void VulkanRenderer::CreateVertexBuffer() {
    if (vkCreateBuffer(m_logicalDevice, &bufferInfo, nullptr, &m_vertexBuffer) != VK_SUCCESS) {
       throw std::runtime_error("Failed to create vertex buffer.");
    }
+   VkMemoryRequirements memRequirements;
+   vkGetBufferMemoryRequirements(m_logicalDevice, m_vertexBuffer, &memRequirements);
+   VkMemoryAllocateInfo allocInfo{};
+   allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+   allocInfo.allocationSize = memRequirements.size;
+   allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits,
+                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+   if (vkAllocateMemory(m_logicalDevice, &allocInfo, nullptr, &m_vertexBufferMemory) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to allocate vertex buffer memory.");
+   }
+   vkBindBufferMemory(m_logicalDevice, m_vertexBuffer, m_vertexBufferMemory, 0);
+   void* data;
+   vkMapMemory(m_logicalDevice, m_vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+   memcpy(data, vertices.data(), (size_t) bufferInfo.size);
+   vkUnmapMemory(m_logicalDevice, m_vertexBufferMemory);
 }
 
 VulkanRenderer::~VulkanRenderer() {
    vkDeviceWaitIdle(m_logicalDevice);
    CleanupSwapchain();
    vkDestroyBuffer(m_logicalDevice, m_vertexBuffer, nullptr);
+   vkFreeMemory(m_logicalDevice, m_vertexBufferMemory, nullptr);
    vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
    vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
    vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
