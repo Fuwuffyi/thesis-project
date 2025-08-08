@@ -67,6 +67,9 @@ private:
    static VkVertexInputBindingDescription GetVertexBindingDescription();
    static std::array<VkVertexInputAttributeDescription, 3> GetVertexAttributeDescriptions();
    uint32_t FindMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags& properties) const;
+   void CreateBuffer(const VkDeviceSize& size, const VkBufferUsageFlags& usage, const VkMemoryPropertyFlags& properties,
+                     VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
+   void CopyBuffer(const VkBuffer& srcBuffer, const VkBuffer& dstBuffer, const VkDeviceSize& size) const;
    void CreateVertexBuffer(); // Testing vertex buffer
 private:
    constexpr static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
