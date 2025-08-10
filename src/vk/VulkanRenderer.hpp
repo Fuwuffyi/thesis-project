@@ -77,9 +77,9 @@ private:
 private:
    constexpr static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
    uint32_t m_currentFrame = 0;
-   std::unique_ptr<VulkanInstance> m_instance;
-   std::unique_ptr<VulkanDebugMessenger> m_debugMessenger;
-   std::unique_ptr<VulkanSurface> m_surface;
+   VulkanInstance m_instance;
+   VulkanDebugMessenger m_debugMessenger;
+   VulkanSurface m_surface;
    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
    VkDevice m_logicalDevice = VK_NULL_HANDLE;
    QueueFamilyIndices m_queueFamilies{};

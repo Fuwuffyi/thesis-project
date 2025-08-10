@@ -67,7 +67,7 @@ VulkanDebugMessenger::VulkanDebugMessenger(VulkanDebugMessenger&& other) noexcep
    m_instance(other.m_instance),
    m_debugMessenger(other.m_debugMessenger)
 {
-   other.m_instance = VK_NULL_HANDLE;
+   other.m_instance = nullptr;
    other.m_debugMessenger = VK_NULL_HANDLE;
 }
 

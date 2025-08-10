@@ -46,9 +46,9 @@ const std::vector<const char*> deviceExtensions = {
 
 VulkanRenderer::VulkanRenderer(Window* windowHandle) :
    IRenderer(windowHandle),
-   m_instance(std::make_unique<VulkanInstance>(deviceExtensions, validationLayers, enableValidationLayers)),
-   m_debugMessenger(std::make_unique<VulkanDebugMessenger>(*m_instance.get())),
-   m_surface(std::make_unique<VulkanSurface>(*m_instance.get(), m_window->GetNativeWindow()))
+   m_instance(deviceExtensions, validationLayers, enableValidationLayers),
+   m_debugMessenger(m_instance),
+   m_surface(m_instance, m_window->GetNativeWindow())
 {
    GetPhysicalDevice();
    GetLogicalDevice();
@@ -79,14 +79,14 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle) :
 void VulkanRenderer::GetPhysicalDevice() {
    // Get device count
    uint32_t deviceCount = 0;
-   vkEnumeratePhysicalDevices(m_instance->Get(), &deviceCount, nullptr);
+   vkEnumeratePhysicalDevices(m_instance.Get(), &deviceCount, nullptr);
    // If no devices, exit
    if (deviceCount == 0) {
       throw std::runtime_error("failed to find GPUs with Vulkan support.");
    }
    // Get actual devices
    std::vector<VkPhysicalDevice> devices(deviceCount);
-   vkEnumeratePhysicalDevices(m_instance->Get(), &deviceCount, devices.data());
+   vkEnumeratePhysicalDevices(m_instance.Get(), &deviceCount, devices.data());
    // Setup ordered map for best score device
    std::multimap<uint32_t, VkPhysicalDevice> candidates;
    for (const VkPhysicalDevice& device : devices) {
@@ -143,7 +143,7 @@ void VulkanRenderer::GetQueueFamilies(const VkPhysicalDevice& device) {
       }
       // Check for present queue
       VkBool32 presentSupport = false;
-      vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_surface->Get(),
+      vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_surface.Get(),
                                            &presentSupport);
       if (presentSupport) {
          m_queueFamilies.presentFamily = i;
@@ -234,7 +234,7 @@ void VulkanRenderer::GetSwapchain() {
    }
    VkSwapchainCreateInfoKHR createInfo{};
    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-   createInfo.surface = m_surface->Get();
+   createInfo.surface = m_surface.Get();
    createInfo.minImageCount = imageCount;
    createInfo.imageFormat = surfaceFormat.format;
    createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -272,25 +272,25 @@ void VulkanRenderer::GetSwapchain() {
 SwapChainSupportDetails VulkanRenderer::QuerySwapChainSupport(const VkPhysicalDevice& device) const {
    // Get the surface capabilities
    SwapChainSupportDetails details;
-   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_surface->Get(),
+   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_surface.Get(),
                                              &details.capabilities);
    // Query supported surface formats
    uint32_t formatCount;
-   vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface->Get(),
+   vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface.Get(),
                                         &formatCount, nullptr);
    if (formatCount != 0) {
       details.formats.resize(formatCount);
-      vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface->Get(),
+      vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_surface.Get(),
                                            &formatCount, details.formats.data());
    }
    // Query supported presentation modes
    uint32_t presentModeCount;
-   vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface->Get(),
+   vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface.Get(),
                                              &presentModeCount, nullptr);
 
    if (presentModeCount != 0) {
       details.presentModes.resize(presentModeCount);
-      vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface->Get(),
+      vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_surface.Get(),
                                                 &presentModeCount, details.presentModes.data());
    }
    return details;

@@ -24,7 +24,7 @@ VulkanSurface::VulkanSurface(VulkanSurface&& other) noexcept
    m_instance(other.m_instance),
    m_surface(other.m_surface)
 {
-   other.m_instance = VK_NULL_HANDLE;
+   other.m_instance = nullptr;
    other.m_surface = VK_NULL_HANDLE;
 }
 
