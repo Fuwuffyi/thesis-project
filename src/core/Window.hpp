@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GraphicsAPI.hpp"
+
 #include <cstdint>
 #include <string>
 #include <functional>

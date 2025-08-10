@@ -1,4 +1,5 @@
 #include "Window.hpp"
+
 #include <GLFW/glfw3.h>
 #include <print>
 
@@ -102,3 +103,4 @@ uint32_t Window::GetHeight() const {
 GraphicsAPI Window::GetAPI() const {
    return m_api;
 }
+

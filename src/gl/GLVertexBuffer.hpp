@@ -29,3 +29,4 @@ private:
    uint32_t m_vertexArray;
    uint32_t m_elementBuffer;
 };
+

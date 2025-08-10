@@ -91,3 +91,4 @@ void GLVertexBuffer::SetupVertexAttributes() {
    glVertexArrayAttribFormat(m_vertexArray, 2, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, uv));
    glVertexArrayAttribBinding(m_vertexArray, 2, bindingIndex);
 }
+
