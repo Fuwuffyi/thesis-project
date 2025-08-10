@@ -1,6 +1,9 @@
 #pragma once
 
-#include "VulkanInstance.hpp"
+#include <vulkan/vulkan.h>
+
+// Forward declaration of Vulkan Instance class
+class VulkanInstance;
 
 class VulkanDebugMessenger {
 public:

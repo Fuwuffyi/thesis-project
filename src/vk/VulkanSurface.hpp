@@ -1,6 +1,8 @@
 #pragma once
 
-#include "VulkanInstance.hpp"
+#include <vulkan/vulkan.h>
+
+class VulkanInstance;
 
 struct GLFWwindow;
 

@@ -3,6 +3,8 @@
 #include <print>
 #include <stdexcept>
 
+#include "VulkanInstance.hpp"
+
 // Callback for validation layer debug messages
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugMessenger::DebugCallback(
    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -36,7 +38,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance,
 }
 
 VulkanDebugMessenger::VulkanDebugMessenger(const VulkanInstance& instance)
-   : 
+   :
    m_instance(&instance)
 {
    // Select debug layers to log

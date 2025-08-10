@@ -1,5 +1,7 @@
 #include "VulkanSurface.hpp"
 
+#include "VulkanInstance.hpp"
+
 #include <GLFW/glfw3.h>
 #include <stdexcept>
 
