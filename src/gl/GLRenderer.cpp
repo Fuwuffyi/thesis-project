@@ -21,7 +21,7 @@ const std::vector<Vertex> vertices = {
    { { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f }}
 };
 const std::vector<uint16_t> indices = {
-   0, 1, 2, 2, 3, 0
+   0, 2, 1, 2, 0, 3
 };
 GLVertexBuffer* mesh = nullptr;
 
@@ -42,6 +42,12 @@ GLRenderer::GLRenderer(Window* window)
    );
    // Setup framebuffer callback
    window->SetResizeCallback(GLRenderer::FramebufferCallback);
+   // Setup depth testing
+   glEnable(GL_DEPTH_TEST);
+   glDepthFunc(GL_LESS);
+   // Cull back faces
+   glEnable(GL_CULL_FACE);
+   glFrontFace(GL_CCW);
    // Initialize ImGui
    IMGUI_CHECKVERSION();
    ImGui::CreateContext();

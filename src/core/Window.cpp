@@ -33,6 +33,7 @@ Window::Window(const WindowDesc& desc, GraphicsAPI api)
 #ifdef __APPLE__
       glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 #endif
+      glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
    } else if (api == GraphicsAPI::Vulkan) {
       glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
    } else {
