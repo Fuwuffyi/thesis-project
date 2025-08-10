@@ -63,14 +63,17 @@ private:
    // Functions to setup swapchain recreation
    void RecreateSwapchain();
    void CleanupSwapchain();
-   // Functions to set up Vertex Buffer
+   // Functions to set up vertex attributes
    static VkVertexInputBindingDescription GetVertexBindingDescription();
    static std::array<VkVertexInputAttributeDescription, 3> GetVertexAttributeDescriptions();
+   // Functions to set up memory and buffers
    uint32_t FindMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags& properties) const;
    void CreateBuffer(const VkDeviceSize& size, const VkBufferUsageFlags& usage, const VkMemoryPropertyFlags& properties,
                      VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
    void CopyBuffer(const VkBuffer& srcBuffer, const VkBuffer& dstBuffer, const VkDeviceSize& size) const;
-   void CreateVertexBuffer(); // Testing vertex buffer
+   // Testing mesh
+   void CreateVertexBuffer();
+   void CreateIndexBuffer();
 private:
    constexpr static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
    uint32_t m_currentFrame = 0;
@@ -98,5 +101,7 @@ private:
    std::vector<VkFence> m_inFlightFences;
    VkBuffer m_vertexBuffer;
    VkDeviceMemory m_vertexBufferMemory;
+   VkBuffer m_indexBuffer;
+   VkDeviceMemory m_indexBufferMemory;
 };
 
