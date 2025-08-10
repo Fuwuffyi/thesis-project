@@ -5,6 +5,7 @@
 #include "VulkanDebugMessenger.hpp"
 #include "VulkanSurface.hpp"
 #include "VulkanDevice.hpp"
+#include "VulkanSwapchain.hpp"
 
 #include <vulkan/vulkan.h>
 #define GLM_FORCE_RADIANS
@@ -26,13 +27,6 @@ public:
    ~VulkanRenderer();
    void RenderFrame() override;
 private:
-   // Functions to set up Swapchain
-   void GetSwapchain();
-   VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) const;
-   VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) const;
-   VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
-   // Functions to set up image views
-   void GetImageViews();
    // Functions to set up a render pass
    void CreateRenderPass();
    // Functions to set up a graphics pipeline
@@ -74,11 +68,7 @@ private:
    VulkanDebugMessenger m_debugMessenger;
    VulkanSurface m_surface;
    VulkanDevice m_device;
-   VkSwapchainKHR m_swapchain;
-   std::vector<VkImage> m_swapchainImages;
-   VkFormat m_swapchainImageFormat;
-   VkExtent2D m_swapchainExtent;
-   std::vector<VkImageView> m_swapchainImageViews;
+   VulkanSwapchain m_swapchain;
    std::vector<VkFramebuffer> m_swapchainFramebuffers;
    VkRenderPass m_renderPass;
    VkDescriptorSetLayout m_descriptorSetLayout;
