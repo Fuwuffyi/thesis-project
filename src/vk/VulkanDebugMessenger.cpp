@@ -75,9 +75,6 @@ VulkanDebugMessenger::VulkanDebugMessenger(VulkanDebugMessenger&& other) noexcep
 
 VulkanDebugMessenger& VulkanDebugMessenger::operator=(VulkanDebugMessenger&& other) noexcept {
    if (this != &other) {
-      if (m_debugMessenger != VK_NULL_HANDLE && m_instance != nullptr) {
-         DestroyDebugUtilsMessengerEXT(m_instance->Get(), m_debugMessenger, nullptr);
-      }
       m_instance = other.m_instance;
       m_debugMessenger = other.m_debugMessenger;
       other.m_instance = nullptr;

@@ -60,8 +60,8 @@ public:
    static SwapChainSupportDetails QuerySwapChainSupport(const VkPhysicalDevice& device, const VkSurfaceKHR& surface);
 private:
    // Dependencies
-   const VulkanInstance* m_instance;
-   const VulkanSurface* m_surface;
+   const VulkanInstance* m_instance = nullptr;
+   const VulkanSurface* m_surface = nullptr;
    // Core objects
    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
    VkDevice m_device = VK_NULL_HANDLE;
@@ -70,3 +70,4 @@ private:
    VkQueue m_graphicsQueue = VK_NULL_HANDLE;
    VkQueue m_presentQueue = VK_NULL_HANDLE;
 };
+
