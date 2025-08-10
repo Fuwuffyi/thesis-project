@@ -1,7 +1,8 @@
 #pragma once
 
-// Forward declaration for GLFW stuff
-struct GLFWwindow;
+// Forward declaration for Window stuff
+
+class Window;
 
 class IRenderer {
 public:
@@ -11,7 +12,7 @@ public:
    IRenderer(const IRenderer&) = delete;
    IRenderer& operator=(const IRenderer&) = delete;
 protected:
-   IRenderer(GLFWwindow* windowHandle);
-   GLFWwindow* m_windowHandle = nullptr;
+   IRenderer(Window* window);
+   Window* m_window;
 };
 

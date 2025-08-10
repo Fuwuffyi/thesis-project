@@ -4,8 +4,12 @@
 
 class GLRenderer : public IRenderer {
 public:
-   GLRenderer(GLFWwindow* windowHandle);
+   GLRenderer(Window* window);
    ~GLRenderer() override;
    void RenderFrame() override;
+private:
+   void FramebufferCallback();
+
+   void CreateTestMesh();
 };
 

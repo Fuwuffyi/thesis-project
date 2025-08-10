@@ -2,17 +2,18 @@
 
 #include "../core/Vertex.hpp"
 
+#include <cstring>
 #include <glad/gl.h>
 #include <utility>
 
 GLVertexBuffer::GLVertexBuffer()
    :
+   m_vertices(),
+   m_indices(),
    m_vertexBuffer(GenerateVertexBuffer()),
    m_vertexArray(GenerateVertexArray()),
    m_elementBuffer(GenerateElementBuffer())
-{
-   SetupVertexAttributes();
-}
+{}
 
 GLVertexBuffer::~GLVertexBuffer() {
    if (m_elementBuffer) glDeleteBuffers(1, &m_elementBuffer);
@@ -29,7 +30,6 @@ GLVertexBuffer::GLVertexBuffer(GLVertexBuffer&& other) noexcept
 
 GLVertexBuffer&  GLVertexBuffer::operator=(GLVertexBuffer&& other) noexcept {
    if (this != &other) {
-      this->~GLVertexBuffer();
       m_vertexBuffer = std::exchange(other.m_vertexBuffer, 0);
       m_vertexArray = std::exchange(other.m_vertexArray, 0);
       m_elementBuffer = std::exchange(other.m_elementBuffer, 0);
@@ -37,15 +37,23 @@ GLVertexBuffer&  GLVertexBuffer::operator=(GLVertexBuffer&& other) noexcept {
    return *this;
 }
 
-void GLVertexBuffer::UploadData(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) const {
+void GLVertexBuffer::UploadData(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices) {
    glNamedBufferData(m_vertexBuffer,
                      static_cast<int64_t>(vertices.size() * sizeof(Vertex)),
                      vertices.data(),
                      GL_STATIC_DRAW);
    glNamedBufferData(m_elementBuffer,
-                     static_cast<int64_t>(indices.size() * sizeof(uint32_t)),
+                     static_cast<int64_t>(indices.size() * sizeof(uint16_t)),
                      indices.data(),
                      GL_STATIC_DRAW);
+   SetupVertexAttributes();
+   m_vertices = vertices;
+   m_indices = indices;
+}
+
+void GLVertexBuffer::Draw() const {
+   glBindVertexArray(m_vertexArray);
+   glDrawElements(GL_TRIANGLES, static_cast<int32_t>(m_indices.size()), GL_UNSIGNED_SHORT, nullptr);
 }
 
 uint32_t GLVertexBuffer::GenerateVertexBuffer() {

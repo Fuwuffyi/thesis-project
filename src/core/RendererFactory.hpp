@@ -9,5 +9,5 @@ class Window;
 
 class RendererFactory {
 public:
-    static std::unique_ptr<IRenderer> CreateRenderer(GraphicsAPI api, const Window& win);
+    static std::unique_ptr<IRenderer> CreateRenderer(GraphicsAPI api, Window* win);
 };

@@ -3,44 +3,74 @@
 #include <glad/gl.h>
 #include <print>
 #include <GLFW/glfw3.h>
+#include "../core/Window.hpp"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-GLRenderer::GLRenderer(GLFWwindow* windowHandle)
-:
-   IRenderer(windowHandle)
+// Stuff for mesh
+#include <vector>
+#include "GLVertexBuffer.hpp"
+#include "../core/Vertex.hpp"
+
+// Testing mesh
+const std::vector<Vertex> vertices = {
+   { { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }},
+   { { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f }},
+   { { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f }},
+   { { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f }}
+};
+const std::vector<uint16_t> indices = {
+   0, 1, 2, 2, 3, 0
+};
+GLVertexBuffer* mesh = nullptr;
+
+GLRenderer::GLRenderer(Window* window)
+   :
+   IRenderer(window)
 {
    // Set context for current window
-   glfwMakeContextCurrent(m_windowHandle);
+   glfwMakeContextCurrent(m_window->GetNativeWindow());
    // Load OpenGL function pointers
    if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
       throw std::runtime_error("GLAD init failed.");
    }
    // Set initial viewport
-   int32_t width, height;
-   glfwGetFramebufferSize(m_windowHandle, &width, &height);
-   glViewport(0, 0, width, height);
+   glViewport(0, 0,
+              static_cast<int32_t>(m_window->GetWidth()), static_cast<int32_t>(m_window->GetHeight()));
    // Initialize ImGui
    IMGUI_CHECKVERSION();
    ImGui::CreateContext();
-   if (!ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)m_windowHandle, true)) {
+   if (!ImGui_ImplGlfw_InitForOpenGL(m_window->GetNativeWindow(), true)) {
       throw std::runtime_error("ImGUI initialization failed.");
    }
    if (!ImGui_ImplOpenGL3_Init("#version 460")) {
       throw std::runtime_error("ImGUI initialization failed.");
    }
+
+
+   CreateTestMesh();
+}
+
+void GLRenderer::CreateTestMesh() {
+   mesh = new GLVertexBuffer();
+   mesh->UploadData(vertices, indices);
 }
 
 GLRenderer::~GLRenderer() {
    ImGui_ImplOpenGL3_Shutdown();
    ImGui_ImplGlfw_Shutdown();
    ImGui::DestroyContext();
+
+   delete mesh;
 }
 
 void GLRenderer::RenderFrame() {
    // Clear the screen
    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
    glClear(GL_COLOR_BUFFER_BIT);
+
+   mesh->Draw();
+
    // Render ImGUI
    ImGui_ImplOpenGL3_NewFrame();
    ImGui_ImplGlfw_NewFrame();
@@ -51,6 +81,6 @@ void GLRenderer::RenderFrame() {
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
    // Swap buffers
-   glfwSwapBuffers(m_windowHandle);
+   glfwSwapBuffers(m_window->GetNativeWindow());
 }
 

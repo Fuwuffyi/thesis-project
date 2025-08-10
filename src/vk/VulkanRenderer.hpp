@@ -26,7 +26,7 @@ struct QueueFamilyIndices {
 
 class VulkanRenderer : public IRenderer {
 public:
-   VulkanRenderer(GLFWwindow* windowHandle);
+   VulkanRenderer(Window* window);
    ~VulkanRenderer();
    void RenderFrame() override;
 private:

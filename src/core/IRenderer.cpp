@@ -1,3 +1,3 @@
 #include "IRenderer.hpp"
 
-IRenderer::IRenderer(GLFWwindow* windowHandle) : m_windowHandle(windowHandle) {}
+IRenderer::IRenderer(Window* window) : m_window(window) {}

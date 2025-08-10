@@ -20,7 +20,7 @@ int main() {
       Window window(windowDesc, api);
 
       // Create the renderer
-      std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api, window);
+      std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api, &window);
 
       // Main loop
       while (!window.ShouldClose()) {

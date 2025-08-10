@@ -5,6 +5,7 @@
 #include "imgui_impl_vulkan.h"
 
 #include "../core/Vertex.hpp"
+#include "../core/Window.hpp"
 
 #include <cstddef>
 #include <fstream>
@@ -43,11 +44,11 @@ const std::vector<const char*> deviceExtensions = {
    VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-VulkanRenderer::VulkanRenderer(GLFWwindow* windowHandle) :
+VulkanRenderer::VulkanRenderer(Window* windowHandle) :
    IRenderer(windowHandle),
    m_instance(std::make_unique<VulkanInstance>(deviceExtensions, validationLayers, enableValidationLayers)),
    m_debugMessenger(std::make_unique<VulkanDebugMessenger>(*m_instance.get())),
-   m_surface(std::make_unique<VulkanSurface>(*m_instance.get(), m_windowHandle))
+   m_surface(std::make_unique<VulkanSurface>(*m_instance.get(), m_window->GetNativeWindow()))
 {
    GetPhysicalDevice();
    GetLogicalDevice();
@@ -66,7 +67,7 @@ VulkanRenderer::VulkanRenderer(GLFWwindow* windowHandle) :
    /*
    IMGUI_CHECKVERSION();
    ImGui::CreateContext();
-   if (!ImGui_ImplGlfw_InitForVulkan((GLFWwindow*)m_windowHandle, true)) {
+   if (!ImGui_ImplGlfw_InitForVulkan(m_window->GetNativeWindow(), true)) {
       throw std::runtime_error("ImGUI initialization failed.");
    }
    if (!ImGui_ImplVulkan_Init(ImGui_ImplVulkan_InitInfo *info)) {
@@ -319,11 +320,9 @@ VkExtent2D VulkanRenderer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capa
    if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
       return capabilities.currentExtent;
    } else {
-      int32_t width, height;
-      glfwGetFramebufferSize(m_windowHandle, &width, &height);
       VkExtent2D actualExtent = {
-         static_cast<uint32_t>(width),
-         static_cast<uint32_t>(height)
+         m_window->GetWidth(),
+         m_window->GetHeight() 
       };
       actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width,
                                       capabilities.maxImageExtent.width);
