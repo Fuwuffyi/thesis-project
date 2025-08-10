@@ -3,6 +3,7 @@
 #include <glad/gl.h>
 #include <print>
 #include <GLFW/glfw3.h>
+
 #include "../core/Window.hpp"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -35,8 +36,12 @@ GLRenderer::GLRenderer(Window* window)
       throw std::runtime_error("GLAD init failed.");
    }
    // Set initial viewport
-   glViewport(0, 0,
-              static_cast<int32_t>(m_window->GetWidth()), static_cast<int32_t>(m_window->GetHeight()));
+   GLRenderer::FramebufferCallback(
+      static_cast<int32_t>(m_window->GetWidth()),
+      static_cast<int32_t>(m_window->GetHeight())
+   );
+   // Setup framebuffer callback
+   window->SetResizeCallback(GLRenderer::FramebufferCallback);
    // Initialize ImGui
    IMGUI_CHECKVERSION();
    ImGui::CreateContext();
@@ -49,6 +54,10 @@ GLRenderer::GLRenderer(Window* window)
 
 
    CreateTestMesh();
+}
+
+void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) {
+   glViewport(0, 0, width, height);
 }
 
 void GLRenderer::CreateTestMesh() {
