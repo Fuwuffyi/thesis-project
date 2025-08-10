@@ -6,6 +6,7 @@
 #include "VulkanSurface.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanSwapchain.hpp"
+#include "VulkanBuffer.hpp"
 
 #include <vulkan/vulkan.h>
 #define GLM_FORCE_RADIANS
@@ -51,11 +52,6 @@ private:
    // Functions to set up vertex attributes
    static VkVertexInputBindingDescription GetVertexBindingDescription();
    static std::array<VkVertexInputAttributeDescription, 3> GetVertexAttributeDescriptions();
-   // Functions to set up memory and buffers
-   uint32_t FindMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags& properties) const;
-   void CreateBuffer(const VkDeviceSize& size, const VkBufferUsageFlags& usage, const VkMemoryPropertyFlags& properties,
-                     VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
-   void CopyBuffer(const VkBuffer& srcBuffer, const VkBuffer& dstBuffer, const VkDeviceSize& size) const;
    // Testing mesh
    void CreateVertexBuffer();
    void CreateIndexBuffer();
@@ -79,12 +75,10 @@ private:
    std::vector<VkSemaphore> m_imageAvailableSemaphores;
    std::vector<VkSemaphore> m_renderFinishedSemaphores;
    std::vector<VkFence> m_inFlightFences;
-   VkBuffer m_vertexBuffer;
-   VkDeviceMemory m_vertexBufferMemory;
-   VkBuffer m_indexBuffer;
-   VkDeviceMemory m_indexBufferMemory;
-   std::vector<VkBuffer> m_uniformBuffers;
-   std::vector<VkDeviceMemory> m_uniformBuffersMemory;
+   // TODO: Remove unique ptrs in favour of stack variables once other abstractions are implemented
+   std::unique_ptr<VulkanBuffer> m_vertexBuffer;
+   std::unique_ptr<VulkanBuffer> m_indexBuffer;
+   std::vector<std::unique_ptr<VulkanBuffer>> m_uniformBuffers;
    std::vector<void*> m_uniformBuffersMapped;
    VkDescriptorPool m_descriptorPool;
    std::vector<VkDescriptorSet> m_descriptorSets;

@@ -363,10 +363,10 @@ void VulkanRenderer::RecordCommandBuffer(const VkCommandBuffer& commandBuffer, c
    scissor.extent = m_swapchain.GetExtent();
    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
    // Draw the triangle
-   VkBuffer vertexBuffers[] = {m_vertexBuffer};
+   VkBuffer vertexBuffers[] = {m_vertexBuffer->Get()};
    VkDeviceSize offsets[] = {0};
    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-   vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+   vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->Get(), 0, VK_INDEX_TYPE_UINT16);
    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout,
                            0, 1, &m_descriptorSets[m_currentFrame],
                            0, nullptr);
@@ -432,116 +432,60 @@ std::array<VkVertexInputAttributeDescription, 3> VulkanRenderer::GetVertexAttrib
    return attributeDescriptions;
 }
 
-uint32_t VulkanRenderer::FindMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags& properties) const {
-   VkPhysicalDeviceMemoryProperties memProperties;
-   vkGetPhysicalDeviceMemoryProperties(m_device.GetPhysicalDevice(), &memProperties);
-   for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i) {
-      if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-         return i;
-      }
-   }
-   throw std::runtime_error("Failed to find suitable memory type.");
-}
-
-void VulkanRenderer::CreateBuffer(const VkDeviceSize& size, const VkBufferUsageFlags& usage, const VkMemoryPropertyFlags& properties,
-                                  VkBuffer& buffer, VkDeviceMemory& bufferMemory) const {
-   VkBufferCreateInfo bufferInfo{};
-   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-   bufferInfo.size = size;
-   bufferInfo.usage = usage;
-   bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-   if (vkCreateBuffer(m_device.Get(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-      throw std::runtime_error("failed to create buffer!");
-   }
-   VkMemoryRequirements memRequirements;
-   vkGetBufferMemoryRequirements(m_device.Get(), buffer, &memRequirements);
-   VkMemoryAllocateInfo allocInfo{};
-   allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-   allocInfo.allocationSize = memRequirements.size;
-   allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties);
-   if (vkAllocateMemory(m_device.Get(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-      throw std::runtime_error("Failed to allocate buffer memory.");
-   }
-   vkBindBufferMemory(m_device.Get(), buffer, bufferMemory, 0);
-}
-
-void VulkanRenderer::CopyBuffer(const VkBuffer& srcBuffer, const VkBuffer& dstBuffer, const VkDeviceSize& size) const {
-   VkCommandBufferAllocateInfo allocInfo{};
-   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-   allocInfo.commandPool = m_commandPool;
-   allocInfo.commandBufferCount = 1;
-   VkCommandBuffer commandBuffer;
-   vkAllocateCommandBuffers(m_device.Get(), &allocInfo, &commandBuffer);
-   VkCommandBufferBeginInfo beginInfo{};
-   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-   vkBeginCommandBuffer(commandBuffer, &beginInfo);
-   VkBufferCopy copyRegion{};
-   copyRegion.srcOffset = 0;
-   copyRegion.dstOffset = 0;
-   copyRegion.size = size;
-   vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-   vkEndCommandBuffer(commandBuffer);
-   VkSubmitInfo submitInfo{};
-   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-   submitInfo.commandBufferCount = 1;
-   submitInfo.pCommandBuffers = &commandBuffer;
-   vkQueueSubmit(m_device.GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-   vkQueueWaitIdle(m_device.GetGraphicsQueue());
-   vkFreeCommandBuffers(m_device.Get(), m_commandPool,
-                        1, &commandBuffer);
-}
-
 void VulkanRenderer::CreateVertexBuffer() {
    const VkDeviceSize bufferSize = sizeof(Vertex) * vertices.size();
-   VkBuffer stagingBuffer;
-   VkDeviceMemory stagingBufferMemory;
-   CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                stagingBuffer, stagingBufferMemory);
-   void* data;
-   vkMapMemory(m_device.Get(), stagingBufferMemory, 0, bufferSize, 0, &data);
-   memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
-   vkUnmapMemory(m_device.Get(), stagingBufferMemory);
-
-   CreateBuffer(bufferSize,
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                m_vertexBuffer, m_vertexBufferMemory);
-   CopyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
-   vkDestroyBuffer(m_device.Get(), stagingBuffer, nullptr);
-   vkFreeMemory(m_device.Get(), stagingBufferMemory, nullptr);
+   auto stagingBuffer = std::make_unique<VulkanBuffer>(
+      m_device,
+      bufferSize,
+      VulkanBuffer::Usage::TransferSrc,
+      VulkanBuffer::MemoryType::HostVisible
+   );
+   stagingBuffer->Update(vertices.data(), bufferSize);
+   m_vertexBuffer = std::make_unique<VulkanBuffer>(
+      m_device,
+      bufferSize,
+      static_cast<VulkanBuffer::Usage>(
+         static_cast<VkBufferUsageFlags>(VulkanBuffer::Usage::TransferDst) |
+         static_cast<VkBufferUsageFlags>(VulkanBuffer::Usage::Vertex)
+      ),
+      VulkanBuffer::MemoryType::DeviceLocal
+   );
+   VulkanBuffer::CopyBuffer(m_device, m_commandPool, *stagingBuffer,
+                            *m_vertexBuffer, bufferSize);
 }
 
 void VulkanRenderer::CreateIndexBuffer() {
-   VkDeviceSize bufferSize = sizeof(uint16_t) * indices.size();
-   VkBuffer stagingBuffer;
-   VkDeviceMemory stagingBufferMemory;
-   CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-   void* data;
-   vkMapMemory(m_device.Get(), stagingBufferMemory, 0, bufferSize, 0, &data);
-   memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
-   vkUnmapMemory(m_device.Get(), stagingBufferMemory);
-   CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_indexBuffer, m_indexBufferMemory);
-   CopyBuffer(stagingBuffer, m_indexBuffer, bufferSize);
-   vkDestroyBuffer(m_device.Get(), stagingBuffer, nullptr);
-   vkFreeMemory(m_device.Get(), stagingBufferMemory, nullptr);
+   const VkDeviceSize bufferSize = sizeof(uint16_t) * indices.size();
+   auto stagingBuffer = std::make_unique<VulkanBuffer>(
+      m_device,
+      bufferSize,
+      VulkanBuffer::Usage::TransferSrc,
+      VulkanBuffer::MemoryType::HostVisible
+   );
+   stagingBuffer->Update(indices.data(), bufferSize);
+   m_indexBuffer = std::make_unique<VulkanBuffer>(
+      m_device,
+      bufferSize,
+      static_cast<VulkanBuffer::Usage>(
+         static_cast<VkBufferUsageFlags>(VulkanBuffer::Usage::TransferDst) |
+         static_cast<VkBufferUsageFlags>(VulkanBuffer::Usage::Index)
+      ),
+      VulkanBuffer::MemoryType::DeviceLocal
+   );
+   VulkanBuffer::CopyBuffer(m_device, m_commandPool, *stagingBuffer,
+                            *m_indexBuffer, bufferSize);
 }
 
 void VulkanRenderer::CreateUniformBuffer() {
-   VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+   const VkDeviceSize bufferSize = sizeof(UniformBufferObject);
    m_uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-   m_uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-   m_uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-      CreateBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                   m_uniformBuffers[i], m_uniformBuffersMemory[i]);
-      vkMapMemory(m_device.Get(), m_uniformBuffersMemory[i], 0,
-                  bufferSize, 0, &m_uniformBuffersMapped[i]);
+      m_uniformBuffers[i] = std::make_unique<VulkanBuffer>(
+         m_device,
+         bufferSize,
+         VulkanBuffer::Usage::Uniform,
+         VulkanBuffer::MemoryType::HostVisible
+      );
    }
 }
 
@@ -554,11 +498,11 @@ void VulkanRenderer::UpdateUniformBuffer(const uint32_t currentImage) {
                            glm::vec3(0.0f, 0.0f, 1.0f));
    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f),
                           glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-   ubo.proj = glm::perspective(glm::radians(45.0f),
+   ubo.proj = glm::perspective(glm::radians(90.0f),
                                static_cast<float>(m_swapchain.GetExtent().width) / static_cast<float>(m_swapchain.GetExtent().height),
                                0.1f, 100.0f);
    ubo.proj[1][1] *= -1; // Vulkan fix
-   memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+   m_uniformBuffers[currentImage]->UpdateMapped(&ubo, sizeof(ubo));
 }
 
 void VulkanRenderer::CreateDescriptorPool() {
@@ -590,7 +534,7 @@ void VulkanRenderer::CreateDescriptorSets() {
    }
    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
       VkDescriptorBufferInfo bufferInfo{};
-      bufferInfo.buffer = m_uniformBuffers[i];
+      bufferInfo.buffer = m_uniformBuffers[i]->Get();
       bufferInfo.offset = 0;
       bufferInfo.range = sizeof(UniformBufferObject);
       VkWriteDescriptorSet descriptorWrite{};
@@ -611,16 +555,8 @@ void VulkanRenderer::CreateDescriptorSets() {
 VulkanRenderer::~VulkanRenderer() {
    vkDeviceWaitIdle(m_device.Get());
    CleanupSwapchain();
-   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-      vkDestroyBuffer(m_device.Get(), m_uniformBuffers[i], nullptr);
-      vkFreeMemory(m_device.Get(), m_uniformBuffersMemory[i], nullptr);
-   }
    vkDestroyDescriptorPool(m_device.Get(), m_descriptorPool, nullptr);
    vkDestroyDescriptorSetLayout(m_device.Get(), m_descriptorSetLayout, nullptr);
-   vkDestroyBuffer(m_device.Get(), m_indexBuffer, nullptr);
-   vkFreeMemory(m_device.Get(), m_indexBufferMemory, nullptr);
-   vkDestroyBuffer(m_device.Get(), m_vertexBuffer, nullptr);
-   vkFreeMemory(m_device.Get(), m_vertexBufferMemory, nullptr);
    vkDestroyPipeline(m_device.Get(), m_graphicsPipeline, nullptr);
    vkDestroyPipelineLayout(m_device.Get(), m_pipelineLayout, nullptr);
    vkDestroyRenderPass(m_device.Get(), m_renderPass, nullptr);
