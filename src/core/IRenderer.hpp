@@ -3,10 +3,11 @@
 // Forward declaration for Window stuff
 
 class Window;
+class Camera;
 
 class IRenderer {
 public:
-   virtual void RenderFrame() = 0;
+   virtual void RenderFrame(Camera& cam) = 0;
    virtual ~IRenderer() = default;
 
    IRenderer(const IRenderer&) = delete;

@@ -31,10 +31,10 @@ const std::vector<const char*> deviceExtensions = {
 
 // Testing mesh
 const std::vector<Vertex> vertices = {
-   { { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }},
-   { { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f }},
-   { { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f }},
-   { { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f }}
+   { { -0.5f, 0.0f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }},
+   { { 0.5f, 0.0f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f }},
+   { { 0.5f, 0.0f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f }},
+   { { -0.5f, 0.0f, 0.5f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f }}
 };
 const std::vector<uint16_t> indices = {
    0, 1, 2, 2, 3, 0
@@ -489,19 +489,16 @@ void VulkanRenderer::CreateUniformBuffer() {
    }
 }
 
-void VulkanRenderer::UpdateUniformBuffer(const uint32_t currentImage) {
+void VulkanRenderer::UpdateUniformBuffer(const uint32_t currentImage, Camera& cam) {
    static auto startTime = std::chrono::high_resolution_clock::now();
    auto currentTime = std::chrono::high_resolution_clock::now();
    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
    UniformBufferObject ubo{};
    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
                            glm::vec3(0.0f, 0.0f, 1.0f));
-   ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f),
-                          glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-   ubo.proj = glm::perspective(glm::radians(90.0f),
-                               static_cast<float>(m_swapchain.GetExtent().width) / static_cast<float>(m_swapchain.GetExtent().height),
-                               0.1f, 100.0f);
-   ubo.proj[1][1] *= -1; // Vulkan fix
+   cam.SetAspectRatio(static_cast<float>(m_swapchain.GetExtent().width) / static_cast<float>(m_swapchain.GetExtent().height));
+   ubo.view = cam.GetViewMatrix();
+   ubo.proj = cam.GetProjectionMatrix();
    m_uniformBuffers[currentImage]->UpdateMapped(&ubo, sizeof(ubo));
 }
 
@@ -573,7 +570,7 @@ VulkanRenderer::~VulkanRenderer() {
    */
 }
 
-void VulkanRenderer::RenderFrame() {
+void VulkanRenderer::RenderFrame(Camera& cam) {
    // Wait for previous farme
    vkWaitForFences(m_device.Get(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
    // Get the next image of the swapchain
@@ -590,7 +587,7 @@ void VulkanRenderer::RenderFrame() {
    }
    vkResetFences(m_device.Get(), 1, &m_inFlightFences[m_currentFrame]);
 
-   UpdateUniformBuffer(m_currentFrame);
+   UpdateUniformBuffer(m_currentFrame, cam);
 
    // Setup command buffer to draw the triangle
    vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);

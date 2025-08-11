@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/IRenderer.hpp"
+#include "../core/Camera.hpp"
 #include "VulkanInstance.hpp"
 #include "VulkanDebugMessenger.hpp"
 #include "VulkanSurface.hpp"
@@ -26,7 +27,7 @@ class VulkanRenderer : public IRenderer {
 public:
    VulkanRenderer(Window* window);
    ~VulkanRenderer();
-   void RenderFrame() override;
+   void RenderFrame(Camera& cam) override;
 private:
    // Functions to set up a render pass
    void CreateRenderPass();
@@ -56,7 +57,7 @@ private:
    void CreateVertexBuffer();
    void CreateIndexBuffer();
    void CreateUniformBuffer();
-   void UpdateUniformBuffer(const uint32_t currentImage);
+   void UpdateUniformBuffer(const uint32_t currentImage, Camera& cam);
 private:
    constexpr static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
    uint32_t m_currentFrame = 0;

@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 
 #include "../core/Window.hpp"
+#include "../core/Camera.hpp"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
@@ -80,7 +81,7 @@ GLRenderer::~GLRenderer() {
    delete mesh;
 }
 
-void GLRenderer::RenderFrame() {
+void GLRenderer::RenderFrame(Camera& cam) {
    // Clear the screen
    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
