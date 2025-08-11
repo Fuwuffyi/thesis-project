@@ -489,16 +489,17 @@ void VulkanRenderer::CreateUniformBuffer() {
    }
 }
 
-void VulkanRenderer::UpdateUniformBuffer(const uint32_t currentImage, Camera& cam) {
+void VulkanRenderer::UpdateUniformBuffer(const uint32_t currentImage) {
+   if (!m_activeCamera) return;
    static auto startTime = std::chrono::high_resolution_clock::now();
    auto currentTime = std::chrono::high_resolution_clock::now();
    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
    UniformBufferObject ubo{};
    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
                            glm::vec3(0.0f, 0.0f, 1.0f));
-   cam.SetAspectRatio(static_cast<float>(m_swapchain.GetExtent().width) / static_cast<float>(m_swapchain.GetExtent().height));
-   ubo.view = cam.GetViewMatrix();
-   ubo.proj = cam.GetProjectionMatrix();
+   m_activeCamera->SetAspectRatio(static_cast<float>(m_swapchain.GetExtent().width) / static_cast<float>(m_swapchain.GetExtent().height));
+   ubo.view = m_activeCamera->GetViewMatrix();
+   ubo.proj = m_activeCamera->GetProjectionMatrix();
    m_uniformBuffers[currentImage]->UpdateMapped(&ubo, sizeof(ubo));
 }
 
@@ -570,7 +571,7 @@ VulkanRenderer::~VulkanRenderer() {
    */
 }
 
-void VulkanRenderer::RenderFrame(Camera& cam) {
+void VulkanRenderer::RenderFrame() {
    // Wait for previous farme
    vkWaitForFences(m_device.Get(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
    // Get the next image of the swapchain
@@ -587,7 +588,7 @@ void VulkanRenderer::RenderFrame(Camera& cam) {
    }
    vkResetFences(m_device.Get(), 1, &m_inFlightFences[m_currentFrame]);
 
-   UpdateUniformBuffer(m_currentFrame, cam);
+   UpdateUniformBuffer(m_currentFrame);
 
    // Setup command buffer to draw the triangle
    vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);

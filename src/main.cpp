@@ -29,6 +29,7 @@ int main() {
 
       // Create the renderer
       std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api, &window);
+      renderer->SetActiveCamera(&cam);
 
       // Main loop
       while (!window.ShouldClose()) {
@@ -52,7 +53,7 @@ int main() {
             Transform& t = cam.GetMutableTransform();
             t.SetPosition(t.GetPosition() + glm::vec3(0.0f, 0.0f, 0.001f));
          }
-         renderer->RenderFrame(cam);
+         renderer->RenderFrame();
       }
 
       // Clean up resources

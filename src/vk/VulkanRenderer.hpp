@@ -27,7 +27,7 @@ class VulkanRenderer : public IRenderer {
 public:
    VulkanRenderer(Window* window);
    ~VulkanRenderer();
-   void RenderFrame(Camera& cam) override;
+   void RenderFrame() override;
 private:
    // Functions to set up a render pass
    void CreateRenderPass();
@@ -57,7 +57,7 @@ private:
    void CreateVertexBuffer();
    void CreateIndexBuffer();
    void CreateUniformBuffer();
-   void UpdateUniformBuffer(const uint32_t currentImage, Camera& cam);
+   void UpdateUniformBuffer(const uint32_t currentImage);
 private:
    constexpr static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
    uint32_t m_currentFrame = 0;
