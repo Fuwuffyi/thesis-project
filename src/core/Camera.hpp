@@ -1,23 +1,12 @@
 #pragma once
 
 #include "Transform.hpp"
+#include "GraphicsAPI.hpp"
 
 class Camera {
-private:
-   Transform m_transform;
-   glm::vec3 m_up;
-
-   float m_fov;
-   float m_aspectRatio;
-   float m_near;
-   float m_far;
-
-   glm::mat4 m_view;
-   glm::mat4 m_proj;
-   glm::mat4 m_camera;
-
 public:
-   Camera(const Transform& transform, const glm::vec3& up, const float fov, const float aspectRatio, const float near, const float far);
+   Camera(const Transform& transform, const glm::vec3& up, const float fov, const float aspectRatio,
+          const float near, const float far, const GraphicsAPI api = GraphicsAPI::OpenGL);
 
    const glm::vec3& GetViewDirection();
    const glm::vec3& GetRightVector();
@@ -34,5 +23,21 @@ public:
 
    const Transform& GetTransform() const;
    Transform& GetMutableTransform();
+
+private:
+   const GraphicsAPI m_api;
+
+   Transform m_transform;
+   glm::vec3 m_up;
+
+   float m_fov;
+   float m_aspectRatio;
+   float m_near;
+   float m_far;
+
+   glm::mat4 m_view;
+   glm::mat4 m_proj;
+   glm::mat4 m_camera;
+
 };
 

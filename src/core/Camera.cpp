@@ -4,8 +4,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-Camera::Camera(const Transform& transform, const glm::vec3& up, const float fov, const float aspectRatio, const float near, const float far)
+Camera::Camera(const Transform& transform, const glm::vec3& up, const float fov, const float aspectRatio,
+               const float near, const float far, const GraphicsAPI api)
    :
+   m_api(api),
    m_transform(transform),
    m_up(glm::normalize(up)),
    m_fov(fov),
@@ -56,7 +58,18 @@ const glm::mat4& Camera::GetViewMatrix() {
    return m_view;
 }
 
+static const glm::mat4 GL_TO_VK_CLIP = glm::mat4(
+   1.0f,  0.0f, 0.0f, 0.0f,
+   0.0f, -1.0f, 0.0f, 0.0f,
+   0.0f,  0.0f, 0.5f, 0.0f,
+   0.0f,  0.0f, 0.5f, 1.0f
+);
+
 const glm::mat4& Camera::GetProjectionMatrix() {
+   m_proj = glm::perspective(glm::radians(m_fov), m_aspectRatio, m_near, m_far);
+   if (m_api == GraphicsAPI::Vulkan) {
+      m_proj = GL_TO_VK_CLIP * m_proj;
+   }
    return m_proj;
 }
 
