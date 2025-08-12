@@ -42,12 +42,29 @@ foreach(GLSL_FILE ${GLSL_SHADERS})
       COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADER_BINARY_DIR}
       COMMAND ${GLSLANG_VALIDATOR} -V ${GLSL_FILE} -o ${SPV_FILE}
       DEPENDS ${GLSL_FILE}
-      COMMENT "Compiling ${FILE_NAME} to SPIR-V"
+      COMMENT "Compiling ${FILE_NAME} to SPIR-V for Vulkan"
       VERBATIM
    )
    list(APPEND COMPILED_SPV_FILES ${SPV_FILE})
 endforeach()
 add_custom_target(compile_shaders ALL DEPENDS ${COMPILED_SPV_FILES})
+
+# Copy shaders to resources
+set(COPIED_GLSL_FILES "")
+foreach(GLSL_FILE ${GLSL_SHADERS})
+   get_filename_component(FILE_NAME ${GLSL_FILE} NAME)
+   set(DEST_FILE "${SHADER_BINARY_DIR}/${FILE_NAME}")
+   add_custom_command(
+      OUTPUT ${DEST_FILE}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADER_BINARY_DIR}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GLSL_FILE} ${DEST_FILE}
+      DEPENDS ${GLSL_FILE}
+      COMMENT "Copying ${FILE_NAME} for OpenGL"
+      VERBATIM
+   )
+   list(APPEND COPIED_GLSL_FILES ${DEST_FILE})
+endforeach()
+add_custom_target(copy_gl_shaders ALL DEPENDS ${COPIED_GLSL_FILES})
 
 # Build configuration
 # Debug is default
