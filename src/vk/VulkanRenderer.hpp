@@ -1,12 +1,12 @@
 #pragma once
 
 #include "../core/IRenderer.hpp"
-#include "../core/Camera.hpp"
 #include "VulkanInstance.hpp"
 #include "VulkanDebugMessenger.hpp"
 #include "VulkanSurface.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanSwapchain.hpp"
+#include "VulkanRenderPass.hpp"
 #include "VulkanBuffer.hpp"
 
 #include <vulkan/vulkan.h>
@@ -29,8 +29,6 @@ public:
    ~VulkanRenderer();
    void RenderFrame() override;
 private:
-   // Functions to set up a render pass
-   void CreateRenderPass();
    // Functions to set up a graphics pipeline
    static std::vector<char> ReadFile(const std::string& filename);
    void CreateGraphicsPipeline();
@@ -66,8 +64,8 @@ private:
    VulkanSurface m_surface;
    VulkanDevice m_device;
    VulkanSwapchain m_swapchain;
+   VulkanRenderPass m_renderPass;
    std::vector<VkFramebuffer> m_swapchainFramebuffers;
-   VkRenderPass m_renderPass;
    VkDescriptorSetLayout m_descriptorSetLayout;
    VkPipelineLayout m_pipelineLayout;
    VkPipeline m_graphicsPipeline;
