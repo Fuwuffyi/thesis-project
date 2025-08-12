@@ -1,25 +1,15 @@
 #include "Window.hpp"
+#include "core/GraphicsAPI.hpp"
 
 #include <GLFW/glfw3.h>
 #include <print>
 
-static void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-   Window* windowPtr = static_cast<Window*>(glfwGetWindowUserPointer(window));
-   if (windowPtr) {
-      windowPtr->OnFramebufferResize(width, height);
-   }
-}
-
-static void error_callback(int error, const char* description) {
-   std::println("GLFW Error {}: {}", error, description);
-}
-
-Window::Window(const WindowDesc& desc, GraphicsAPI api)
-:
+Window::Window(const GraphicsAPI api, const WindowDesc& desc)
+   :
    m_api(api)
 {
    // Set error callback
-   glfwSetErrorCallback(error_callback);
+   glfwSetErrorCallback(Window::ErrorCallback);
    // Initialie GLFW
    if (!glfwInit()) {
       std::println("GLFW initialization failed");
@@ -56,9 +46,18 @@ Window::Window(const WindowDesc& desc, GraphicsAPI api)
    }
    m_width = desc.width;
    m_height = desc.height;
+   // Set main window if GL
+   if (api == GraphicsAPI::OpenGL) {
+      glfwMakeContextCurrent(m_window);
+   }
    // Setup callback configuration
+   glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
    glfwSetWindowUserPointer(m_window, this);
-   glfwSetFramebufferSizeCallback(m_window, framebuffer_size_callback);
+   glfwSetFramebufferSizeCallback(m_window, Window::FramebufferSizeCallback);
+   glfwSetKeyCallback(m_window, Window::KeyCallback);
+   glfwSetMouseButtonCallback(m_window, Window::MouseButtonCallback);
+   glfwSetCursorPosCallback(m_window, Window::CursorPosCallback);
+   glfwSetWindowSizeCallback(m_window, Window::ResizeCallback);
 }
 
 Window::~Window() {
@@ -75,6 +74,7 @@ bool Window::ShouldClose() const {
 
 void Window::PollEvents() {
    glfwPollEvents();
+   m_eventSystem.ProcessHeldEvents();
 }
 
 void Window::OnFramebufferResize(int32_t width, int32_t height) {
@@ -89,8 +89,49 @@ void Window::SetResizeCallback(std::function<void(int, int)> callback) {
    m_resizeCallback = std::move(callback);
 }
 
+void Window::SetCursorVisible(const bool visible) const {
+   glfwSetInputMode(m_window, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+}
+
+void Window::FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
+   Window* windowPtr = static_cast<Window*>(glfwGetWindowUserPointer(window));
+   if (windowPtr) {
+      windowPtr->OnFramebufferResize(width, height);
+   }
+}
+
+void Window::ErrorCallback(int error, const char* description) {
+   std::println("GLFW Error {}: {}", error, description);
+}
+
+void Window::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+   Window* w = static_cast<Window*>(glfwGetWindowUserPointer(window));
+   w->m_eventSystem.HandleKeyEvent(static_cast<uint32_t>(key), static_cast<uint32_t>(scancode),
+                                   static_cast<uint32_t>(action), static_cast<uint32_t>(mods));
+}
+
+void Window::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+   Window* w = static_cast<Window*>(glfwGetWindowUserPointer(window));
+   w->m_eventSystem.HandleMouseEvent(static_cast<uint32_t>(button), static_cast<uint32_t>(action),
+                                     static_cast<uint32_t>(mods));
+}
+
+void Window::CursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
+   Window* w = static_cast<Window*>(glfwGetWindowUserPointer(window));
+   w->m_eventSystem.HandleCursorPos(static_cast<float>(xpos), static_cast<float>(ypos));
+}
+
+void Window::ResizeCallback(GLFWwindow* window, int width, int height) {
+   Window* w = static_cast<Window*>(glfwGetWindowUserPointer(window));
+   w->m_eventSystem.HandleResize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+}
+
 GLFWwindow* Window::GetNativeWindow() const {
    return m_window;
+}
+
+EventSystem* Window::GetEventSystem() {
+   return &m_eventSystem;
 }
 
 uint32_t Window::GetWidth() const {

@@ -30,8 +30,6 @@ GLRenderer::GLRenderer(Window* window)
    :
    IRenderer(window)
 {
-   // Set context for current window
-   glfwMakeContextCurrent(m_window->GetNativeWindow());
    // Load OpenGL function pointers
    if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
       throw std::runtime_error("GLAD init failed.");
