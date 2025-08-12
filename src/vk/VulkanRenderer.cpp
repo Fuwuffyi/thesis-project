@@ -354,25 +354,26 @@ void VulkanRenderer::RecordCommandBuffer(const VkCommandBuffer &commandBuffer,
 }
 
 void VulkanRenderer::CreateSynchronizationObjects() {
+   size_t imageCount = m_swapchain.GetImages().size();
    m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-   m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+   m_renderFinishedSemaphores.resize(imageCount);
    m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
    VkSemaphoreCreateInfo semaphoreInfo{};
    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
    VkFenceCreateInfo fenceInfo{};
    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+   // Create per-frame image-available semaphores & fences
    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-      if (vkCreateSemaphore(m_device.Get(), &semaphoreInfo, nullptr,
-                            &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
-         vkCreateSemaphore(m_device.Get(), &semaphoreInfo, nullptr,
-                           &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
-         vkCreateFence(m_device.Get(), &fenceInfo, nullptr,
-                       &m_inFlightFences[i]) != VK_SUCCESS) {
-
-         throw std::runtime_error(
-            "failed to create synchronization objects for a frame!");
-      }
+      vkCreateSemaphore(m_device.Get(), &semaphoreInfo, nullptr,
+                        &m_imageAvailableSemaphores[i]);
+      vkCreateFence(m_device.Get(), &fenceInfo, nullptr,
+                    &m_inFlightFences[i]);
+   }
+   // Create per-image render-finished semaphores
+   for (size_t i = 0; i < imageCount; ++i) {
+      vkCreateSemaphore(m_device.Get(), &semaphoreInfo, nullptr,
+                        &m_renderFinishedSemaphores[i]);
    }
 }
 
@@ -528,8 +529,10 @@ VulkanRenderer::~VulkanRenderer() {
    vkDestroyDescriptorSetLayout(m_device.Get(), m_descriptorSetLayout, nullptr);
    vkDestroyPipeline(m_device.Get(), m_graphicsPipeline, nullptr);
    vkDestroyPipelineLayout(m_device.Get(), m_pipelineLayout, nullptr);
-   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+   for (size_t i = 0; i < m_renderFinishedSemaphores.size(); ++i) {
       vkDestroySemaphore(m_device.Get(), m_renderFinishedSemaphores[i], nullptr);
+   }
+   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
       vkDestroySemaphore(m_device.Get(), m_imageAvailableSemaphores[i], nullptr);
       vkDestroyFence(m_device.Get(), m_inFlightFences[i], nullptr);
    }
@@ -574,7 +577,7 @@ void VulkanRenderer::RenderFrame() {
    submitInfo.pWaitDstStageMask = waitStages;
    submitInfo.commandBufferCount = 1;
    submitInfo.pCommandBuffers = &m_commandBuffers[m_currentFrame];
-   VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[m_currentFrame]};
+   VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[imageIndex] };
    submitInfo.signalSemaphoreCount = 1;
    submitInfo.pSignalSemaphores = signalSemaphores;
    if (vkQueueSubmit(m_device.GetGraphicsQueue(), 1, &submitInfo,
