@@ -12,6 +12,7 @@
 
 // Stuff for mesh
 #include <vector>
+#include <chrono>
 #include "GLShader.hpp"
 #include "GLBuffer.hpp"
 #include "GLVertexArray.hpp"
@@ -104,12 +105,18 @@ GLRenderer::~GLRenderer() {
 
 void GLRenderer::RenderFrame() {
    // Clear the screen
-   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
    shader->Use();
-   glm::mat4 modl = glm::mat4(1.0f);
-   shader->SetMat4("model", modl);
+   static auto startTime = std::chrono::high_resolution_clock::now();
+   auto currentTime = std::chrono::high_resolution_clock::now();
+   float time = std::chrono::duration<float, std::chrono::seconds::period>(
+      currentTime - startTime)
+      .count();
+   const glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
+                               glm::vec3(0.0f, 0.0f, 1.0f));
+   shader->SetMat4("model", model);
    shader->SetMat4("proj", m_activeCamera->GetProjectionMatrix());
    shader->SetMat4("view", m_activeCamera->GetViewMatrix());
    vao->DrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT);
