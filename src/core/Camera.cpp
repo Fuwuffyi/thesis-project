@@ -4,8 +4,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-Camera::Camera(const Transform& transform, const glm::vec3& up, const float fov, const float aspectRatio,
-               const float near, const float far, const GraphicsAPI api)
+Camera::Camera(const GraphicsAPI api, const Transform& transform, const glm::vec3& up, const float fov, const float aspectRatio,
+               const float near, const float far)
    :
    m_api(api),
    m_transform(transform),

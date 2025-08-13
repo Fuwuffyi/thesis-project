@@ -5,8 +5,8 @@
 
 class Camera {
 public:
-   Camera(const Transform& transform, const glm::vec3& up, const float fov, const float aspectRatio,
-          const float near, const float far, const GraphicsAPI api = GraphicsAPI::OpenGL);
+   Camera(const GraphicsAPI api, const Transform& transform, const glm::vec3& up, const float fov, const float aspectRatio,
+          const float near, const float far);
 
    const glm::vec3& GetViewDirection();
    const glm::vec3& GetRightVector();
