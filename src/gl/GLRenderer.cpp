@@ -11,7 +11,8 @@
 
 // Stuff for mesh
 #include <vector>
-#include "GLVertexBuffer.hpp"
+#include "GLBuffer.hpp"
+#include "GLVertexArray.hpp"
 #include "../core/Vertex.hpp"
 
 // Testing mesh
@@ -24,7 +25,10 @@ const std::vector<Vertex> vertices = {
 const std::vector<uint16_t> indices = {
    0, 1, 2, 2, 3, 0
 };
-GLVertexBuffer* mesh = nullptr;
+
+GLBuffer* vbo = nullptr;
+GLBuffer* ebo = nullptr;
+GLVertexArray* vao = nullptr;
 
 GLRenderer::GLRenderer(Window* window)
    :
@@ -67,8 +71,16 @@ void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) 
 }
 
 void GLRenderer::CreateTestMesh() {
-   mesh = new GLVertexBuffer();
-   mesh->UploadData(vertices, indices);
+   vbo = new GLBuffer(GLBuffer::Type::Array, GLBuffer::Usage::StaticDraw);
+   vbo->UploadData(vertices);
+
+   ebo = new GLBuffer(GLBuffer::Type::Element, GLBuffer::Usage::StaticDraw);
+   ebo->UploadData(indices);
+
+   vao = new GLVertexArray();
+   vao->AttachVertexBuffer(*vbo,0, 0, sizeof(Vertex));
+   vao->AttachElementBuffer(*ebo);
+   vao->SetupVertexAttributes();
 }
 
 GLRenderer::~GLRenderer() {
@@ -76,7 +88,9 @@ GLRenderer::~GLRenderer() {
    ImGui_ImplGlfw_Shutdown();
    ImGui::DestroyContext();
 
-   delete mesh;
+   delete vbo;
+   delete ebo;
+   delete vao;
 }
 
 void GLRenderer::RenderFrame() {
@@ -84,7 +98,7 @@ void GLRenderer::RenderFrame() {
    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-   mesh->Draw();
+   vao->DrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT);
 
    // Render ImGUI
    ImGui_ImplOpenGL3_NewFrame();
