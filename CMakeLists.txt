@@ -18,12 +18,19 @@ set(CMAKE_C_EXTENSIONS OFF)
 message(STATUS "Detected compiler: ${CMAKE_CXX_COMPILER_ID}")
 
 # Setup shader compilation
-set(SHADER_SOURCE_DIR "${CMAKE_SOURCE_DIR}/resources/shaders")
-set(SHADER_BINARY_DIR "${CMAKE_BINARY_DIR}/resources/shaders")
+set(GL_SHADER_SOURCE_DIR "${CMAKE_SOURCE_DIR}/resources/shaders/gl")
+set(VK_SHADER_SOURCE_DIR "${CMAKE_SOURCE_DIR}/resources/shaders/vk")
+set(GL_SHADER_BINARY_DIR "${CMAKE_BINARY_DIR}/resources/shaders/gl")
+set(VK_SHADER_BINARY_DIR "${CMAKE_BINARY_DIR}/resources/shaders/vk")
 
-file(GLOB_RECURSE GLSL_SHADERS
-   "${SHADER_SOURCE_DIR}/*.vert"
-   "${SHADER_SOURCE_DIR}/*.frag"
+file(GLOB_RECURSE GL_GLSL_SHADERS
+   "${GL_SHADER_SOURCE_DIR}/*.vert"
+   "${GL_SHADER_SOURCE_DIR}/*.frag"
+)
+
+file(GLOB_RECURSE VK_GLSL_SHADERS
+   "${VK_SHADER_SOURCE_DIR}/*.vert"
+   "${VK_SHADER_SOURCE_DIR}/*.frag"
 )
 
 # Find program to compile shaders
@@ -34,12 +41,12 @@ endif()
 
 # Compile each shader to SPIR-V
 set(COMPILED_SPV_FILES "")
-foreach(GLSL_FILE ${GLSL_SHADERS})
+foreach(GLSL_FILE ${VK_GLSL_SHADERS})
    get_filename_component(FILE_NAME ${GLSL_FILE} NAME)
-   set(SPV_FILE "${SHADER_BINARY_DIR}/${FILE_NAME}.spv")
+   set(SPV_FILE "${VK_SHADER_BINARY_DIR}/${FILE_NAME}.spv")
    add_custom_command(
       OUTPUT ${SPV_FILE}
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADER_BINARY_DIR}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${VK_SHADER_BINARY_DIR}
       COMMAND ${GLSLANG_VALIDATOR} -V ${GLSL_FILE} -o ${SPV_FILE}
       DEPENDS ${GLSL_FILE}
       COMMENT "Compiling ${FILE_NAME} to SPIR-V for Vulkan"
@@ -51,12 +58,12 @@ add_custom_target(compile_shaders ALL DEPENDS ${COMPILED_SPV_FILES})
 
 # Copy shaders to resources
 set(COPIED_GLSL_FILES "")
-foreach(GLSL_FILE ${GLSL_SHADERS})
+foreach(GLSL_FILE ${GL_GLSL_SHADERS})
    get_filename_component(FILE_NAME ${GLSL_FILE} NAME)
-   set(DEST_FILE "${SHADER_BINARY_DIR}/${FILE_NAME}")
+   set(DEST_FILE "${GL_SHADER_BINARY_DIR}/${FILE_NAME}")
    add_custom_command(
       OUTPUT ${DEST_FILE}
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADER_BINARY_DIR}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${GL_SHADER_BINARY_DIR}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GLSL_FILE} ${DEST_FILE}
       DEPENDS ${GLSL_FILE}
       COMMENT "Copying ${FILE_NAME} for OpenGL"
