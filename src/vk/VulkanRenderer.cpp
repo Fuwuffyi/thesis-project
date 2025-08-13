@@ -186,12 +186,16 @@ void VulkanRenderer::CreateGraphicsPipeline() {
    colorBlending.blendConstants[2] = 0.0f;
    colorBlending.blendConstants[3] = 0.0f;
    // Setup a pipeline layout for uniforms
+   VkPushConstantRange pushConstantRange{};
+   pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+   pushConstantRange.offset = 0;
+   pushConstantRange.size = sizeof(glm::mat4);
    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
    pipelineLayoutInfo.setLayoutCount = 1;
    pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
-   pipelineLayoutInfo.pushConstantRangeCount = 0;
-   pipelineLayoutInfo.pPushConstantRanges = nullptr;
+   pipelineLayoutInfo.pushConstantRangeCount = 1;
+   pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
    if (vkCreatePipelineLayout(m_device.Get(), &pipelineLayoutInfo, nullptr,
                               &m_pipelineLayout) != VK_SUCCESS) {
       throw std::runtime_error("Failed to create pipeline layout.");
@@ -301,6 +305,16 @@ void VulkanRenderer::CreateCommandBuffers() {
 
 void VulkanRenderer::RecordCommandBuffer(const VkCommandBuffer &commandBuffer,
                                          const uint32_t imageIndex) {
+   // Rotate the object for fun
+   static auto startTime = std::chrono::high_resolution_clock::now();
+   auto currentTime = std::chrono::high_resolution_clock::now();
+   float time = std::chrono::duration<float, std::chrono::seconds::period>(
+      currentTime - startTime)
+      .count();
+   ObjectData objData {};
+   objData.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
+                               glm::vec3(0.0f, 0.0f, 1.0f));
+   // Setup record
    VkCommandBufferBeginInfo beginInfo{};
    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
    beginInfo.flags = 0;
@@ -336,6 +350,10 @@ void VulkanRenderer::RecordCommandBuffer(const VkCommandBuffer &commandBuffer,
    scissor.offset = {0, 0};
    scissor.extent = m_swapchain.GetExtent();
    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+   // Set triangle position/rotation/scale
+   vkCmdPushConstants(commandBuffer, m_pipelineLayout,
+                      VK_SHADER_STAGE_VERTEX_BIT, 0,
+                      sizeof(ObjectData), &objData);
    // Draw the triangle
    VkBuffer vertexBuffers[] = {m_vertexBuffer->Get()};
    VkDeviceSize offsets[] = {0};
@@ -447,7 +465,7 @@ void VulkanRenderer::CreateIndexBuffer() {
 }
 
 void VulkanRenderer::CreateUniformBuffer() {
-   const VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+   const VkDeviceSize bufferSize = sizeof(CameraData);
    m_uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
       m_uniformBuffers[i] = std::make_unique<VulkanBuffer>(
@@ -459,20 +477,13 @@ void VulkanRenderer::CreateUniformBuffer() {
 void VulkanRenderer::UpdateUniformBuffer(const uint32_t currentImage) {
    if (!m_activeCamera)
       return;
-   static auto startTime = std::chrono::high_resolution_clock::now();
-   auto currentTime = std::chrono::high_resolution_clock::now();
-   float time = std::chrono::duration<float, std::chrono::seconds::period>(
-      currentTime - startTime)
-      .count();
-   UniformBufferObject ubo{};
-   ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
-                           glm::vec3(0.0f, 0.0f, 1.0f));
+   CameraData camData {};
    m_activeCamera->SetAspectRatio(
       static_cast<float>(m_swapchain.GetExtent().width) /
       static_cast<float>(m_swapchain.GetExtent().height));
-   ubo.view = m_activeCamera->GetViewMatrix();
-   ubo.proj = m_activeCamera->GetProjectionMatrix();
-   m_uniformBuffers[currentImage]->UpdateMapped(&ubo, sizeof(ubo));
+   camData.view = m_activeCamera->GetViewMatrix();
+   camData.proj = m_activeCamera->GetProjectionMatrix();
+   m_uniformBuffers[currentImage]->UpdateMapped(&camData, sizeof(CameraData));
 }
 
 void VulkanRenderer::CreateDescriptorPool() {
@@ -507,7 +518,7 @@ void VulkanRenderer::CreateDescriptorSets() {
       VkDescriptorBufferInfo bufferInfo{};
       bufferInfo.buffer = m_uniformBuffers[i]->Get();
       bufferInfo.offset = 0;
-      bufferInfo.range = sizeof(UniformBufferObject);
+      bufferInfo.range = sizeof(CameraData);
       VkWriteDescriptorSet descriptorWrite{};
       descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       descriptorWrite.dstSet = m_descriptorSets[i];
@@ -560,11 +571,9 @@ void VulkanRenderer::RenderFrame() {
       throw std::runtime_error("Failed to acquire swap chain image.");
    }
    vkResetFences(m_device.Get(), 1, &m_inFlightFences[m_currentFrame]);
-
-   UpdateUniformBuffer(m_currentFrame);
-
    // Setup command buffer to draw the triangle
    vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
+   UpdateUniformBuffer(m_currentFrame);
    RecordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
    // Submit the command buffer
    VkSubmitInfo submitInfo{};

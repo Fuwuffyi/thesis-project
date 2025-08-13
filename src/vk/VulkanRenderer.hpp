@@ -17,10 +17,13 @@
 #include <optional>
 #include <vector>
 
-struct UniformBufferObject {
-   alignas(16) glm::mat4 model;
+struct CameraData {
    alignas(16) glm::mat4 view;
    alignas(16) glm::mat4 proj;
+};
+
+struct ObjectData {
+   alignas(16) glm::mat4 model;
 };
 
 class VulkanRenderer : public IRenderer {
