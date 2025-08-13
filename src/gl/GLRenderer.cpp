@@ -6,26 +6,30 @@
 
 #include "../core/Window.hpp"
 #include "../core/Camera.hpp"
+#include "glm/gtc/type_ptr.hpp"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
 // Stuff for mesh
 #include <vector>
+#include "GLShader.hpp"
 #include "GLBuffer.hpp"
 #include "GLVertexArray.hpp"
 #include "../core/Vertex.hpp"
 
 // Testing mesh
+using glm::value_ptr;
+
 const std::vector<Vertex> vertices = {
-   { { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }},
-   { { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f }},
-   { { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f }},
-   { { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f }}
-};
+    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}}};
 const std::vector<uint16_t> indices = {
    0, 1, 2, 2, 3, 0
 };
 
+GLShader* shader = nullptr;
 GLBuffer* vbo = nullptr;
 GLBuffer* ebo = nullptr;
 GLVertexArray* vao = nullptr;
@@ -71,6 +75,11 @@ void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) 
 }
 
 void GLRenderer::CreateTestMesh() {
+   shader = new GLShader();
+   shader->AttachShaderFromFile(GLShader::Type::Vertex, "resources/shaders/gl/test.vert");
+   shader->AttachShaderFromFile(GLShader::Type::Fragment, "resources/shaders/gl/test.frag");
+   shader->Link();
+
    vbo = new GLBuffer(GLBuffer::Type::Array, GLBuffer::Usage::StaticDraw);
    vbo->UploadData(vertices);
 
@@ -98,6 +107,11 @@ void GLRenderer::RenderFrame() {
    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+   shader->Use();
+   glm::mat4 modl = glm::mat4(1.0f);
+   shader->SetMat4("model", modl);
+   shader->SetMat4("proj", m_activeCamera->GetProjectionMatrix());
+   shader->SetMat4("view", m_activeCamera->GetViewMatrix());
    vao->DrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT);
 
    // Render ImGUI
