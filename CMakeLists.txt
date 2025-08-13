@@ -427,3 +427,79 @@ if(WIN32 AND CMAKE_GENERATOR MATCHES "Visual Studio")
    source_group("Source Files" FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
    set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 endif()
+
+# Disable library warnings
+if(MSVC)
+   set(THIRD_PARTY_WARN_FLAG "/W0")
+else()
+   set(THIRD_PARTY_WARN_FLAG "-w")
+endif()
+
+function(_disable_warnings_for target)
+   # If the target doesn't exist at all, skip early.
+   if(NOT TARGET ${target})
+      message(STATUS "Third-party target '${target}' does not exist — skipping.")
+      return()
+   endif()
+   # Start by assuming the target is the resolved target.
+   set(_resolved_target "${target}")
+   # If the target is an ALIAS, try to resolve it to the real target name.
+   # get_property returns "NOTFOUND" if the property doesn't exist; otherwise it returns the aliased target name.
+   get_property(_aliased TARGET ${target} PROPERTY ALIASED_TARGET)
+   if(NOT "${_aliased}" STREQUAL "NOTFOUND" AND NOT "${_aliased}" STREQUAL "")
+      set(_resolved_target "${_aliased}")
+      message(STATUS "Resolved alias ${target} -> ${_aliased}")
+   endif()
+   # Final existence check
+   if(NOT TARGET ${_resolved_target})
+      message(STATUS "Resolved target '${_resolved_target}' not found — skipping.")
+      return()
+   endif()
+   # Don't attempt to call set_property on an ALIAS target; check the type of the resolved target.
+   get_target_property(_final_type ${_resolved_target} TYPE)
+   if("${_final_type}" STREQUAL "ALIAS")
+      message(WARNING "Resolved target ${_resolved_target} is an ALIAS — skipping to avoid set_property on ALIAS.")
+      return()
+   endif()
+   # Apply the appropriate compile-option property depending on target kind.
+   # INTERFACE_LIBRARY targets should receive INTERFACE_COMPILE_OPTIONS so consumers pick it up,
+   # while regular library/executable targets receive COMPILE_OPTIONS.
+   if("${_final_type}" STREQUAL "INTERFACE_LIBRARY")
+      set_property(TARGET ${_resolved_target} APPEND PROPERTY INTERFACE_COMPILE_OPTIONS "${THIRD_PARTY_WARN_FLAG}")
+   else()
+      set_property(TARGET ${_resolved_target} APPEND PROPERTY COMPILE_OPTIONS "${THIRD_PARTY_WARN_FLAG}")
+   endif()
+   # Convert interface include directories to system include directories where present (best-effort).
+   get_target_property(_iface_incs ${_resolved_target} INTERFACE_INCLUDE_DIRECTORIES)
+   if(NOT _iface_incs STREQUAL "NOTFOUND" AND NOT "${_iface_incs}" STREQUAL "")
+      # APPEND so we don't clobber other properties. This is safe for imported targets too.
+      set_property(TARGET ${_resolved_target} APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_iface_incs}")
+   endif()
+   # Also try to capture non-interface include directories and mark them as system for consumers
+   get_target_property(_all_incs ${_resolved_target} INCLUDE_DIRECTORIES)
+   if(NOT _all_incs STREQUAL "NOTFOUND" AND NOT "${_all_incs}" STREQUAL "")
+      set_property(TARGET ${_resolved_target} APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_all_incs}")
+   endif()
+   message(STATUS "Disabled warnings for third-party target: ${_resolved_target} (type=${_final_type})")
+endfunction()
+
+_disable_warnings_for(glad_gl_core_46)
+_disable_warnings_for(glfw)
+_disable_warnings_for(glm::glm)
+_disable_warnings_for(assimp)
+_disable_warnings_for(stb)
+_disable_warnings_for(imgui)
+_disable_warnings_for(Vulkan::Vulkan)
+_disable_warnings_for(OpenGL::GL)
+
+if(WIN32 AND CMAKE_GENERATOR MATCHES "Visual Studio")
+   set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+   set_target_properties(${PROJECT_NAME} PROPERTIES
+      VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>"
+      VS_DEBUGGER_COMMAND_ARGUMENTS ""
+      VS_DEBUGGER_ENVIRONMENT "PATH=%PATH%"
+   )
+   source_group("Source Files" FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
+   set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+endif()
+
