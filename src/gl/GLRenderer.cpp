@@ -72,6 +72,8 @@ GLRenderer::GLRenderer(Window* window)
    if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
       throw std::runtime_error("GLAD init failed.");
    }
+   // Setup imgui
+   SetupImgui();
    // Set initial viewport
    GLRenderer::FramebufferCallback(
       static_cast<int32_t>(m_window->GetWidth()),
@@ -86,16 +88,6 @@ GLRenderer::GLRenderer(Window* window)
    glEnable(GL_CULL_FACE);
    glCullFace(GL_BACK);
    glFrontFace(GL_CCW);
-   // Initialize ImGui
-   IMGUI_CHECKVERSION();
-   ImGui::CreateContext();
-   if (!ImGui_ImplGlfw_InitForOpenGL(m_window->GetNativeWindow(), true)) {
-      throw std::runtime_error("ImGUI initialization failed.");
-   }
-   if (!ImGui_ImplOpenGL3_Init("#version 460")) {
-      throw std::runtime_error("ImGUI initialization failed.");
-   }
-
 
    CreateTestMesh();
 }
@@ -128,10 +120,7 @@ void GLRenderer::CreateTestMesh() {
 }
 
 GLRenderer::~GLRenderer() {
-   ImGui_ImplOpenGL3_Shutdown();
-   ImGui_ImplGlfw_Shutdown();
-   ImGui::DestroyContext();
-
+   DestroyImgui();
    delete vbo;
    delete ebo;
    delete vao;
@@ -139,11 +128,40 @@ GLRenderer::~GLRenderer() {
    delete cameraUbo;
 }
 
+void GLRenderer::SetupImgui() {
+   IMGUI_CHECKVERSION();
+   ImGui::CreateContext();
+   if (!ImGui_ImplGlfw_InitForOpenGL(m_window->GetNativeWindow(), true)) {
+      throw std::runtime_error("ImGUI initialization failed.");
+   }
+   if (!ImGui_ImplOpenGL3_Init("#version 460")) {
+      throw std::runtime_error("ImGUI initialization failed.");
+   }
+}
+
+void GLRenderer::DestroyImgui() {
+   ImGui_ImplOpenGL3_Shutdown();
+   ImGui_ImplGlfw_Shutdown();
+   ImGui::DestroyContext();
+}
+
+void GLRenderer::RenderImgui() {
+   // Render ImGUI
+   ImGui_ImplOpenGL3_NewFrame();
+   ImGui_ImplGlfw_NewFrame();
+   ImGui::NewFrame();
+   // Show window
+   ImGui::ShowDemoWindow();
+   // End ImGUI Render
+   ImGui::Render();
+   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
 void GLRenderer::RenderFrame() {
    // Clear the screen
    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+   // Test pipeline with cube
    shader->Use();
    const glm::mat4 model = glm::mat4(1.0f);
    const CameraData camData = {
@@ -154,16 +172,8 @@ void GLRenderer::RenderFrame() {
    shader->BindUniformBlock("CameraData", 0);
    shader->SetMat4("model", model);
    vao->DrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT);
-
-   // Render ImGUI
-   ImGui_ImplOpenGL3_NewFrame();
-   ImGui_ImplGlfw_NewFrame();
-   ImGui::NewFrame();
-   // Show window
-   ImGui::ShowDemoWindow();
-   // End ImGUI Render
-   ImGui::Render();
-   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+   // Render Ui
+   RenderImgui();
    // Swap buffers
    glfwSwapBuffers(m_window->GetNativeWindow());
 }

@@ -33,6 +33,9 @@ public:
    ~VulkanRenderer();
    void RenderFrame() override;
 private:
+   void SetupImgui() override;
+   void RenderImgui() override;
+   void DestroyImgui() override;
    // Functions to set up a graphics pipeline
    void CreateGraphicsPipeline();
    // Descriptor set for pipeline

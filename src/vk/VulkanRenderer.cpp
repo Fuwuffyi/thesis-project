@@ -79,6 +79,7 @@ VulkanRenderer::VulkanRenderer(Window *windowHandle)
    CreateGraphicsPipeline();
    CreateFramebuffers();
    CreateCommandPool();
+   SetupImgui();
    CreateTextureImage();
    CreateVertexBuffer();
    CreateIndexBuffer();
@@ -87,18 +88,6 @@ VulkanRenderer::VulkanRenderer(Window *windowHandle)
    CreateDescriptorSets();
    CreateCommandBuffers();
    CreateSynchronizationObjects();
-
-   // Initialize ImGui
-   /*
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  if (!ImGui_ImplGlfw_InitForVulkan(m_window->GetNativeWindow(), true)) {
-     throw std::runtime_error("ImGUI initialization failed.");
-  }
-  if (!ImGui_ImplVulkan_Init(ImGui_ImplVulkan_InitInfo *info)) {
-     throw std::runtime_error("ImGUI initialization failed.");
-  }
-  */
 }
 
 void VulkanRenderer::CreateGraphicsPipeline() {
@@ -272,6 +261,8 @@ void VulkanRenderer::RecordCommandBuffer(const VkCommandBuffer &commandBuffer,
                            &m_descriptorSets[m_currentFrame], 0, nullptr);
    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0,
                     0, 0);
+   // TODO: Clean up imgui stuff
+   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers[m_currentFrame]);
    vkCmdEndRenderPass(commandBuffer);
    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
       throw std::runtime_error("Failed to record command buffer.");
@@ -477,11 +468,74 @@ VulkanRenderer::~VulkanRenderer() {
       vkDestroyFence(m_device.Get(), m_inFlightFences[i], nullptr);
    }
    vkDestroyCommandPool(m_device.Get(), m_commandPool, nullptr);
-   /*
-  ImGui_ImplVulkan_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
-  */
+   DestroyImgui();
+}
+
+void VulkanRenderer::SetupImgui() {
+   IMGUI_CHECKVERSION();
+   ImGui::CreateContext();
+   if (!ImGui_ImplGlfw_InitForVulkan(m_window->GetNativeWindow(), true)) {
+      throw std::runtime_error("ImGUI initialization failed.");
+   }
+   VkDescriptorPoolSize pool_sizes[] =
+      {
+         { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+         { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+         { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+         { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+         { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+      };
+   VkDescriptorPoolCreateInfo pool_info{};
+   pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+   pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT; // ImGui needs this
+   pool_info.maxSets = 1000 * IM_ARRAYSIZE(pool_sizes);
+   pool_info.poolSizeCount = static_cast<uint32_t>(IM_ARRAYSIZE(pool_sizes));
+   pool_info.pPoolSizes = pool_sizes;
+   VkDescriptorPool imguiPool;
+   if (vkCreateDescriptorPool(m_device.Get(), &pool_info, nullptr, &imguiPool) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to create ImGui descriptor pool.");
+   }
+   ImGui_ImplVulkan_InitInfo imguiInfo{};
+   imguiInfo.Instance = m_instance.Get();
+   imguiInfo.PhysicalDevice = m_device.GetPhysicalDevice();
+   imguiInfo.Device = m_device.Get();
+   imguiInfo.QueueFamily = m_device.GetGraphicsQueueFamily();
+   imguiInfo.Queue = m_device.GetGraphicsQueue();
+   imguiInfo.PipelineCache = VK_NULL_HANDLE;
+   imguiInfo.DescriptorPool = imguiPool;
+   imguiInfo.MinImageCount = static_cast<uint32_t>(m_swapchain.GetImages().size());
+   imguiInfo.ImageCount = static_cast<uint32_t>(m_swapchain.GetImages().size());
+   imguiInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+   imguiInfo.Allocator = nullptr;
+   imguiInfo.RenderPass = m_renderPass.Get();
+   imguiInfo.CheckVkResultFn = [](VkResult err) {
+      if (err != VK_SUCCESS) {
+         throw std::runtime_error("ImGui Vulkan call failed.");
+      }
+   };
+   if (!ImGui_ImplVulkan_Init(&imguiInfo)) {
+      throw std::runtime_error("ImGUI initialization failed.");
+   }
+}
+
+void VulkanRenderer::DestroyImgui() {
+   ImGui_ImplVulkan_Shutdown();
+   ImGui_ImplGlfw_Shutdown();
+   ImGui::DestroyContext();
+}
+
+void VulkanRenderer::RenderImgui() {
+   ImGui_ImplVulkan_NewFrame();
+   ImGui_ImplGlfw_NewFrame();
+   ImGui::NewFrame();
+   ImGui::ShowDemoWindow();
+   ImGui::Render();
 }
 
 void VulkanRenderer::RenderFrame() {
@@ -503,6 +557,7 @@ void VulkanRenderer::RenderFrame() {
    // Setup command buffer to draw the triangle
    vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
    UpdateUniformBuffer(m_currentFrame);
+   RenderImgui();
    RecordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
    // Submit the command buffer
    VkSubmitInfo submitInfo{};
@@ -522,16 +577,6 @@ void VulkanRenderer::RenderFrame() {
                      m_inFlightFences[m_currentFrame]) != VK_SUCCESS) {
       throw std::runtime_error("failed to submit draw command buffer!");
    }
-
-   /*
-  ImGui_ImplVulkan_NewFrame();
-  ImGui_ImplGlfw_NewFrame();
-  ImGui::NewFrame();
-  ImGui::ShowDemoWindow();
-  ImGui::Render();
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffer);
-  */
-
    // Finish frame and present
    VkPresentInfoKHR presentInfo{};
    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
