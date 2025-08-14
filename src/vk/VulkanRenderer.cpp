@@ -534,7 +534,20 @@ void VulkanRenderer::RenderImgui() {
    ImGui_ImplVulkan_NewFrame();
    ImGui_ImplGlfw_NewFrame();
    ImGui::NewFrame();
-   ImGui::ShowDemoWindow();
+   // FPS Overlay
+   {
+      ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
+      ImGui::SetNextWindowBgAlpha(0.35f);
+      ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
+         ImGuiWindowFlags_AlwaysAutoResize |
+         ImGuiWindowFlags_NoSavedSettings |
+         ImGuiWindowFlags_NoFocusOnAppearing |
+         ImGuiWindowFlags_NoNav;
+      ImGui::Begin("FPS Overlay", nullptr, flags);
+      ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+      ImGui::Text("Frame: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
+      ImGui::End();
+   }
    ImGui::Render();
 }
 

@@ -146,13 +146,23 @@ void GLRenderer::DestroyImgui() {
 }
 
 void GLRenderer::RenderImgui() {
-   // Render ImGUI
    ImGui_ImplOpenGL3_NewFrame();
    ImGui_ImplGlfw_NewFrame();
    ImGui::NewFrame();
-   // Show window
-   ImGui::ShowDemoWindow();
-   // End ImGUI Render
+   // FPS Overlay
+   {
+      ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
+      ImGui::SetNextWindowBgAlpha(0.35f);
+      ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
+         ImGuiWindowFlags_AlwaysAutoResize |
+         ImGuiWindowFlags_NoSavedSettings |
+         ImGuiWindowFlags_NoFocusOnAppearing |
+         ImGuiWindowFlags_NoNav;
+      ImGui::Begin("FPS Overlay", nullptr, flags);
+      ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+      ImGui::Text("Frame: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
+      ImGui::End();
+   }
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

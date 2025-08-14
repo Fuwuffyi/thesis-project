@@ -31,7 +31,6 @@ Window::Window(const GraphicsAPI api, const WindowDesc& desc)
       throw std::runtime_error("Unsupported Graphics API");
    }
    glfwWindowHint(GLFW_RESIZABLE, desc.resizable ? GLFW_TRUE : GLFW_FALSE);
-
    // Create the glfw window
    m_window = glfwCreateWindow(
       static_cast<int>(desc.width),
@@ -49,6 +48,9 @@ Window::Window(const GraphicsAPI api, const WindowDesc& desc)
    // Set main window if GL
    if (api == GraphicsAPI::OpenGL) {
       glfwMakeContextCurrent(m_window);
+   }
+   if (!desc.vsync) {
+      glfwSwapInterval(0);
    }
    // Setup callback configuration
    glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
