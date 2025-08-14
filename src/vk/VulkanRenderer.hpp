@@ -50,9 +50,6 @@ private:
    // Functions to setup swapchain recreation
    void RecreateSwapchain();
    void CleanupSwapchain();
-   // Functions to set up vertex attributes
-   static VkVertexInputBindingDescription GetVertexBindingDescription();
-   static std::array<VkVertexInputAttributeDescription, 3> GetVertexAttributeDescriptions();
    // Functions to create textures
    void CreateImage(const uint32_t width, const uint32_t height, const VkFormat format,
                     const VkImageTiling tiling, const VkImageUsageFlags usage,
