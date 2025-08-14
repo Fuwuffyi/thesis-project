@@ -18,7 +18,6 @@ int main() {
          .resizable = true
       };
       Window window(api, windowDesc);
-      window.SetCursorVisible(false);
 
       // Create the camera
       const glm::vec3 startPos = glm::vec3(2.0f);
@@ -28,6 +27,7 @@ int main() {
       Camera cam(api, camTransform, glm::vec3(0.0f, 1.0f, 0.0f), 90.0f,
                  1.0f, 0.01f, 100.0f);
       const float camSpeed = 3.0f;
+      const float camRotateSpeed = glm::radians(60.0f);
 
       // Create the renderer
       std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api, &window);
@@ -74,15 +74,35 @@ int main() {
          position -= glm::vec3(0.0f, 1.0f, 0.0f) * camSpeed * deltaTime;
          transform.SetPosition(position);
       });
-
-      // ALT toggles cursor
-      events->OnKeyDown(GLFW_KEY_LEFT_ALT, [&](const uint32_t, const uint32_t, const uint32_t) {
-         window.SetCursorVisible(true);
+      // Rotation stuff
+      events->OnKeyHeld(GLFW_KEY_I, [&](const uint32_t, const uint32_t, const uint32_t) {
+         Transform& transform = cam.GetMutableTransform();
+         glm::quat rotation = transform.GetRotation();
+         // Pitch up: rotate around right vector
+         rotation = glm::normalize(glm::angleAxis(camRotateSpeed * deltaTime, cam.GetRightVector()) * rotation);
+         transform.SetRotation(rotation);
       });
-      events->OnKeyUp(GLFW_KEY_LEFT_ALT, [&](const uint32_t, const uint32_t, const uint32_t) {
-         window.SetCursorVisible(false);
+      events->OnKeyHeld(GLFW_KEY_K, [&](const uint32_t, const uint32_t, const uint32_t) {
+         Transform& transform = cam.GetMutableTransform();
+         glm::quat rotation = transform.GetRotation();
+         // Pitch down: rotate around right vector
+         rotation = glm::normalize(glm::angleAxis(-camRotateSpeed * deltaTime, cam.GetRightVector()) * rotation);
+         transform.SetRotation(rotation);
       });
-
+      events->OnKeyHeld(GLFW_KEY_J, [&](const uint32_t, const uint32_t, const uint32_t) {
+         Transform& transform = cam.GetMutableTransform();
+         glm::quat rotation = transform.GetRotation();
+         // Yaw left: rotate around world up vector
+         rotation = glm::normalize(glm::angleAxis(camRotateSpeed * deltaTime, glm::vec3(0.0f, 1.0f, 0.0f)) * rotation);
+         transform.SetRotation(rotation);
+      });
+      events->OnKeyHeld(GLFW_KEY_L, [&](const uint32_t, const uint32_t, const uint32_t) {
+         Transform& transform = cam.GetMutableTransform();
+         glm::quat rotation = transform.GetRotation();
+         // Yaw right: rotate around world up vector
+         rotation = glm::normalize(glm::angleAxis(-camRotateSpeed * deltaTime, glm::vec3(0.0f, 1.0f, 0.0f)) * rotation);
+         transform.SetRotation(rotation);
+      });
       // ESC to close window
       events->OnKeyDown(GLFW_KEY_ESCAPE, [&](const uint32_t, const uint32_t, const uint32_t) {
          glfwSetWindowShouldClose(window.GetNativeWindow(), true);
