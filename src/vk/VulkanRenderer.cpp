@@ -220,8 +220,7 @@ void VulkanRenderer::RecordCommandBuffer(const VkCommandBuffer &commandBuffer,
       currentTime - startTime)
       .count();
    ObjectData objData {};
-   objData.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
-                               glm::normalize(glm::vec3(0.45f, 0.75f, 1.0f)));
+   objData.model = glm::mat4(1.0f);
    // Setup record
    VkCommandBufferBeginInfo beginInfo{};
    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

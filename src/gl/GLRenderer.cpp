@@ -11,7 +11,6 @@
 
 // Stuff for mesh
 #include <vector>
-#include <chrono>
 #include "GLShader.hpp"
 #include "GLBuffer.hpp"
 #include "GLVertexArray.hpp"
@@ -146,13 +145,7 @@ void GLRenderer::RenderFrame() {
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
    shader->Use();
-   static auto startTime = std::chrono::high_resolution_clock::now();
-   auto currentTime = std::chrono::high_resolution_clock::now();
-   float time = std::chrono::duration<float, std::chrono::seconds::period>(
-      currentTime - startTime)
-      .count();
-   const glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
-                                       glm::normalize(glm::vec3(0.45f, 0.75f, 1.0f)));
+   const glm::mat4 model = glm::mat4(1.0f);
    const CameraData camData = {
       m_activeCamera->GetViewMatrix(),
       m_activeCamera->GetProjectionMatrix()
