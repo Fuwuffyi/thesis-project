@@ -17,6 +17,30 @@ set(CMAKE_C_EXTENSIONS OFF)
 # Log compiler
 message(STATUS "Detected compiler: ${CMAKE_CXX_COMPILER_ID}")
 
+# Setup resource copying
+set(TEXTURE_DIR "${CMAKE_SOURCE_DIR}/resources/textures")
+set(TEXTURE_OUT_DIR "${CMAKE_BINARY_DIR}/resources/textures")
+file(GLOB_RECURSE TEXTURE_FILES
+   "${TEXTURE_DIR}/*.png"
+   "${TEXTURE_DIR}/*.jpg"
+)
+
+set(COPIED_TEXTURE_FILES "")
+foreach(TEXTURE_FILE ${TEXTURE_FILES})
+   get_filename_component(FILE_NAME ${TEXTURE_FILE} NAME)
+   set(DEST_FILE "${TEXTURE_OUT_DIR}/${FILE_NAME}")
+   add_custom_command(
+      OUTPUT ${DEST_FILE}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${TEXTURE_OUT_DIR}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${TEXTURE_FILE} ${DEST_FILE}
+      DEPENDS ${TEXTURE_FILE}
+      COMMENT "Copying texture ${FILE_NAME}"
+      VERBATIM
+   )
+   list(APPEND COPIED_TEXTURE_FILES ${DEST_FILE})
+endforeach()
+add_custom_target(copy_textures ALL DEPENDS ${COPIED_TEXTURE_FILES})
+
 # Setup shader compilation
 set(GL_SHADER_SOURCE_DIR "${CMAKE_SOURCE_DIR}/resources/shaders/gl")
 set(VK_SHADER_SOURCE_DIR "${CMAKE_SOURCE_DIR}/resources/shaders/vk")

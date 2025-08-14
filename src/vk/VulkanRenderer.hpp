@@ -6,6 +6,7 @@
 #include "VulkanSurface.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanSwapchain.hpp"
+#include "VulkanPipeline.hpp"
 #include "VulkanRenderPass.hpp"
 #include "VulkanBuffer.hpp"
 
@@ -33,9 +34,7 @@ public:
    void RenderFrame() override;
 private:
    // Functions to set up a graphics pipeline
-   static std::vector<char> ReadFile(const std::string& filename);
    void CreateGraphicsPipeline();
-   VkShaderModule CreateShaderModule(const std::vector<char>& code);
    // Descriptor set for pipeline
    void CreateDescriptorSetLayout();
    void CreateDescriptorPool();
@@ -54,6 +53,12 @@ private:
    // Functions to set up vertex attributes
    static VkVertexInputBindingDescription GetVertexBindingDescription();
    static std::array<VkVertexInputAttributeDescription, 3> GetVertexAttributeDescriptions();
+   // Functions to create textures
+   void CreateImage(const uint32_t width, const uint32_t height, const VkFormat format,
+                    const VkImageTiling tiling, const VkImageUsageFlags usage,
+                    const VkMemoryPropertyFlags properties, VkImage& image,
+                    VkDeviceMemory& imageMemory);
+   void CreateTextureImage();
    // Testing mesh
    void CreateVertexBuffer();
    void CreateIndexBuffer();
@@ -70,8 +75,8 @@ private:
    VulkanRenderPass m_renderPass;
    std::vector<VkFramebuffer> m_swapchainFramebuffers;
    VkDescriptorSetLayout m_descriptorSetLayout;
-   VkPipelineLayout m_pipelineLayout;
-   VkPipeline m_graphicsPipeline;
+   std::unique_ptr<VulkanPipelineLayout> m_pipelineLayout;
+   std::unique_ptr<VulkanGraphicsPipeline> m_graphicsPipeline;
    VkCommandPool m_commandPool;
    std::vector<VkCommandBuffer> m_commandBuffers;
    std::vector<VkSemaphore> m_imageAvailableSemaphores;
@@ -80,6 +85,8 @@ private:
    // TODO: Remove unique ptrs in favour of stack variables once other abstractions are implemented
    std::unique_ptr<VulkanBuffer> m_vertexBuffer;
    std::unique_ptr<VulkanBuffer> m_indexBuffer;
+   VkImage m_textureImage;
+   VkDeviceMemory m_textureImageMemory;
    std::vector<std::unique_ptr<VulkanBuffer>> m_uniformBuffers;
    std::vector<void*> m_uniformBuffersMapped;
    VkDescriptorPool m_descriptorPool;

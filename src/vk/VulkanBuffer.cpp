@@ -221,7 +221,9 @@ void VulkanBuffer::AllocateMemory() {
    VkMemoryAllocateInfo allocInfo{};
    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
    allocInfo.allocationSize = memRequirements.size;
-   allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, m_memoryProperties);
+   allocInfo.memoryTypeIndex = VulkanBuffer::FindMemoryType(m_device->GetPhysicalDevice(),
+                                                            memRequirements.memoryTypeBits,
+                                                            m_memoryProperties);
    VkResult result = vkAllocateMemory(m_device->Get(), &allocInfo, nullptr, &m_memory);
    if (result != VK_SUCCESS) {
       throw std::runtime_error("Failed to allocate buffer memory");
@@ -229,9 +231,9 @@ void VulkanBuffer::AllocateMemory() {
    vkBindBufferMemory(m_device->Get(), m_buffer, m_memory, 0);
 }
 
-uint32_t VulkanBuffer::FindMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags properties) const {
+uint32_t VulkanBuffer::FindMemoryType(const VkPhysicalDevice& physicalDevice, const uint32_t typeFilter, const VkMemoryPropertyFlags properties) {
    VkPhysicalDeviceMemoryProperties memProperties;
-   vkGetPhysicalDeviceMemoryProperties(m_device->GetPhysicalDevice(), &memProperties);
+   vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
    for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i) {
       if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
          return i;

@@ -53,11 +53,12 @@ public:
    Usage GetUsage() const;
    VkMemoryPropertyFlags GetMemoryProperties() const;
    bool SupportsUsage(Usage usage) const;
+   // TODO: Maybe move in util?
+   static uint32_t FindMemoryType(const VkPhysicalDevice& physicalDevice, const uint32_t typeFilter, const VkMemoryPropertyFlags properties);
 private:
    void CreateBuffer();
    void AllocateMemory();
-   uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
-   VkMemoryPropertyFlags GetMemoryPropertiesFromType(MemoryType type) const;
+   VkMemoryPropertyFlags GetMemoryPropertiesFromType(const MemoryType type) const;
 private:
    const VulkanDevice* m_device = nullptr;
    VkBuffer m_buffer = VK_NULL_HANDLE;
