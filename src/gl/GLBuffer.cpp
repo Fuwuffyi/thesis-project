@@ -47,6 +47,12 @@ void GLBuffer::Bind() const {
    }
 }
 
+void GLBuffer::BindBase(const uint32_t bindingPoint) const {
+   if (m_buffer != 0) {
+      glBindBufferBase(static_cast<GLenum>(m_type), bindingPoint, m_buffer);
+   }
+}
+
 void GLBuffer::Unbind() const {
    glBindBuffer(static_cast<GLenum>(m_type), 0);
 }

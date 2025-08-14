@@ -35,6 +35,7 @@ public:
    GLBuffer& operator=(GLBuffer&& other) noexcept;
 
    void Bind() const;
+   void BindBase(const uint32_t bindingPoint) const;
    void Unbind() const;
    void UploadData(const void* data, const size_t size);
    void UpdateData(const void* data, const size_t size, const size_t offset = 0);

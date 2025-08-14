@@ -17,7 +17,12 @@
 #include "GLVertexArray.hpp"
 #include "../core/Vertex.hpp"
 
-// Testing mesh
+// Testing stuff
+struct CameraData {
+   alignas(16) glm::mat4 view;
+   alignas(16) glm::mat4 proj;
+};
+
 const std::vector<Vertex> vertices = {
    {{-0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
    {{ 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
@@ -55,6 +60,7 @@ const std::vector<uint16_t> indices = {
 };
 
 GLShader* shader = nullptr;
+GLBuffer* cameraUbo = nullptr;
 GLBuffer* vbo = nullptr;
 GLBuffer* ebo = nullptr;
 GLVertexArray* vao = nullptr;
@@ -115,6 +121,11 @@ void GLRenderer::CreateTestMesh() {
    vao->AttachVertexBuffer(*vbo,0, 0, sizeof(Vertex));
    vao->AttachElementBuffer(*ebo);
    vao->SetupVertexAttributes();
+
+   cameraUbo = new GLBuffer(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
+   const CameraData camData{};
+   cameraUbo->UploadData(&camData, sizeof(CameraData));
+   cameraUbo->BindBase(0);
 }
 
 GLRenderer::~GLRenderer() {
@@ -125,6 +136,8 @@ GLRenderer::~GLRenderer() {
    delete vbo;
    delete ebo;
    delete vao;
+   delete shader;
+   delete cameraUbo;
 }
 
 void GLRenderer::RenderFrame() {
@@ -140,9 +153,13 @@ void GLRenderer::RenderFrame() {
       .count();
    const glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
                                        glm::normalize(glm::vec3(0.45f, 0.75f, 1.0f)));
+   const CameraData camData = {
+      m_activeCamera->GetViewMatrix(),
+      m_activeCamera->GetProjectionMatrix()
+   };
+   cameraUbo->UpdateData(&camData, sizeof(CameraData));
+   shader->BindUniformBlock("CameraData", 0);
    shader->SetMat4("model", model);
-   shader->SetMat4("proj", m_activeCamera->GetProjectionMatrix());
-   shader->SetMat4("view", m_activeCamera->GetViewMatrix());
    vao->DrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT);
 
    // Render ImGUI
