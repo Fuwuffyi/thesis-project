@@ -300,6 +300,8 @@ void VulkanRenderer::CreateSynchronizationObjects() {
 }
 
 void VulkanRenderer::RecreateSwapchain() {
+   vkDeviceWaitIdle(m_device.Get());
+   CleanupSwapchain();
    m_swapchain.Recreate();
    CreateFramebuffers();
    if (m_activeCamera) {
