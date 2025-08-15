@@ -14,7 +14,7 @@ private:
    void RenderImgui() override;
    void DestroyImgui() override;
 
-   static void FramebufferCallback(const int32_t width, const int32_t height);
+   void FramebufferCallback(const int32_t width, const int32_t height);
 
    void CreateTestMesh();
 };

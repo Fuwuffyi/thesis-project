@@ -75,16 +75,14 @@ GLRenderer::GLRenderer(Window* window)
    // Setup imgui
    SetupImgui();
    // Set initial viewport
-   GLRenderer::FramebufferCallback(
+   FramebufferCallback(
       static_cast<int32_t>(m_window->GetWidth()),
       static_cast<int32_t>(m_window->GetHeight())
    );
    // Setup framebuffer callback
    window->SetResizeCallback(
       [this](int32_t width, int32_t height) {
-         GLRenderer::FramebufferCallback(width, height);
-         m_activeCamera->SetAspectRatio(static_cast<float>(m_window->GetWidth()) /
-                                        static_cast<float>(m_window->GetHeight()));
+         FramebufferCallback(width, height);
       }
    );
    // Setup depth testing
@@ -100,6 +98,10 @@ GLRenderer::GLRenderer(Window* window)
 
 void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) {
    glViewport(0, 0, width, height);
+   if (m_activeCamera) {
+      m_activeCamera->SetAspectRatio(static_cast<float>(width) /
+                                     static_cast<float>(height));
+   }
 }
 
 void GLRenderer::CreateTestMesh() {

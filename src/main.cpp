@@ -7,7 +7,7 @@
 
 int main() {
    try {
-      constexpr GraphicsAPI api = GraphicsAPI::Vulkan;
+      constexpr GraphicsAPI api = GraphicsAPI::OpenGL;
 
       // Create the window
       WindowDesc windowDesc{
