@@ -88,6 +88,12 @@ VulkanRenderer::VulkanRenderer(Window *windowHandle)
    CreateDescriptorSets();
    CreateCommandBuffers();
    CreateSynchronizationObjects();
+
+   m_window->SetResizeCallback(
+      [this](int32_t width, int32_t height) {
+         RecreateSwapchain();
+      }
+   );
 }
 
 void VulkanRenderer::CreateGraphicsPipeline() {
@@ -294,8 +300,12 @@ void VulkanRenderer::CreateSynchronizationObjects() {
 }
 
 void VulkanRenderer::RecreateSwapchain() {
+   std::println("Recreating swapchain...");
    m_swapchain.Recreate();
    CreateFramebuffers();
+   std::println("New size: {} {}", m_swapchain.GetExtent().width, m_swapchain.GetExtent().height);
+   m_activeCamera->SetAspectRatio(static_cast<float>(m_swapchain.GetExtent().width) /
+                                  static_cast<float>(m_swapchain.GetExtent().height));
 }
 
 void VulkanRenderer::CleanupSwapchain() {

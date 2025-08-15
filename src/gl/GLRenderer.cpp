@@ -80,7 +80,13 @@ GLRenderer::GLRenderer(Window* window)
       static_cast<int32_t>(m_window->GetHeight())
    );
    // Setup framebuffer callback
-   window->SetResizeCallback(GLRenderer::FramebufferCallback);
+   window->SetResizeCallback(
+      [this](int32_t width, int32_t height) {
+         GLRenderer::FramebufferCallback(width, height);
+         m_activeCamera->SetAspectRatio(static_cast<float>(m_window->GetWidth()) /
+                                        static_cast<float>(m_window->GetHeight()));
+      }
+   );
    // Setup depth testing
    glEnable(GL_DEPTH_TEST);
    glDepthFunc(GL_LESS);
