@@ -62,6 +62,9 @@ private:
                     const VkMemoryPropertyFlags properties, VkImage& image,
                     VkDeviceMemory& imageMemory);
    void CreateTextureImage();
+   void CopyBufferToImage(const VulkanBuffer& buffer, const VkImage& image, const uint32_t width, const uint32_t height);
+   void TransitionImageLayout(const VkImage& image, const VkFormat format,
+                              const VkImageLayout oldLayout, const VkImageLayout newLayout);
    // Testing mesh
    void CreateMesh();
    void CreateUniformBuffer();
