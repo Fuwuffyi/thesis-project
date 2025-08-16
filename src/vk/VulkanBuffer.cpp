@@ -1,6 +1,7 @@
 #include "VulkanBuffer.hpp"
 
 #include "VulkanDevice.hpp"
+#include "VulkanCommandBuffers.hpp"
 
 #include <stdexcept>
 #include <cstring>
@@ -172,31 +173,15 @@ void VulkanBuffer::CopyFrom(const VulkanBuffer& srcBuffer, const VkCommandBuffer
    vkCmdCopyBuffer(commandBuffer, srcBuffer.Get(), m_buffer, 1, &copyRegion);
 }
 
-void VulkanBuffer::CopyBuffer(const VulkanDevice& device, const VkCommandPool& commandPool,
+void VulkanBuffer::CopyBuffer(const VulkanDevice& device, const VkCommandPool& commandPool, const VkQueue& queue,
                               const VulkanBuffer& src, VulkanBuffer& dst, const VkDeviceSize size) {
-   // Create temporary command buffer
-   VkCommandBufferAllocateInfo allocInfo{};
-   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-   allocInfo.commandPool = commandPool;
-   allocInfo.commandBufferCount = 1;
-   VkCommandBuffer commandBuffer;
-   vkAllocateCommandBuffers(device.Get(), &allocInfo, &commandBuffer);
-   // Record copy command
-   VkCommandBufferBeginInfo beginInfo{};
-   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-   vkBeginCommandBuffer(commandBuffer, &beginInfo);
-   dst.CopyFrom(src, commandBuffer, size);
-   vkEndCommandBuffer(commandBuffer);
-   // Submit and wait
-   VkSubmitInfo submitInfo{};
-   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-   submitInfo.commandBufferCount = 1;
-   submitInfo.pCommandBuffers = &commandBuffer;
-   vkQueueSubmit(device.GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-   vkQueueWaitIdle(device.GetGraphicsQueue());
-   vkFreeCommandBuffers(device.Get(), commandPool, 1, &commandBuffer);
+   VulkanCommandBuffers::ExecuteImmediate(device, commandPool, queue, [&](const VkCommandBuffer& buf){
+      VkBufferCopy copyRegion{};
+      copyRegion.size = size;
+      vkCmdCopyBuffer(buf, src.Get(), dst.Get(),
+                      1, &copyRegion);
+
+   });
 }
 
 bool VulkanBuffer::SupportsUsage(const Usage usage) const {

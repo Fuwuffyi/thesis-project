@@ -1,10 +1,11 @@
 #include "VulkanMesh.hpp"
 #include <glad/gl.h>
 
-VulkanMesh::VulkanMesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices, const VulkanDevice& device, const VkCommandPool& commandPool)
+VulkanMesh::VulkanMesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices,
+                       const VulkanDevice& device, const VkCommandPool& commandPool, const VkQueue& queue)
    :
-   m_vertexBuffer(VulkanMesh::CreateVertexBuffer(vertices, device, commandPool)),
-   m_indexBuffer(VulkanMesh::CreateIndexBuffer(indices, device, commandPool)),
+   m_vertexBuffer(VulkanMesh::CreateVertexBuffer(vertices, device, commandPool, queue)),
+   m_indexBuffer(VulkanMesh::CreateIndexBuffer(indices, device, commandPool, queue)),
    m_indexCount(indices.size()),
    m_vertexCount(vertices.size())
 {}
@@ -19,7 +20,8 @@ void VulkanMesh::Draw(const VkCommandBuffer& cmd) const {
    vkCmdDrawIndexed(cmd, static_cast<uint32_t>(m_indexCount), 1, 0, 0, 0);
 }
 
-VulkanBuffer VulkanMesh::CreateVertexBuffer(const std::vector<Vertex>& vertices, const VulkanDevice& device, const VkCommandPool& commandPool) {
+VulkanBuffer VulkanMesh::CreateVertexBuffer(const std::vector<Vertex>& vertices, const VulkanDevice& device,
+                                            const VkCommandPool& commandPool, const VkQueue& queue) {
    const VkDeviceSize bufferSize = sizeof(Vertex) * vertices.size();
    VulkanBuffer stagingBuffer(
       device, bufferSize, VulkanBuffer::Usage::TransferSrc,
@@ -31,11 +33,12 @@ VulkanBuffer VulkanMesh::CreateVertexBuffer(const std::vector<Vertex>& vertices,
       VulkanBuffer::Usage::TransferDst | VulkanBuffer::Usage::Vertex,
       VulkanBuffer::MemoryType::DeviceLocal
    );
-   VulkanBuffer::CopyBuffer(device, commandPool, stagingBuffer, vertexBuffer, bufferSize);
+   VulkanBuffer::CopyBuffer(device, commandPool, queue, stagingBuffer, vertexBuffer, bufferSize);
    return vertexBuffer;
 }
 
-VulkanBuffer VulkanMesh::CreateIndexBuffer(const std::vector<uint16_t>& indices, const VulkanDevice& device, const VkCommandPool& commandPool) {
+VulkanBuffer VulkanMesh::CreateIndexBuffer(const std::vector<uint16_t>& indices, const VulkanDevice& device,
+                                           const VkCommandPool& commandPool, const VkQueue& queue) {
    const VkDeviceSize bufferSize = sizeof(uint16_t) * indices.size();
    VulkanBuffer stagingBuffer(
       device, bufferSize, VulkanBuffer::Usage::TransferSrc,
@@ -47,7 +50,7 @@ VulkanBuffer VulkanMesh::CreateIndexBuffer(const std::vector<uint16_t>& indices,
       VulkanBuffer::Usage::TransferDst | VulkanBuffer::Usage::Index,
       VulkanBuffer::MemoryType::DeviceLocal
    );
-   VulkanBuffer::CopyBuffer(device, commandPool, stagingBuffer, indexBuffer, bufferSize);
+   VulkanBuffer::CopyBuffer(device, commandPool, queue, stagingBuffer, indexBuffer, bufferSize);
    return indexBuffer;
 }
 

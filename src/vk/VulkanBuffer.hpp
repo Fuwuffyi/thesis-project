@@ -40,7 +40,7 @@ public:
    void CopyFrom(const VulkanBuffer& srcBuffer, const VkCommandBuffer commandBuffer,
                  VkDeviceSize size = VK_WHOLE_SIZE, const VkDeviceSize srcOffset = 0, const VkDeviceSize dstOffset = 0);
 
-   static void CopyBuffer(const VulkanDevice& device, const VkCommandPool& commandPool,
+   static void CopyBuffer(const VulkanDevice& device, const VkCommandPool& commandPool, const VkQueue& queue,
                           const VulkanBuffer& src, VulkanBuffer& dst,
                           const VkDeviceSize size = VK_WHOLE_SIZE);
 

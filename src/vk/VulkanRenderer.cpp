@@ -340,7 +340,7 @@ void VulkanRenderer::CreateTextureImage() {
 }
 
 void VulkanRenderer::CreateMesh() {
-   m_mesh = std::make_unique<VulkanMesh>(vertices, indices, m_device, m_commandPool);
+   m_mesh = std::make_unique<VulkanMesh>(vertices, indices, m_device, m_commandPool, m_device.GetGraphicsQueue());
 }
 
 void VulkanRenderer::CreateUniformBuffer() {
