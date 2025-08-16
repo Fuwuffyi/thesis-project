@@ -7,6 +7,7 @@
 #include "VulkanDevice.hpp"
 #include "VulkanSwapchain.hpp"
 #include "VulkanPipeline.hpp"
+#include "VulkanCommandBuffers.hpp"
 #include "VulkanRenderPass.hpp"
 #include "VulkanBuffer.hpp"
 
@@ -49,7 +50,7 @@ private:
    // Functions to set up command pool
    void CreateCommandPool();
    void CreateCommandBuffers();
-   void RecordCommandBuffer(const VkCommandBuffer& commandBuffer, const uint32_t imageIndex);
+   void RecordCommandBuffer(const uint32_t imageIndex);
    // Functions to set up synchronization for drawing
    void CreateSynchronizationObjects();
    // Functions to setup swapchain recreation
@@ -79,11 +80,11 @@ private:
    std::unique_ptr<VulkanPipelineLayout> m_pipelineLayout;
    std::unique_ptr<VulkanGraphicsPipeline> m_graphicsPipeline;
    VkCommandPool m_commandPool;
-   std::vector<VkCommandBuffer> m_commandBuffers;
+   // TODO: Remove unique ptrs in favour of stack variables once other abstractions are implemented
+   std::unique_ptr<VulkanCommandBuffers> m_commandBuffers;
    std::vector<VkSemaphore> m_imageAvailableSemaphores;
    std::vector<VkSemaphore> m_renderFinishedSemaphores;
    std::vector<VkFence> m_inFlightFences;
-   // TODO: Remove unique ptrs in favour of stack variables once other abstractions are implemented
    std::unique_ptr<VulkanMesh> m_mesh;
    VkImage m_textureImage;
    VkDeviceMemory m_textureImageMemory;

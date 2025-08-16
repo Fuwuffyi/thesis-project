@@ -194,20 +194,12 @@ void VulkanRenderer::CreateCommandPool() {
 }
 
 void VulkanRenderer::CreateCommandBuffers() {
-   m_commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-   VkCommandBufferAllocateInfo allocInfo{};
-   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-   allocInfo.commandPool = m_commandPool;
-   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-   allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
-   if (vkAllocateCommandBuffers(m_device.Get(), &allocInfo,
-                                m_commandBuffers.data()) != VK_SUCCESS) {
-      throw std::runtime_error("Failed to allocate command buffers.");
-   }
+   m_commandBuffers = std::make_unique<VulkanCommandBuffers>(m_device, m_commandPool,
+                                                             VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                                                             MAX_FRAMES_IN_FLIGHT);
 }
 
-void VulkanRenderer::RecordCommandBuffer(const VkCommandBuffer &commandBuffer,
-                                         const uint32_t imageIndex) {
+void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    // Rotate the object for fun
    static auto startTime = std::chrono::high_resolution_clock::now();
    auto currentTime = std::chrono::high_resolution_clock::now();
@@ -217,28 +209,17 @@ void VulkanRenderer::RecordCommandBuffer(const VkCommandBuffer &commandBuffer,
    ObjectData objData {};
    objData.model = glm::mat4(1.0f);
    // Setup record
-   VkCommandBufferBeginInfo beginInfo{};
-   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-   beginInfo.flags = 0;
-   beginInfo.pInheritanceInfo = nullptr;
-   if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-      throw std::runtime_error("Failed to begin recording command buffer.");
-   }
+   m_commandBuffers->Begin(0, m_currentFrame);
    // Start a render pass
-   VkRenderPassBeginInfo renderPassInfo{};
-   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-   renderPassInfo.renderPass = m_renderPass.Get();
-   renderPassInfo.framebuffer = m_swapchainFramebuffers[imageIndex];
-   renderPassInfo.renderArea.offset = {0, 0};
-   renderPassInfo.renderArea.extent = m_swapchain.GetExtent();
-   // Clear color to black
-   VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-   renderPassInfo.clearValueCount = 1;
-   renderPassInfo.pClearValues = &clearColor;
-   vkCmdBeginRenderPass(commandBuffer, &renderPassInfo,
-                        VK_SUBPASS_CONTENTS_INLINE);
-   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                     m_graphicsPipeline->GetPipeline());
+   m_commandBuffers->BeginRenderPass(m_renderPass, m_swapchainFramebuffers[imageIndex],
+                                     m_swapchain.GetExtent(),
+                                     {
+                                     {
+                                     {0.0f, 0.0f, 0.0f, 1.0f}
+                                     }
+                                     }, m_currentFrame);
+   m_commandBuffers->BindPipeline(m_graphicsPipeline->GetPipeline(),
+                                  VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
    // Set the dynamic viewport and scissor
    VkViewport viewport{};
    viewport.x = 0.0f;
@@ -247,26 +228,24 @@ void VulkanRenderer::RecordCommandBuffer(const VkCommandBuffer &commandBuffer,
    viewport.height = static_cast<float>(m_swapchain.GetExtent().height);
    viewport.minDepth = 0.0f;
    viewport.maxDepth = 1.0f;
-   vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+   m_commandBuffers->SetViewport(viewport, m_currentFrame);
    VkRect2D scissor{};
    scissor.offset = {0, 0};
    scissor.extent = m_swapchain.GetExtent();
-   vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+   m_commandBuffers->SetScissor(scissor, m_currentFrame);
    // Set triangle position/rotation/scale
-   vkCmdPushConstants(commandBuffer, m_pipelineLayout->Get(),
+   vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame), m_pipelineLayout->Get(),
                       VK_SHADER_STAGE_VERTEX_BIT, 0,
                       sizeof(ObjectData), &objData);
-   vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+   vkCmdBindDescriptorSets(m_commandBuffers->Get(m_currentFrame), VK_PIPELINE_BIND_POINT_GRAPHICS,
                            m_pipelineLayout->Get(), 0, 1,
                            &m_descriptorSets[m_currentFrame], 0, nullptr);
    // Draw the cube
-   m_mesh->Draw(m_commandBuffers[m_currentFrame]);
+   m_mesh->Draw(m_commandBuffers->Get(m_currentFrame));
    // TODO: Clean up imgui stuff
-   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers[m_currentFrame]);
-   vkCmdEndRenderPass(commandBuffer);
-   if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-      throw std::runtime_error("Failed to record command buffer.");
-   }
+   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers->Get(m_currentFrame));
+   m_commandBuffers->EndRenderPass(m_currentFrame);
+   m_commandBuffers->End(m_currentFrame);
 }
 
 void VulkanRenderer::CreateSynchronizationObjects() {
@@ -546,10 +525,10 @@ void VulkanRenderer::RenderFrame() {
    }
    vkResetFences(m_device.Get(), 1, &m_inFlightFences[m_currentFrame]);
    // Setup command buffer to draw the triangle
-   vkResetCommandBuffer(m_commandBuffers[m_currentFrame], 0);
+   m_commandBuffers->Reset(m_currentFrame);
    UpdateUniformBuffer(m_currentFrame);
    RenderImgui();
-   RecordCommandBuffer(m_commandBuffers[m_currentFrame], imageIndex);
+   RecordCommandBuffer(imageIndex);
    // Submit the command buffer
    VkSubmitInfo submitInfo{};
    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -560,7 +539,7 @@ void VulkanRenderer::RenderFrame() {
    submitInfo.pWaitSemaphores = waitSemaphores;
    submitInfo.pWaitDstStageMask = waitStages;
    submitInfo.commandBufferCount = 1;
-   submitInfo.pCommandBuffers = &m_commandBuffers[m_currentFrame];
+   submitInfo.pCommandBuffers = &m_commandBuffers->Get(m_currentFrame);
    VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[imageIndex] };
    submitInfo.signalSemaphoreCount = 1;
    submitInfo.pSignalSemaphores = signalSemaphores;
