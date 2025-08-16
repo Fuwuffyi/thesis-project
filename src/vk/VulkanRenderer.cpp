@@ -11,6 +11,7 @@
 #include <GLFW/glfw3.h>
 #include <chrono>
 #include <fstream>
+#include <memory>
 #include <print>
 #include <stdexcept>
 #include <vector>
@@ -81,8 +82,7 @@ VulkanRenderer::VulkanRenderer(Window *windowHandle)
    CreateCommandPool();
    SetupImgui();
    CreateTextureImage();
-   CreateVertexBuffer();
-   CreateIndexBuffer();
+   CreateMesh();
    CreateUniformBuffer();
    CreateDescriptorPool();
    CreateDescriptorSets();
@@ -256,17 +256,11 @@ void VulkanRenderer::RecordCommandBuffer(const VkCommandBuffer &commandBuffer,
    vkCmdPushConstants(commandBuffer, m_pipelineLayout->Get(),
                       VK_SHADER_STAGE_VERTEX_BIT, 0,
                       sizeof(ObjectData), &objData);
-   // Draw the triangle
-   VkBuffer vertexBuffers[] = {m_vertexBuffer->Get()};
-   VkDeviceSize offsets[] = {0};
-   vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-   vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->Get(), 0,
-                        VK_INDEX_TYPE_UINT16);
    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                            m_pipelineLayout->Get(), 0, 1,
                            &m_descriptorSets[m_currentFrame], 0, nullptr);
-   vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0,
-                    0, 0);
+   // Draw the cube
+   m_mesh->Draw(m_commandBuffers[m_currentFrame]);
    // TODO: Clean up imgui stuff
    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers[m_currentFrame]);
    vkCmdEndRenderPass(commandBuffer);
@@ -366,36 +360,8 @@ void VulkanRenderer::CreateTextureImage() {
                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_textureImage, m_textureImageMemory);
 }
 
-void VulkanRenderer::CreateVertexBuffer() {
-   const VkDeviceSize bufferSize = sizeof(Vertex) * vertices.size();
-   auto stagingBuffer = std::make_unique<VulkanBuffer>(
-      m_device, bufferSize, VulkanBuffer::Usage::TransferSrc,
-      VulkanBuffer::MemoryType::HostVisible);
-   stagingBuffer->Update(vertices.data(), bufferSize);
-   m_vertexBuffer = std::make_unique<VulkanBuffer>(
-      m_device, bufferSize,
-      static_cast<VulkanBuffer::Usage>(
-         static_cast<VkBufferUsageFlags>(VulkanBuffer::Usage::TransferDst) |
-         static_cast<VkBufferUsageFlags>(VulkanBuffer::Usage::Vertex)),
-      VulkanBuffer::MemoryType::DeviceLocal);
-   VulkanBuffer::CopyBuffer(m_device, m_commandPool, *stagingBuffer,
-                            *m_vertexBuffer, bufferSize);
-}
-
-void VulkanRenderer::CreateIndexBuffer() {
-   const VkDeviceSize bufferSize = sizeof(uint16_t) * indices.size();
-   auto stagingBuffer = std::make_unique<VulkanBuffer>(
-      m_device, bufferSize, VulkanBuffer::Usage::TransferSrc,
-      VulkanBuffer::MemoryType::HostVisible);
-   stagingBuffer->Update(indices.data(), bufferSize);
-   m_indexBuffer = std::make_unique<VulkanBuffer>(
-      m_device, bufferSize,
-      static_cast<VulkanBuffer::Usage>(
-         static_cast<VkBufferUsageFlags>(VulkanBuffer::Usage::TransferDst) |
-         static_cast<VkBufferUsageFlags>(VulkanBuffer::Usage::Index)),
-      VulkanBuffer::MemoryType::DeviceLocal);
-   VulkanBuffer::CopyBuffer(m_device, m_commandPool, *stagingBuffer,
-                            *m_indexBuffer, bufferSize);
+void VulkanRenderer::CreateMesh() {
+   m_mesh = std::make_unique<VulkanMesh>(vertices, indices, m_device, m_commandPool);
 }
 
 void VulkanRenderer::CreateUniformBuffer() {

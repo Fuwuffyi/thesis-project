@@ -10,6 +10,8 @@
 #include "VulkanRenderPass.hpp"
 #include "VulkanBuffer.hpp"
 
+#include "resource/VulkanMesh.hpp"
+
 #include <vulkan/vulkan.h>
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -60,8 +62,7 @@ private:
                     VkDeviceMemory& imageMemory);
    void CreateTextureImage();
    // Testing mesh
-   void CreateVertexBuffer();
-   void CreateIndexBuffer();
+   void CreateMesh();
    void CreateUniformBuffer();
    void UpdateUniformBuffer(const uint32_t currentImage);
 private:
@@ -83,8 +84,7 @@ private:
    std::vector<VkSemaphore> m_renderFinishedSemaphores;
    std::vector<VkFence> m_inFlightFences;
    // TODO: Remove unique ptrs in favour of stack variables once other abstractions are implemented
-   std::unique_ptr<VulkanBuffer> m_vertexBuffer;
-   std::unique_ptr<VulkanBuffer> m_indexBuffer;
+   std::unique_ptr<VulkanMesh> m_mesh;
    VkImage m_textureImage;
    VkDeviceMemory m_textureImageMemory;
    std::vector<std::unique_ptr<VulkanBuffer>> m_uniformBuffers;

@@ -12,9 +12,7 @@
 // Stuff for mesh
 #include <vector>
 #include "GLShader.hpp"
-#include "GLBuffer.hpp"
-#include "GLVertexArray.hpp"
-#include "../core/Vertex.hpp"
+#include "resource/GLMesh.hpp"
 
 // Testing stuff
 struct CameraData {
@@ -60,9 +58,7 @@ const std::vector<uint16_t> indices = {
 
 GLShader* shader = nullptr;
 GLBuffer* cameraUbo = nullptr;
-GLBuffer* vbo = nullptr;
-GLBuffer* ebo = nullptr;
-GLVertexArray* vao = nullptr;
+GLMesh* mesh = nullptr;
 
 GLRenderer::GLRenderer(Window* window)
    :
@@ -110,16 +106,7 @@ void GLRenderer::CreateTestMesh() {
    shader->AttachShaderFromFile(GLShader::Type::Fragment, "resources/shaders/gl/test.frag");
    shader->Link();
 
-   vbo = new GLBuffer(GLBuffer::Type::Array, GLBuffer::Usage::StaticDraw);
-   vbo->UploadData(vertices);
-
-   ebo = new GLBuffer(GLBuffer::Type::Element, GLBuffer::Usage::StaticDraw);
-   ebo->UploadData(indices);
-
-   vao = new GLVertexArray();
-   vao->AttachVertexBuffer(*vbo,0, 0, sizeof(Vertex));
-   vao->AttachElementBuffer(*ebo);
-   vao->SetupVertexAttributes();
+   mesh = new GLMesh(vertices, indices);
 
    cameraUbo = new GLBuffer(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
    const CameraData camData{};
@@ -129,9 +116,7 @@ void GLRenderer::CreateTestMesh() {
 
 GLRenderer::~GLRenderer() {
    DestroyImgui();
-   delete vbo;
-   delete ebo;
-   delete vao;
+   delete mesh;
    delete shader;
    delete cameraUbo;
 }
@@ -189,7 +174,7 @@ void GLRenderer::RenderFrame() {
    cameraUbo->UpdateData(&camData, sizeof(CameraData));
    shader->BindUniformBlock("CameraData", 0);
    shader->SetMat4("model", model);
-   vao->DrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT);
+   mesh->Draw();
    // Render Ui
    RenderImgui();
    // Swap buffers
