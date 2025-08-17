@@ -133,6 +133,7 @@ void VulkanSwapchain::CreateSwapchain() {
 }
 
 void VulkanSwapchain::CreateImageViews() {
+   // TODO: Loop contents can be abstracted when image and texture class implemented
    m_imageViews.resize(m_images.size());
    for (size_t i = 0; i < m_images.size(); ++i) {
       VkImageViewCreateInfo createInfo{};

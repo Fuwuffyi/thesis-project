@@ -84,6 +84,8 @@ VulkanRenderer::VulkanRenderer(Window *windowHandle)
    CreateCommandPool();
    SetupImgui();
    CreateTextureImage();
+   CreateTextureImageView();
+   CreateTextureSampler();
    CreateMesh();
    CreateUniformBuffer();
    CreateDescriptorPool();
@@ -323,6 +325,25 @@ void VulkanRenderer::CreateImage(const uint32_t width, const uint32_t height, co
    vkBindImageMemory(m_device.Get(), image, imageMemory, 0);
 }
 
+VkImageView VulkanRenderer::CreateImageView(const VkImage& image, const VkFormat& format) {
+   VkImageViewCreateInfo viewInfo{};
+   viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+   viewInfo.image = image;
+   viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+   viewInfo.format = format;
+   viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+   viewInfo.subresourceRange.baseMipLevel = 0;
+   viewInfo.subresourceRange.levelCount = 1;
+   viewInfo.subresourceRange.baseArrayLayer = 0;
+   viewInfo.subresourceRange.layerCount = 1;
+   VkImageView imageView;
+   if (vkCreateImageView(m_device.Get(), &viewInfo,
+                         nullptr, &imageView) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to create image view.");
+   }
+   return imageView;
+}
+
 void VulkanRenderer::CreateTextureImage() {
    // Load the image in a buffer
    int32_t texWidth, texHeight, texChannels;
@@ -348,6 +369,36 @@ void VulkanRenderer::CreateTextureImage() {
    TransitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB,
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
+void VulkanRenderer::CreateTextureImageView() {
+   m_textureImageView = CreateImageView(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB);
+}
+
+void VulkanRenderer::CreateTextureSampler() {
+   VkPhysicalDeviceProperties properties{};
+   vkGetPhysicalDeviceProperties(m_device.GetPhysicalDevice(), &properties);
+   VkSamplerCreateInfo samplerInfo{};
+   samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+   samplerInfo.magFilter = VK_FILTER_LINEAR;
+   samplerInfo.minFilter = VK_FILTER_LINEAR;
+   samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+   samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+   samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+   samplerInfo.anisotropyEnable = VK_TRUE;
+   samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+   samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+   samplerInfo.unnormalizedCoordinates = VK_FALSE;
+   samplerInfo.compareEnable = VK_FALSE;
+   samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+   samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+   samplerInfo.mipLodBias = 0.0f;
+   samplerInfo.minLod = 0.0f;
+   samplerInfo.maxLod = 0.0f;
+   if (vkCreateSampler(m_device.Get(), &samplerInfo,
+                       nullptr, &m_textureSampler) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to create texture sampler,");
+   }
 }
 
 void VulkanRenderer::CopyBufferToImage(const VulkanBuffer& buffer, const VkImage& image,
@@ -500,6 +551,8 @@ void VulkanRenderer::CreateDescriptorSets() {
 VulkanRenderer::~VulkanRenderer() {
    vkDeviceWaitIdle(m_device.Get());
    CleanupSwapchain();
+   vkDestroySampler(m_device.Get(), m_textureSampler, nullptr);
+   vkDestroyImageView(m_device.Get(), m_textureImageView, nullptr);
    vkDestroyImage(m_device.Get(), m_textureImage, nullptr);
    vkFreeMemory(m_device.Get(), m_textureImageMemory, nullptr);
    vkDestroyDescriptorPool(m_device.Get(), m_descriptorPool, nullptr);

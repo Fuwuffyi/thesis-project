@@ -61,7 +61,10 @@ private:
                     const VkImageTiling tiling, const VkImageUsageFlags usage,
                     const VkMemoryPropertyFlags properties, VkImage& image,
                     VkDeviceMemory& imageMemory);
+   VkImageView CreateImageView(const VkImage& image, const VkFormat& format);
    void CreateTextureImage();
+   void CreateTextureImageView();
+   void CreateTextureSampler();
    void CopyBufferToImage(const VulkanBuffer& buffer, const VkImage& image, const uint32_t width, const uint32_t height);
    void TransitionImageLayout(const VkImage& image, const VkFormat format,
                               const VkImageLayout oldLayout, const VkImageLayout newLayout);
@@ -93,6 +96,8 @@ private:
    std::unique_ptr<VulkanMesh> m_mesh;
    VkImage m_textureImage;
    VkDeviceMemory m_textureImageMemory;
+   VkImageView m_textureImageView;
+   VkSampler m_textureSampler;
    std::vector<std::unique_ptr<VulkanBuffer>> m_uniformBuffers;
    std::vector<void*> m_uniformBuffersMapped;
    VkDescriptorPool m_descriptorPool;

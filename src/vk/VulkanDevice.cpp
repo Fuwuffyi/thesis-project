@@ -73,6 +73,7 @@ void VulkanDevice::CreateLogicalDevice(const std::vector<const char*>& requiredE
    }
    // Specifies the used device features
    VkPhysicalDeviceFeatures deviceFeatures{};
+   deviceFeatures.samplerAnisotropy = VK_TRUE;
    // Create the logical device
    VkDeviceCreateInfo createInfo{};
    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -212,7 +213,9 @@ bool VulkanDevice::IsDeviceSuitable(const VkPhysicalDevice& device, const VkSurf
       SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(device, surface);
       swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
    }
-   return indices.HasAllValues() && extensionsSupported && swapChainAdequate;
+   VkPhysicalDeviceFeatures supportedFeatures;
+   vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+   return indices.HasAllValues() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
 bool VulkanDevice::CheckDeviceExtensionSupport(const VkPhysicalDevice& device, const std::vector<const char*>& requiredExtensions) {
