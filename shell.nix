@@ -5,7 +5,8 @@ pkgs.mkShell {
       # Build tools
       cmake
       pkg-config
-      clang_21
+      gcc15
+      binutils
       # Needed for GLAD
       python314
       python3Packages.jinja2
@@ -50,5 +51,15 @@ pkgs.mkShell {
    ];
 
    VK_LAYER_PATH="${pkgs.vulkan-validation-layers}/share/vulkan/explicit_layer.d/";
+
+   shellHook = ''
+      export CC="gcc"
+      export CXX="g++"
+      export AR="gcc-ar"
+      export NM="gcc-nm"
+      export RANLIB="gcc-ranlib"
+      unset NIX_ENFORCE_NO_NATIVE
+      export PATH="${pkgs.gcc15}/bin:$PATH"
+      '';
 }
 

@@ -143,12 +143,12 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
    # GCC settings
    set(CMAKE_CXX_FLAGS_DEBUG "-g3 -O0 -fno-omit-frame-pointer")
    set(CMAKE_C_FLAGS_DEBUG "-g3 -O0 -fno-omit-frame-pointer")
-   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native -ffast-math -funroll-loops -flto")
-   set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native -ffast-math -funroll-loops -flto")
+   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native -ffast-math -funroll-loops")
+   set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native -ffast-math -funroll-loops")
    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG -march=native -mtune=native")
    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG -march=native -mtune=native")
-   set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -DNDEBUG -march=native -mtune=native -flto")
-   set(CMAKE_C_FLAGS_MINSIZEREL "-Os -DNDEBUG -march=native -mtune=native -flto")
+   set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -DNDEBUG -march=native -mtune=native")
+   set(CMAKE_C_FLAGS_MINSIZEREL "-Os -DNDEBUG -march=native -mtune=native")
    # Enable sanitizers for GCC debug builds
    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
       include(CheckCXXCompilerFlag)
@@ -160,8 +160,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
       endif()
    endif()
    # GCC-specific linker flags for release builds
-   set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-flto -Wl,-O1 -Wl,--as-needed -Wl,--strip-all")
-   set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-flto -Wl,-O1 -Wl,--as-needed -Wl,--strip-all")
+   set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-Wl,-O1 -Wl,--as-needed -Wl,--strip-all")
+   set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,-O1 -Wl,--as-needed -Wl,--strip-all")
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
    # Clang specific settings
    add_compile_options(
@@ -371,14 +371,16 @@ add_dependencies(${PROJECT_NAME} compile_shaders)
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
+   Vulkan::Vulkan
+   OpenGL::GL
+   glad_gl_core_46
    glfw
    glm::glm
    assimp
    stb
    imgui
-   Vulkan::Vulkan
-   OpenGL::GL
-   glad_gl_core_46
+   $<$<PLATFORM_ID:Linux>:${CMAKE_DL_LIBS}>
+   $<$<PLATFORM_ID:Linux>:pthread>
 )
 
 # Include directories
@@ -425,9 +427,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
    target_compile_options(${PROJECT_NAME} PRIVATE
       $<$<CONFIG:Debug>:-fno-limit-debug-info>
-      $<$<CONFIG:Release>:-fvectorize>
       $<$<CONFIG:Release>:-fslp-vectorize>
-      $<$<CONFIG:RelWithDebInfo>:-fvectorize>
    )
    if(NOT WIN32)
       target_link_options(${PROJECT_NAME} PRIVATE
@@ -437,10 +437,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
    endif()
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
    target_compile_options(${PROJECT_NAME} PRIVATE
-      $<$<CONFIG:Release>:-fvectorize>
       $<$<CONFIG:Release>:-ftree-vectorize>
       $<$<CONFIG:Release>:-fipa-pta>
-      $<$<CONFIG:RelWithDebInfo>:-fvectorize>
    )
    target_link_options(${PROJECT_NAME} PRIVATE
       $<$<CONFIG:Release>:-flto>

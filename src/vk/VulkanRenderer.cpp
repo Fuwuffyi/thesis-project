@@ -70,7 +70,9 @@ const std::vector<uint16_t> indices = {
 VulkanRenderer::VulkanRenderer(Window *windowHandle)
    : IRenderer(windowHandle),
    m_instance(deviceExtensions, validationLayers, enableValidationLayers),
+#ifndef NDEBUG
    m_debugMessenger(m_instance),
+#endif
    m_surface(m_instance, m_window->GetNativeWindow()),
    m_device(m_instance, m_surface, deviceExtensions, validationLayers,
             enableValidationLayers),
