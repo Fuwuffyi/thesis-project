@@ -77,11 +77,12 @@ VulkanRenderer::VulkanRenderer(Window *windowHandle)
    m_device(m_instance, m_surface, deviceExtensions, validationLayers,
             enableValidationLayers),
    m_swapchain(m_device, m_surface, *m_window),
-   m_renderPass(m_device, m_swapchain.GetFormat()) {
+   m_renderPass(m_device, m_swapchain.GetFormat(), FindDepthFormat()) {
    CreateDescriptorSetLayout();
    CreateGraphicsPipeline();
-   CreateFramebuffers();
    CreateCommandPool();
+   CreateDepthResources();
+   CreateFramebuffers();
    SetupImgui();
    CreateTextureImage();
    CreateTextureImageView();
@@ -117,6 +118,8 @@ void VulkanRenderer::CreateGraphicsPipeline() {
       // Set the shaders
       .SetVertexShader(vertShader.Get())
       .SetFragmentShader(fragShader.Get())
+      // Setup depth testing
+      .EnableDepthTest(VK_COMPARE_OP_LESS)
       // Set vertex locations
       .AddVertexBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
       .AddVertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position))
@@ -177,12 +180,15 @@ void VulkanRenderer::CreateFramebuffers() {
    // Create framebuffers from the given swapchain images
    m_swapchainFramebuffers.resize(m_swapchain.GetImageViews().size());
    for (size_t i = 0; i < m_swapchain.GetImageViews().size(); ++i) {
-      const VkImageView attachments[] = {m_swapchain.GetImageViews()[i]};
+      const std::array<VkImageView, 2> attachments = {
+         m_swapchain.GetImageViews()[i],
+         m_depthImageView
+      };
       VkFramebufferCreateInfo framebufferInfo{};
       framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
       framebufferInfo.renderPass = m_renderPass.Get();
-      framebufferInfo.attachmentCount = 1;
-      framebufferInfo.pAttachments = attachments;
+      framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+      framebufferInfo.pAttachments = attachments.data();
       framebufferInfo.width = m_swapchain.GetExtent().width;
       framebufferInfo.height = m_swapchain.GetExtent().height;
       framebufferInfo.layers = 1;
@@ -225,9 +231,12 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    m_commandBuffers->BeginRenderPass(m_renderPass, m_swapchainFramebuffers[imageIndex],
                                      m_swapchain.GetExtent(),
                                      {
-                                     {
-                                     {0.0f, 0.0f, 0.0f, 1.0f}
-                                     }
+                                       {
+                                          {0.0f, 0.0f, 0.0f, 1.0f}
+                                       },
+                                       {
+                                          {1.0f, 0.0f}
+                                       }
                                      }, m_currentFrame);
    m_commandBuffers->BindPipeline(m_graphicsPipeline->GetPipeline(),
                                   VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
@@ -253,6 +262,24 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
                            &m_descriptorSets[m_currentFrame], 0, nullptr);
    // Draw the cube
    m_mesh->Draw(m_commandBuffers->Get(m_currentFrame));
+   /*
+   Test multiple cubes
+   objData.model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f));
+   vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame), m_pipelineLayout->Get(),
+                      VK_SHADER_STAGE_VERTEX_BIT, 0,
+                      sizeof(ObjectData), &objData);
+   m_mesh->Draw(m_commandBuffers->Get(m_currentFrame));
+   objData.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
+   vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame), m_pipelineLayout->Get(),
+                      VK_SHADER_STAGE_VERTEX_BIT, 0,
+                      sizeof(ObjectData), &objData);
+   m_mesh->Draw(m_commandBuffers->Get(m_currentFrame));
+   objData.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 3.0f));
+   vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame), m_pipelineLayout->Get(),
+                      VK_SHADER_STAGE_VERTEX_BIT, 0,
+                      sizeof(ObjectData), &objData);
+   m_mesh->Draw(m_commandBuffers->Get(m_currentFrame));
+   */
    // TODO: Clean up imgui stuff
    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers->Get(m_currentFrame));
    m_commandBuffers->EndRenderPass(m_currentFrame);
@@ -287,6 +314,7 @@ void VulkanRenderer::RecreateSwapchain() {
    vkDeviceWaitIdle(m_device.Get());
    CleanupSwapchain();
    m_swapchain.Recreate();
+   CreateDepthResources();
    CreateFramebuffers();
    if (m_activeCamera) {
       m_activeCamera->SetAspectRatio(static_cast<float>(m_swapchain.GetExtent().width) /
@@ -295,9 +323,49 @@ void VulkanRenderer::RecreateSwapchain() {
 }
 
 void VulkanRenderer::CleanupSwapchain() {
+   vkDestroySampler(m_device.Get(), m_textureSampler, nullptr);
+   vkDestroyImageView(m_device.Get(), m_textureImageView, nullptr);
+   vkDestroyImage(m_device.Get(), m_textureImage, nullptr);
    for (const VkFramebuffer &framebuffer : m_swapchainFramebuffers) {
       vkDestroyFramebuffer(m_device.Get(), framebuffer, nullptr);
    }
+}
+
+void VulkanRenderer::CreateDepthResources() {
+   const VkFormat depthFormat = FindDepthFormat();
+   CreateImage(m_swapchain.GetExtent().width, m_swapchain.GetExtent().height,
+               depthFormat, VK_IMAGE_TILING_OPTIMAL,
+               VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+               m_depthImage, m_depthImageMemory);
+   m_depthImageView = CreateImageView(m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+   TransitionImageLayout(m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
+                         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+}
+
+VkFormat VulkanRenderer::FindSupportedFormat(const std::vector<VkFormat>& candidates, const VkImageTiling& tiling,
+                                             const VkFormatFeatureFlags features) const {
+   for (const VkFormat& format : candidates) {
+      VkFormatProperties props;
+      vkGetPhysicalDeviceFormatProperties(m_device.GetPhysicalDevice(), format, &props);
+      if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+         return format;
+      } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+         return format;
+      }
+   }
+   throw std::runtime_error("Failed to find supported format.");
+}
+
+VkFormat VulkanRenderer::FindDepthFormat() const {
+   return FindSupportedFormat(
+      {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+   );
+}
+
+bool VulkanRenderer::HasStencilComponent(const VkFormat& format) const {
+   return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
 void VulkanRenderer::CreateImage(const uint32_t width, const uint32_t height, const VkFormat format,
@@ -332,13 +400,14 @@ void VulkanRenderer::CreateImage(const uint32_t width, const uint32_t height, co
    vkBindImageMemory(m_device.Get(), image, imageMemory, 0);
 }
 
-VkImageView VulkanRenderer::CreateImageView(const VkImage& image, const VkFormat& format) {
+VkImageView VulkanRenderer::CreateImageView(const VkImage& image, const VkFormat& format,
+                                            const VkImageAspectFlags& aspectFlags) {
    VkImageViewCreateInfo viewInfo{};
    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
    viewInfo.image = image;
    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
    viewInfo.format = format;
-   viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+   viewInfo.subresourceRange.aspectMask = aspectFlags;
    viewInfo.subresourceRange.baseMipLevel = 0;
    viewInfo.subresourceRange.levelCount = 1;
    viewInfo.subresourceRange.baseArrayLayer = 0;
@@ -379,7 +448,8 @@ void VulkanRenderer::CreateTextureImage() {
 }
 
 void VulkanRenderer::CreateTextureImageView() {
-   m_textureImageView = CreateImageView(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB);
+   m_textureImageView = CreateImageView(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB,
+                                        VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void VulkanRenderer::CreateTextureSampler() {
@@ -456,18 +526,34 @@ void VulkanRenderer::TransitionImageLayout(const VkImage& image, const VkFormat 
       barrier.subresourceRange.layerCount = 1;
       VkPipelineStageFlags sourceStage;
       VkPipelineStageFlags destinationStage;
-      if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+      if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+         if (HasStencilComponent(format)) {
+            barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+         }
+      } else {
+         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      }
+      if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+         newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
          barrier.srcAccessMask = 0;
          barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
          sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
          destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-      } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+      } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+         newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
          barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
          barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
          sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
          destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+      } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+         newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+         barrier.srcAccessMask = 0;
+         barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+         sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+         destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
       } else {
-         throw std::invalid_argument("Unsupported layout transition.");
+         throw std::invalid_argument("unsupported layout transition!");
       }
       vkCmdPipelineBarrier(
          cmdBuf,
@@ -571,9 +657,6 @@ void VulkanRenderer::CreateDescriptorSets() {
 VulkanRenderer::~VulkanRenderer() {
    vkDeviceWaitIdle(m_device.Get());
    CleanupSwapchain();
-   vkDestroySampler(m_device.Get(), m_textureSampler, nullptr);
-   vkDestroyImageView(m_device.Get(), m_textureImageView, nullptr);
-   vkDestroyImage(m_device.Get(), m_textureImage, nullptr);
    vkFreeMemory(m_device.Get(), m_textureImageMemory, nullptr);
    vkDestroyDescriptorPool(m_device.Get(), m_descriptorPool, nullptr);
    vkDestroyDescriptorSetLayout(m_device.Get(), m_descriptorSetLayout, nullptr);

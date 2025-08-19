@@ -3,6 +3,7 @@
 #include "VulkanDevice.hpp"
 
 #include <stdexcept>
+#include <vulkan/vulkan_core.h>
 
 VulkanRenderPass::VulkanRenderPass(const VulkanDevice& device, const RenderPassDescription& desc)
    :
@@ -106,7 +107,7 @@ void VulkanRenderPass::CreateRenderPass(const RenderPassDescription& desc) {
    renderPassInfo.pDependencies = desc.dependencies.empty() ? nullptr : desc.dependencies.data();
    if (vkCreateRenderPass(m_device->Get(), &renderPassInfo,
                           nullptr, &m_renderPass) != VK_SUCCESS) {
-      throw std::runtime_error("Failed to create render pass");
+      throw std::runtime_error("Failed to create render pass.");
    }
 }
 
@@ -142,7 +143,10 @@ RenderPassDescription VulkanRenderPass::CreateDefaultDescription(const VkFormat 
    colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
    subpass.colorAttachments.push_back(colorRef);
    if (depthFormat != VK_FORMAT_UNDEFINED) {
-      subpass.depthStencilAttachment = new VkAttachmentReference{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+      subpass.depthStencilAttachment = new VkAttachmentReference{
+         1,
+         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+      };
    }
    desc.subpasses.push_back(subpass);
    // Dependencies
@@ -154,9 +158,10 @@ RenderPassDescription VulkanRenderPass::CreateDefaultDescription(const VkFormat 
    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
    if (depthFormat != VK_FORMAT_UNDEFINED) {
-      dependency.srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-      dependency.dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-      dependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+      dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+      dependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+      dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+      dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
    }
    desc.dependencies.push_back(dependency);
    return desc;

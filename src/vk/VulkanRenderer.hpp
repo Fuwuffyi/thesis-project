@@ -15,6 +15,7 @@
 
 #include <vulkan/vulkan.h>
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
@@ -56,12 +57,19 @@ private:
    // Functions to setup swapchain recreation
    void RecreateSwapchain();
    void CleanupSwapchain();
+   // Setup for depth texture
+   void CreateDepthResources();
+   VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, const VkImageTiling& tiling,
+                                const VkFormatFeatureFlags features) const;
+   VkFormat FindDepthFormat() const;
+   bool HasStencilComponent(const VkFormat& format) const;
    // Functions to create textures
    void CreateImage(const uint32_t width, const uint32_t height, const VkFormat format,
                     const VkImageTiling tiling, const VkImageUsageFlags usage,
                     const VkMemoryPropertyFlags properties, VkImage& image,
                     VkDeviceMemory& imageMemory);
-   VkImageView CreateImageView(const VkImage& image, const VkFormat& format);
+   VkImageView CreateImageView(const VkImage& image, const VkFormat& format,
+                               const VkImageAspectFlags& aspectFlags);
    void CreateTextureImage();
    void CreateTextureImageView();
    void CreateTextureSampler();
@@ -98,6 +106,9 @@ private:
    VkDeviceMemory m_textureImageMemory;
    VkImageView m_textureImageView;
    VkSampler m_textureSampler;
+   VkImage m_depthImage;
+   VkDeviceMemory m_depthImageMemory;
+   VkImageView m_depthImageView;
    std::vector<std::unique_ptr<VulkanBuffer>> m_uniformBuffers;
    std::vector<void*> m_uniformBuffersMapped;
    VkDescriptorPool m_descriptorPool;
