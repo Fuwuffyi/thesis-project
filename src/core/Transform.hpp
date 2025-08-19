@@ -22,11 +22,9 @@ public:
    const glm::vec3& GetScale() const;
    void SetScale(const glm::vec3& scl);
 
-   const glm::mat4& GetPositionMatrix();
-   const glm::mat4& GetRotationMatrix();
-   const glm::mat4& GetScaleMatrix();
    const glm::mat4& GetTransformMatrix();
-
+private:
+   void RecalculateMatrix();
 private:
    glm::vec3 m_pos;
    glm::quat m_rot;
@@ -36,4 +34,7 @@ private:
    glm::mat4 m_mRot;
    glm::mat4 m_mScl;
    glm::mat4 m_matrix;
+
+   bool m_dirty;
 };
+

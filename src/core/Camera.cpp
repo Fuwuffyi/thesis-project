@@ -16,7 +16,10 @@ Camera::Camera(const GraphicsAPI api, const Transform& transform, const glm::vec
    m_far(far),
    m_view(1.0f),
    m_proj(1.0f),
-   m_camera(1.0f)
+   m_camera(1.0f),
+   m_viewDirty(true),
+   m_projDirty(true),
+   m_cameraDirty(true)
 {
    m_proj = glm::perspective(glm::radians(m_fov), m_aspectRatio, m_near, m_far);
 }
@@ -45,16 +48,19 @@ float Camera::GetFOV() const {
 
 void Camera::SetFOV(const float newFov) {
    m_fov = newFov;
-   m_proj = glm::perspective(glm::radians(m_fov), m_aspectRatio, m_near, m_far);
+   m_projDirty = true;
 }
 
 void Camera::SetAspectRatio(const float newRatio) {
    m_aspectRatio = newRatio;
-   m_proj = glm::perspective(glm::radians(m_fov), m_aspectRatio, m_near, m_far);
+   m_projDirty = true;
 }
 
 const glm::mat4& Camera::GetViewMatrix() {
-   m_view = glm::inverse(m_transform.GetTransformMatrix());
+   if (m_viewDirty) {
+      RecalculateView();
+      m_viewDirty = false;
+   }
    return m_view;
 }
 
@@ -66,15 +72,18 @@ static const glm::mat4 GL_TO_VK_CLIP = glm::mat4(
 );
 
 const glm::mat4& Camera::GetProjectionMatrix() {
-   m_proj = glm::perspective(glm::radians(m_fov), m_aspectRatio, m_near, m_far);
-   if (m_api == GraphicsAPI::Vulkan) {
-      m_proj = GL_TO_VK_CLIP * m_proj;
+   if (m_projDirty) {
+      RecalculateProjection();
+      m_projDirty = false;
    }
    return m_proj;
 }
 
 const glm::mat4& Camera::GetCameraMatrix() {
-   m_camera = GetProjectionMatrix() * GetViewMatrix();
+   if (m_cameraDirty) {
+      m_camera = GetProjectionMatrix() * GetViewMatrix();
+      m_cameraDirty = false;
+   }
    return m_camera;
 }
 
@@ -83,6 +92,20 @@ const Transform& Camera::GetTransform() const {
 }
 
 Transform& Camera::GetMutableTransform() {
+   m_viewDirty = true;
+   m_cameraDirty = true;
    return m_transform;
+}
+
+void Camera::RecalculateView() {
+   m_view = glm::inverse(m_transform.GetTransformMatrix());
+}
+
+void Camera::RecalculateProjection() {
+   m_proj = glm::perspective(glm::radians(m_fov),
+                             m_aspectRatio, m_near, m_far);
+   if (m_api == GraphicsAPI::Vulkan) {
+      m_proj = GL_TO_VK_CLIP * m_proj;
+   }
 }
 

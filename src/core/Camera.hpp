@@ -23,7 +23,9 @@ public:
 
    const Transform& GetTransform() const;
    Transform& GetMutableTransform();
-
+private:
+   void RecalculateView();
+   void RecalculateProjection();
 private:
    const GraphicsAPI m_api;
 
@@ -39,5 +41,8 @@ private:
    glm::mat4 m_proj;
    glm::mat4 m_camera;
 
+   bool m_viewDirty;
+   bool m_projDirty;
+   bool m_cameraDirty;
 };
 

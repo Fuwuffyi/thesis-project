@@ -10,7 +10,8 @@ Transform::Transform(const glm::vec3& position, const glm::quat& rotation, const
    m_mPos(1.0f),
    m_mRot(1.0f),
    m_mScl(1.0f),
-   m_matrix(1.0f)
+   m_matrix(1.0f),
+   m_dirty(true)
 {}
 
 Transform::Transform(const glm::mat4& transformMatrix)
@@ -18,7 +19,8 @@ Transform::Transform(const glm::mat4& transformMatrix)
    m_mPos(1.0f),
    m_mRot(1.0f),
    m_mScl(1.0f),
-   m_matrix(1.0f)
+   m_matrix(1.0f),
+   m_dirty(true)
 {
    // Extract position (last column)
    m_pos = glm::vec3(transformMatrix[3]);
@@ -41,6 +43,7 @@ const glm::vec3& Transform::GetPosition() const {
 
 void Transform::SetPosition(const glm::vec3& pos) {
    m_pos = pos;
+   m_dirty = true;
 }
 
 const glm::quat& Transform::GetRotation() const {
@@ -49,6 +52,7 @@ const glm::quat& Transform::GetRotation() const {
 
 void Transform::SetRotation(const glm::quat& rot) {
    m_rot = glm::normalize(rot);
+   m_dirty = true;
 }
 
 const glm::vec3& Transform::GetScale() const {
@@ -57,25 +61,21 @@ const glm::vec3& Transform::GetScale() const {
 
 void Transform::SetScale(const glm::vec3& scl) {
    m_scl = scl;
-}
-
-const glm::mat4& Transform::GetPositionMatrix() {
-   m_mPos = glm::translate(glm::mat4(1.0f), m_pos);
-   return m_mPos;
-}
-
-const glm::mat4& Transform::GetRotationMatrix() {
-   m_mRot = glm::toMat4(m_rot);
-   return m_mRot;
-}
-
-const glm::mat4& Transform::GetScaleMatrix() {
-   m_mScl = glm::scale(glm::mat4(1.0f), m_scl);
-   return m_mScl;
+   m_dirty = true;
 }
 
 const glm::mat4& Transform::GetTransformMatrix() {
-   m_matrix = GetPositionMatrix() * GetRotationMatrix() * GetScaleMatrix();
+   if (m_dirty) {
+      RecalculateMatrix();
+      m_dirty = false;
+   }
    return m_matrix;
+}
+
+void Transform::RecalculateMatrix() {
+   m_mPos = glm::translate(glm::mat4(1.0f), m_pos);
+   m_mRot = glm::toMat4(m_rot);
+   m_mScl = glm::scale(glm::mat4(1.0f), m_scl);
+   m_matrix = m_mPos * m_mRot * m_mScl;
 }
 
