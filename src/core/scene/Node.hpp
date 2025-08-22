@@ -10,7 +10,7 @@ public:
    ~Node();
 
    const std::vector<std::unique_ptr<Node>>& GetChildren() const;
- 
+   void AddChild(std::unique_ptr<Node> child);
    void AddComponent(std::unique_ptr<Component> component);
 
    template<typename T>

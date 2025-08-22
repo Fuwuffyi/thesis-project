@@ -4,7 +4,9 @@
 
 #include "core/scene/Scene.hpp"
 #include "core/scene/Node.hpp"
+#include "core/scene/components/TransformComponent.hpp"
 
+#include <memory>
 #include <print>
 #include <chrono>
 
@@ -24,6 +26,18 @@ int main() {
 
       // Create the scene
       Scene scene;
+      std::unique_ptr<Node> node2 = std::make_unique<Node>();
+      node2->AddComponent(std::make_unique<TransformComponent>());
+      node2->GetComponent<TransformComponent>()->m_transform.SetPosition(glm::vec3(0.0f, 5.0f, 0.0f));
+      scene.GetRootNode()->AddChild(std::move(node2));
+      std::unique_ptr<Node> node3 = std::make_unique<Node>();
+      node3->AddComponent(std::make_unique<TransformComponent>());
+      node3->GetComponent<TransformComponent>()->m_transform.SetPosition(glm::vec3(0.4f, 0.0f, 0.0f));
+      scene.GetRootNode()->AddChild(std::move(node3));
+      std::unique_ptr<Node> node4 = std::make_unique<Node>();
+      node4->AddComponent(std::make_unique<TransformComponent>());
+      node4->GetComponent<TransformComponent>()->m_transform.SetPosition(glm::vec3(0.0f, 5.0f, 2.0f));
+      scene.GetRootNode()->AddChild(std::move(node4));;
 
       // Create the camera
       const glm::vec3 startPos = glm::vec3(2.0f);

@@ -8,7 +8,12 @@
 #include "../core/Window.hpp"
 #include "../core/Camera.hpp"
 
+#include "../core/scene/Scene.hpp"
+#include "../core/scene/Node.hpp"
+#include "../core/scene/components/TransformComponent.hpp"
+
 #include <GLFW/glfw3.h>
+#include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <memory>
@@ -209,8 +214,6 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    float time = std::chrono::duration<float, std::chrono::seconds::period>(
       currentTime - startTime)
       .count();
-   ObjectData objData {};
-   objData.model = glm::mat4(1.0f);
    // Setup record
    m_commandBuffers->Begin(0, m_currentFrame);
    // Start a render pass
@@ -240,32 +243,28 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    scissor.extent = m_swapchain.GetExtent();
    m_commandBuffers->SetScissor(scissor, m_currentFrame);
    // Set triangle position/rotation/scale
-   vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame), m_pipelineLayout->Get(),
-                      VK_SHADER_STAGE_VERTEX_BIT, 0,
-                      sizeof(ObjectData), &objData);
    vkCmdBindDescriptorSets(m_commandBuffers->Get(m_currentFrame), VK_PIPELINE_BIND_POINT_GRAPHICS,
                            m_pipelineLayout->Get(), 0, 1,
                            &m_descriptorSets[m_currentFrame], 0, nullptr);
-   // Draw the cube
-   m_mesh->Draw(m_commandBuffers->Get(m_currentFrame));
-   /*
-   Test multiple cubes
-   objData.model = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f));
-   vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame), m_pipelineLayout->Get(),
-                      VK_SHADER_STAGE_VERTEX_BIT, 0,
-                      sizeof(ObjectData), &objData);
-   m_mesh->Draw(m_commandBuffers->Get(m_currentFrame));
-   objData.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
-   vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame), m_pipelineLayout->Get(),
-                      VK_SHADER_STAGE_VERTEX_BIT, 0,
-                      sizeof(ObjectData), &objData);
-   m_mesh->Draw(m_commandBuffers->Get(m_currentFrame));
-   objData.model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 3.0f));
-   vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame), m_pipelineLayout->Get(),
-                      VK_SHADER_STAGE_VERTEX_BIT, 0,
-                      sizeof(ObjectData), &objData);
-   m_mesh->Draw(m_commandBuffers->Get(m_currentFrame));
-   */
+   // Draw the scene
+   ObjectData objData {};
+   Node* root = m_activeScene->GetRootNode();
+   std::vector<Node*> nodesToCheck{root};
+   while (!nodesToCheck.empty()) {
+      auto c = nodesToCheck.back();
+      nodesToCheck.pop_back();
+      // Get transform
+      TransformComponent* comp = c->GetComponent<TransformComponent>();
+      // Update it on shader
+      objData.model = comp->m_transform.GetTransformMatrix();
+      vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame), m_pipelineLayout->Get(),
+                         VK_SHADER_STAGE_VERTEX_BIT, 0,
+                         sizeof(ObjectData), &objData);
+      // Draw mesh
+      m_mesh->Draw(m_commandBuffers->Get(m_currentFrame));
+      // Add all child elements to nodes to traverse
+      std::ranges::for_each(c->GetChildren(), [&](auto& x) { nodesToCheck.push_back(x.get()); });
+   }
    // TODO: Clean up imgui stuff
    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers->Get(m_currentFrame));
    m_commandBuffers->EndRenderPass(m_currentFrame);
@@ -342,13 +341,13 @@ bool VulkanRenderer::HasStencilComponent(const VkFormat& format) const {
 
 void VulkanRenderer::CreateTextureResources() {
    m_textureImage = std::make_unique<VulkanImage>(
-       m_device,
-       "resources/textures/texture_base.jpg",
-       true,
-       true
+      m_device,
+      "resources/textures/texture_base.jpg",
+      true,
+      true
    );
    m_textureSampler = std::make_unique<VulkanSampler>(
-       VulkanSampler::CreateAnisotropic(m_device, 16.0f)
+      VulkanSampler::CreateAnisotropic(m_device, 16.0f)
    );
 }
 

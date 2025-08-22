@@ -1,14 +1,18 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 
 class Node;
 
 class Scene {
 public:
+   Scene();
    ~Scene();
 
+   Node* GetRootNode() const;
+
 private:
-   std::vector<Node> m_nodes;
+   std::unique_ptr<Node> m_rootNode;
 };
 
