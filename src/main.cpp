@@ -2,6 +2,9 @@
 #include "core/Window.hpp"
 #include "core/Camera.hpp"
 
+#include "core/scene/Scene.hpp"
+#include "core/scene/Node.hpp"
+
 #include <print>
 #include <chrono>
 
@@ -19,6 +22,9 @@ int main() {
       };
       Window window(api, windowDesc);
 
+      // Create the scene
+      Scene scene;
+
       // Create the camera
       const glm::vec3 startPos = glm::vec3(2.0f);
       const glm::vec3 forward = glm::normalize(glm::vec3(0.0f) - startPos);
@@ -32,6 +38,7 @@ int main() {
       // Create the renderer
       std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api, &window);
       renderer->SetActiveCamera(&cam);
+      renderer->SetActiveScene(&scene);
       float deltaTime = 0.0f;
 
       // Setup events

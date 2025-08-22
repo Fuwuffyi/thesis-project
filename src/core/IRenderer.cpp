@@ -10,3 +10,7 @@ void IRenderer::SetActiveCamera(Camera* cam) {
    m_activeCamera = cam;
 }
 
+void IRenderer::SetActiveScene(Scene* scene) {
+   m_activeScene = scene;
+}
+

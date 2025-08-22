@@ -4,6 +4,7 @@
 
 class Window;
 class Camera;
+class Scene;
 
 class IRenderer {
 public:
@@ -11,6 +12,7 @@ public:
 
    virtual void RenderFrame() = 0;
    void SetActiveCamera(Camera* cam);
+   void SetActiveScene(Scene* scene);
 
    IRenderer(const IRenderer&) = delete;
    IRenderer& operator=(const IRenderer&) = delete;
@@ -22,5 +24,6 @@ protected:
 protected:
    Window* m_window;
    Camera* m_activeCamera;
+   Scene* m_activeScene;
 };
 
