@@ -534,6 +534,7 @@ void VulkanRenderer::RenderImgui() {
    ImGui_ImplVulkan_NewFrame();
    ImGui_ImplGlfw_NewFrame();
    ImGui::NewFrame();
+   const ImGuiViewport* viewport = ImGui::GetMainViewport();
    // FPS Overlay
    {
       ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
@@ -546,6 +547,49 @@ void VulkanRenderer::RenderImgui() {
       ImGui::Begin("FPS Overlay", nullptr, flags);
       ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
       ImGui::Text("Frame: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
+      ImGui::End();
+   }
+   // Scene graph
+   {
+      ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + viewport->WorkSize.x - 300, viewport->WorkPos.y)); // 300 px width
+      ImGui::SetNextWindowSize(ImVec2(300, viewport->WorkSize.y));
+      ImGui::SetNextWindowBgAlpha(0.35f);
+      ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
+         ImGuiWindowFlags_NoMove |
+         ImGuiWindowFlags_NoCollapse |
+         ImGuiWindowFlags_NoResize |
+         ImGuiWindowFlags_NoSavedSettings |
+         ImGuiWindowFlags_NoFocusOnAppearing |
+         ImGuiWindowFlags_NoNav;
+      ImGui::Begin("Scene Graph", nullptr, flags);
+      Node* root = m_activeScene->GetRootNode();
+      std::vector<Node*> nodesToCheck{root};
+      uint32_t id = 0;
+      while (!nodesToCheck.empty()) {
+         auto c = nodesToCheck.back();
+         nodesToCheck.pop_back();
+         // Get transform
+         TransformComponent* comp = c->GetComponent<TransformComponent>();
+         if (ImGui::TreeNode(std::to_string(++id).c_str())) {
+            if (comp) {
+               glm::vec3 posInput = comp->m_transform.GetPosition();
+               if (ImGui::DragFloat3("Position", &posInput.x, 0.01f, 0.0f, 10000.0f)) {
+                  comp->m_transform.SetPosition(posInput);
+               }
+               glm::quat rotInput = comp->m_transform.GetRotation();
+               if (ImGui::DragFloat4("Rotation", &rotInput.x, 0.01f, 0.0f, 3.14f)) {
+                  comp->m_transform.SetRotation(rotInput);
+               }
+               glm::vec3 scaleInput = comp->m_transform.GetScale();
+               if (ImGui::DragFloat3("Scale", &scaleInput.x, 0.01f, 0.0f, 10000.0f)) {
+                  comp->m_transform.SetScale(scaleInput);
+               }
+            }
+            ImGui::TreePop();
+         }
+         // Add all child elements to nodes to traverse
+         std::ranges::for_each(c->GetChildren(), [&](auto& x) { nodesToCheck.push_back(x.get()); });
+      }
       ImGui::End();
    }
    ImGui::Render();
