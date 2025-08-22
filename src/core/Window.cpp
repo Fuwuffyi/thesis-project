@@ -48,9 +48,9 @@ Window::Window(const GraphicsAPI api, const WindowDesc& desc)
    // Set main window if GL
    if (api == GraphicsAPI::OpenGL) {
       glfwMakeContextCurrent(m_window);
-   }
-   if (!desc.vsync) {
-      glfwSwapInterval(0);
+      if (!desc.vsync) {
+         glfwSwapInterval(0);
+      }
    }
    // Setup callback configuration
    glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);

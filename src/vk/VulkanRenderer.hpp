@@ -11,6 +11,9 @@
 #include "VulkanRenderPass.hpp"
 #include "VulkanBuffer.hpp"
 
+#include "VulkanImage.hpp"
+#include "VulkanSampler.hpp"
+
 #include "resource/VulkanMesh.hpp"
 
 #include <vulkan/vulkan.h>
@@ -49,7 +52,6 @@ private:
    // Functions to set up framebuffers
    void CreateFramebuffers();
    // Functions to set up command pool
-   void CreateCommandPool();
    void CreateCommandBuffers();
    void RecordCommandBuffer(const uint32_t imageIndex);
    // Functions to set up synchronization for drawing
@@ -64,18 +66,7 @@ private:
    VkFormat FindDepthFormat() const;
    bool HasStencilComponent(const VkFormat& format) const;
    // Functions to create textures
-   void CreateImage(const uint32_t width, const uint32_t height, const VkFormat format,
-                    const VkImageTiling tiling, const VkImageUsageFlags usage,
-                    const VkMemoryPropertyFlags properties, VkImage& image,
-                    VkDeviceMemory& imageMemory);
-   VkImageView CreateImageView(const VkImage& image, const VkFormat& format,
-                               const VkImageAspectFlags& aspectFlags);
-   void CreateTextureImage();
-   void CreateTextureImageView();
-   void CreateTextureSampler();
-   void CopyBufferToImage(const VulkanBuffer& buffer, const VkImage& image, const uint32_t width, const uint32_t height);
-   void TransitionImageLayout(const VkImage& image, const VkFormat format,
-                              const VkImageLayout oldLayout, const VkImageLayout newLayout);
+   void CreateTextureResources();
    // Testing mesh
    void CreateMesh();
    void CreateUniformBuffer();
@@ -95,20 +86,15 @@ private:
    VkDescriptorSetLayout m_descriptorSetLayout;
    std::unique_ptr<VulkanPipelineLayout> m_pipelineLayout;
    std::unique_ptr<VulkanGraphicsPipeline> m_graphicsPipeline;
-   VkCommandPool m_commandPool;
    // TODO: Remove unique ptrs in favour of stack variables once other abstractions are implemented
    std::unique_ptr<VulkanCommandBuffers> m_commandBuffers;
    std::vector<VkSemaphore> m_imageAvailableSemaphores;
    std::vector<VkSemaphore> m_renderFinishedSemaphores;
    std::vector<VkFence> m_inFlightFences;
+   std::unique_ptr<VulkanImage> m_depthImage;
    std::unique_ptr<VulkanMesh> m_mesh;
-   VkImage m_textureImage;
-   VkDeviceMemory m_textureImageMemory;
-   VkImageView m_textureImageView;
-   VkSampler m_textureSampler;
-   VkImage m_depthImage;
-   VkDeviceMemory m_depthImageMemory;
-   VkImageView m_depthImageView;
+   std::unique_ptr<VulkanImage> m_textureImage;
+   std::unique_ptr<VulkanSampler> m_textureSampler;
    std::vector<std::unique_ptr<VulkanBuffer>> m_uniformBuffers;
    std::vector<void*> m_uniformBuffersMapped;
    VkDescriptorPool m_descriptorPool;

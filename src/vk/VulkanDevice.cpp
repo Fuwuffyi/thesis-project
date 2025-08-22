@@ -19,9 +19,13 @@ VulkanDevice::VulkanDevice(const VulkanInstance& instance, const VulkanSurface& 
    FindQueueFamilies();
    CreateLogicalDevice(requiredExtensions, validationLayers, enableValidation);
    GetDeviceQueues();
+   CreateCommandPool();
 }
 
 VulkanDevice::~VulkanDevice() {
+   if (m_commandPool != VK_NULL_HANDLE) {
+      vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+   }
    if (m_device != VK_NULL_HANDLE) {
       vkDestroyDevice(m_device, nullptr);
    }
@@ -98,6 +102,17 @@ void VulkanDevice::CreateLogicalDevice(const std::vector<const char*>& requiredE
                     0, &m_graphicsQueue);
    vkGetDeviceQueue(m_device, m_queueFamilies.presentFamily.value(),
                     0, &m_presentQueue);
+}
+
+void VulkanDevice::CreateCommandPool() {
+   VkCommandPoolCreateInfo poolInfo{};
+   poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+   poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+   poolInfo.queueFamilyIndex = m_queueFamilies.graphicsFamily.value();
+   if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) !=
+      VK_SUCCESS) {
+      throw std::runtime_error("Failed to create command pool.");
+   }
 }
 
 void VulkanDevice::FindQueueFamilies() {
@@ -285,5 +300,9 @@ uint32_t VulkanDevice::GetGraphicsQueueFamily() const {
 
 uint32_t VulkanDevice::GetPresentQueueFamily() const {
    return m_queueFamilies.presentFamily.value();
+}
+
+const VkCommandPool& VulkanDevice::GetCommandPool() const {
+   return m_commandPool;
 }
 

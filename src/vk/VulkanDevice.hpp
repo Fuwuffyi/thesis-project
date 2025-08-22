@@ -36,6 +36,7 @@ public:
 
    const VkPhysicalDevice& GetPhysicalDevice() const;
    const VkDevice& Get() const;
+   const VkCommandPool& GetCommandPool() const;
    const VkQueue& GetGraphicsQueue() const;
    const VkQueue& GetPresentQueue() const;
    const QueueFamilyIndices& GetQueueFamilies() const;
@@ -50,6 +51,7 @@ private:
                             const bool enableValidation);
    void FindQueueFamilies();
    void GetDeviceQueues();
+   void CreateCommandPool();
 
    // Device evaluation
    static uint32_t RateDevice(const VkPhysicalDevice& device);
@@ -65,6 +67,8 @@ private:
    // Core objects
    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
    VkDevice m_device = VK_NULL_HANDLE;
+   // Generic command pool
+   VkCommandPool m_commandPool = VK_NULL_HANDLE;
    // Queue management
    QueueFamilyIndices m_queueFamilies{};
    VkQueue m_graphicsQueue = VK_NULL_HANDLE;
