@@ -1,5 +1,6 @@
 #include "GLRenderer.hpp"
 
+#include <algorithm>
 #include <glad/gl.h>
 #include <print>
 #include <GLFW/glfw3.h>
@@ -8,6 +9,10 @@
 #include "../core/Camera.hpp"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+
+#include "../core/scene/Scene.hpp"
+#include "../core/scene/Node.hpp"
+#include "../core/scene/components/TransformComponent.hpp"
 
 // Stuff for mesh
 #include <vector>
@@ -155,6 +160,7 @@ void GLRenderer::RenderImgui() {
    ImGui_ImplOpenGL3_NewFrame();
    ImGui_ImplGlfw_NewFrame();
    ImGui::NewFrame();
+   const ImGuiViewport* viewport = ImGui::GetMainViewport();
    // FPS Overlay
    {
       ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
@@ -169,6 +175,49 @@ void GLRenderer::RenderImgui() {
       ImGui::Text("Frame: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
       ImGui::End();
    }
+   // Scene graph
+   {
+      ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + viewport->WorkSize.x - 300, viewport->WorkPos.y)); // 300 px width
+      ImGui::SetNextWindowSize(ImVec2(300, viewport->WorkSize.y));
+      ImGui::SetNextWindowBgAlpha(0.35f);
+      ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
+         ImGuiWindowFlags_NoMove |
+         ImGuiWindowFlags_NoCollapse |
+         ImGuiWindowFlags_NoResize |
+         ImGuiWindowFlags_NoSavedSettings |
+         ImGuiWindowFlags_NoFocusOnAppearing |
+         ImGuiWindowFlags_NoNav;
+      ImGui::Begin("Scene Graph", nullptr, flags);
+      Node* root = m_activeScene->GetRootNode();
+      std::vector<Node*> nodesToCheck{root};
+      uint32_t id = 0;
+      while (!nodesToCheck.empty()) {
+         auto c = nodesToCheck.back();
+         nodesToCheck.pop_back();
+         // Get transform
+         TransformComponent* comp = c->GetComponent<TransformComponent>();
+         if (ImGui::TreeNode(std::to_string(++id).c_str())) {
+            if (comp) {
+               glm::vec3 posInput = comp->m_transform.GetPosition();
+               if (ImGui::DragFloat3("Position", &posInput.x, 0.01f, 0.0f, 10000.0f)) {
+                  comp->m_transform.SetPosition(posInput);
+               }
+               glm::quat rotInput = comp->m_transform.GetRotation();
+               if (ImGui::DragFloat4("Rotation", &rotInput.x, 0.01f, 0.0f, 3.14f)) {
+                  comp->m_transform.SetRotation(rotInput);
+               }
+               glm::vec3 scaleInput = comp->m_transform.GetScale();
+               if (ImGui::DragFloat3("Scale", &scaleInput.x, 0.01f, 0.0f, 10000.0f)) {
+                  comp->m_transform.SetScale(scaleInput);
+               }
+            }
+            ImGui::TreePop();
+         }
+         // Add all child elements to nodes to traverse
+         std::ranges::for_each(c->GetChildren(), [&](auto& x) { nodesToCheck.push_back(x.get()); });
+      }
+      ImGui::End();
+   }
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
@@ -179,7 +228,6 @@ void GLRenderer::RenderFrame() {
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
    // Test pipeline with cube
    shader->Use();
-   const glm::mat4 model = glm::mat4(1.0f);
    const CameraData camData = {
       m_activeCamera->GetViewMatrix(),
       m_activeCamera->GetProjectionMatrix()
@@ -190,8 +238,22 @@ void GLRenderer::RenderFrame() {
    texture->BindUnit(1);
    sampler->BindUnit(1);
    // Render
-   shader->SetMat4("model", model);
-   mesh->Draw();
+   // Draw the scene
+   glm::mat4 model = glm::mat4(1.0f);
+   Node* root = m_activeScene->GetRootNode();
+   std::vector<Node*> nodesToCheck{root};
+   while (!nodesToCheck.empty()) {
+      auto c = nodesToCheck.back();
+      nodesToCheck.pop_back();
+      // Get transform
+      TransformComponent* comp = c->GetComponent<TransformComponent>();
+      // Update it on shader
+      shader->SetMat4("model", comp->m_transform.GetTransformMatrix());
+      // Draw mesh
+      mesh->Draw();
+      // Add all child elements to nodes to traverse
+      std::ranges::for_each(c->GetChildren(), [&](auto& x) { nodesToCheck.push_back(x.get()); });
+   }
    // Render Ui
    RenderImgui();
    // Swap buffers
