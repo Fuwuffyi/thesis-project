@@ -1,7 +1,8 @@
 #include "GLResourceFactory.hpp"
 
-#include "gl/resource/GLMesh.hpp"
-#include "gl/resource/GLTexture.hpp"
+#include "../../core/resource/MeshLoader.hpp"
+#include "../resource/GLMesh.hpp"
+#include "../resource/GLTexture.hpp"
 
 std::unique_ptr<ITexture> GLResourceFactory::CreateTexture(const ITexture::CreateInfo& info) {
    return std::make_unique<GLTexture>(info);
@@ -24,7 +25,7 @@ std::unique_ptr<IMesh> GLResourceFactory::CreateMesh(const std::vector<Vertex>& 
 }
 
 std::unique_ptr<IMesh> GLResourceFactory::CreateMeshFromFile(const std::string& filepath) {
-   // TODO: Implement mesh loading from file (e.g., OBJ, glTF)
-   return nullptr;
+   auto meshData = MeshLoader::GetMeshData(filepath);
+   return std::make_unique<GLMesh>(meshData.first, meshData.second);
 }
 

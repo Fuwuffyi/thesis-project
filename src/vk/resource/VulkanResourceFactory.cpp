@@ -1,7 +1,8 @@
 #include "VulkanResourceFactory.hpp"
 
-#include "vk/resource/VulkanMesh.hpp"
-#include "vk/resource/VulkanTexture.hpp"
+#include "../../core/resource/MeshLoader.hpp"
+#include "../resource/VulkanMesh.hpp"
+#include "../resource/VulkanTexture.hpp"
 
 #include <memory>
 
@@ -31,7 +32,8 @@ std::unique_ptr<IMesh> VulkanResourceFactory::CreateMesh(const std::vector<Verte
 }
 
 std::unique_ptr<IMesh> VulkanResourceFactory::CreateMeshFromFile(const std::string& filepath) {
-   // TODO: Implement mesh loading from file
-   return nullptr;
+   auto meshData = MeshLoader::GetMeshData(filepath);
+   return std::make_unique<VulkanMesh>(meshData.first, meshData.second, *m_device);
+
 }
 
