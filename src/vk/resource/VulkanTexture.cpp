@@ -1,7 +1,8 @@
-#include "VulkanImage.hpp"
-#include "VulkanDevice.hpp"
-#include "VulkanBuffer.hpp"
-#include "VulkanCommandBuffers.hpp"
+#include "VulkanTexture.hpp"
+
+#include "../VulkanDevice.hpp"
+#include "../VulkanBuffer.hpp"
+#include "../VulkanCommandBuffers.hpp"
 
 #include <stdexcept>
 #include <algorithm>
@@ -9,10 +10,10 @@
 
 #include <stb_image.h>
 
-VulkanImage::VulkanImage(const VulkanDevice& device, const uint32_t width, const uint32_t height,
-                         const VkFormat format, const VkImageTiling tiling, const Usage usage,
-                         const MemoryType memoryType, const uint32_t mipLevels, const uint32_t arrayLayers,
-                         const VkSampleCountFlagBits samples)
+VulkanTexture::VulkanTexture(const VulkanDevice& device, const uint32_t width, const uint32_t height,
+                             const VkFormat format, const VkImageTiling tiling, const Usage usage,
+                             const MemoryType memoryType, const uint32_t mipLevels, const uint32_t arrayLayers,
+                             const VkSampleCountFlagBits samples)
    :
    m_device(&device),
    m_format(format),
@@ -29,8 +30,8 @@ VulkanImage::VulkanImage(const VulkanDevice& device, const uint32_t width, const
    CreateImageView();
 }
 
-VulkanImage::VulkanImage(const VulkanDevice& device, const std::string& filepath,
-                         const bool generateMipmaps, const bool sRGB)
+VulkanTexture::VulkanTexture(const VulkanDevice& device, const std::string& filepath,
+                             const bool generateMipmaps, const bool sRGB)
    :
    m_device(&device),
    m_tiling(VK_IMAGE_TILING_OPTIMAL),
@@ -41,7 +42,7 @@ VulkanImage::VulkanImage(const VulkanDevice& device, const std::string& filepath
    LoadFromFile(filepath, generateMipmaps, sRGB);
 }
 
-VulkanImage::~VulkanImage() {
+VulkanTexture::~VulkanTexture() {
    if (m_imageView != VK_NULL_HANDLE) {
       vkDestroyImageView(m_device->Get(), m_imageView, nullptr);
    }
@@ -53,7 +54,7 @@ VulkanImage::~VulkanImage() {
    }
 }
 
-VulkanImage::VulkanImage(VulkanImage&& other) noexcept
+VulkanTexture::VulkanTexture(VulkanTexture&& other) noexcept
    :
    m_device(other.m_device),
    m_image(other.m_image),
@@ -74,7 +75,7 @@ VulkanImage::VulkanImage(VulkanImage&& other) noexcept
    other.m_memory = VK_NULL_HANDLE;
 }
 
-VulkanImage& VulkanImage::operator=(VulkanImage&& other) noexcept {
+VulkanTexture& VulkanTexture::operator=(VulkanTexture&& other) noexcept {
    if (this != &other) {
       if (m_imageView != VK_NULL_HANDLE) {
          vkDestroyImageView(m_device->Get(), m_imageView, nullptr);
@@ -105,9 +106,9 @@ VulkanImage& VulkanImage::operator=(VulkanImage&& other) noexcept {
    return *this;
 }
 
-void VulkanImage::TransitionLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout,
-                                   const VkPipelineStageFlags srcStage, const VkPipelineStageFlags dstStage,
-                                   const uint32_t baseMipLevel, const uint32_t levelCount) {
+void VulkanTexture::TransitionLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout,
+                                     const VkPipelineStageFlags srcStage, const VkPipelineStageFlags dstStage,
+                                     const uint32_t baseMipLevel, const uint32_t levelCount) {
 
    VulkanCommandBuffers::ExecuteImmediate(*m_device,
                                           m_device->GetCommandPool(),
@@ -168,7 +169,7 @@ void VulkanImage::TransitionLayout(const VkImageLayout oldLayout, const VkImageL
                                           });
 }
 
-void VulkanImage::CopyFromBuffer(const VulkanBuffer& buffer, const uint32_t mipLevel) {
+void VulkanTexture::CopyFromBuffer(const VulkanBuffer& buffer, const uint32_t mipLevel) {
    VulkanCommandBuffers::ExecuteImmediate(*m_device,
                                           m_device->GetCommandPool(),
                                           m_device->GetGraphicsQueue(),
@@ -192,7 +193,7 @@ void VulkanImage::CopyFromBuffer(const VulkanBuffer& buffer, const uint32_t mipL
                                           });
 }
 
-void VulkanImage::GenerateMipmaps() {
+void VulkanTexture::GenerateMipmaps() {
    // Check if image format supports linear blitting
    if (!FormatSupportsBlitting(m_format)) {
       throw std::runtime_error("Format does not support linear blitting for mipmap generation.");
@@ -268,13 +269,13 @@ void VulkanImage::GenerateMipmaps() {
                                           });
 }
 
-uint32_t VulkanImage::CalculateMipLevels(const uint32_t width, const uint32_t height) {
+uint32_t VulkanTexture::CalculateMipLevels(const uint32_t width, const uint32_t height) {
    return static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
 }
 
-VkImageView VulkanImage::CreateImageView(const VulkanDevice& device, const VkImage image,
-                                         const VkFormat format, const VkImageAspectFlags aspectFlags,
-                                         const uint32_t mipLevels, const uint32_t arrayLayers) {
+VkImageView VulkanTexture::CreateImageView(const VulkanDevice& device, const VkImage image,
+                                           const VkFormat format, const VkImageAspectFlags aspectFlags,
+                                           const uint32_t mipLevels, const uint32_t arrayLayers) {
    VkImageViewCreateInfo viewInfo{};
    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
    viewInfo.image = image;
@@ -292,7 +293,7 @@ VkImageView VulkanImage::CreateImageView(const VulkanDevice& device, const VkIma
    return imageView;
 }
 
-void VulkanImage::CreateImage() {
+void VulkanTexture::CreateImage() {
    VkImageCreateInfo imageInfo{};
    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
    imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -310,7 +311,7 @@ void VulkanImage::CreateImage() {
    }
 }
 
-void VulkanImage::AllocateMemory() {
+void VulkanTexture::AllocateMemory() {
    VkMemoryRequirements memRequirements;
    vkGetImageMemoryRequirements(m_device->Get(), m_image, &memRequirements);
    VkMemoryAllocateInfo allocInfo{};
@@ -324,7 +325,7 @@ void VulkanImage::AllocateMemory() {
    vkBindImageMemory(m_device->Get(), m_image, m_memory, 0);
 }
 
-void VulkanImage::CreateImageView() {
+void VulkanTexture::CreateImageView() {
    VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
    // Determine aspect flags based on format
    if (m_format == VK_FORMAT_D32_SFLOAT || m_format == VK_FORMAT_D32_SFLOAT_S8_UINT || 
@@ -338,7 +339,7 @@ void VulkanImage::CreateImageView() {
                                  m_mipLevels, m_arrayLayers);
 }
 
-void VulkanImage::LoadFromFile(const std::string& filepath, const bool generateMipmaps, const bool sRGB) {
+void VulkanTexture::LoadFromFile(const std::string& filepath, const bool generateMipmaps, const bool sRGB) {
    int32_t texWidth, texHeight, texChannels;
    stbi_uc* pixels = stbi_load(filepath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
    if (!pixels) throw std::runtime_error("Failed to load texture image: " + filepath);
@@ -370,7 +371,7 @@ void VulkanImage::LoadFromFile(const std::string& filepath, const bool generateM
    CreateImageView();
 }
 
-VkMemoryPropertyFlags VulkanImage::GetMemoryPropertiesFromType(const MemoryType type) const {
+VkMemoryPropertyFlags VulkanTexture::GetMemoryPropertiesFromType(const MemoryType type) const {
    switch (type) {
       case MemoryType::DeviceLocal:
          return VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
@@ -383,7 +384,7 @@ VkMemoryPropertyFlags VulkanImage::GetMemoryPropertiesFromType(const MemoryType 
    }
 }
 
-bool VulkanImage::FormatSupportsBlitting(const VkFormat format) const {
+bool VulkanTexture::FormatSupportsBlitting(const VkFormat format) const {
    VkFormatProperties formatProperties;
    vkGetPhysicalDeviceFormatProperties(m_device->GetPhysicalDevice(), format,
                                        &formatProperties);
@@ -391,31 +392,31 @@ bool VulkanImage::FormatSupportsBlitting(const VkFormat format) const {
    return (formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT) != 0;
 }
 
-VkImage VulkanImage::Get() const {
+VkImage VulkanTexture::Get() const {
    return m_image;
 }
 
-VkImageView VulkanImage::GetView() const {
+VkImageView VulkanTexture::GetView() const {
    return m_imageView;
 }
 
-VkDeviceMemory VulkanImage::GetMemory() const {
+VkDeviceMemory VulkanTexture::GetMemory() const {
    return m_memory;
 }
 
-VkFormat VulkanImage::GetFormat() const {
+VkFormat VulkanTexture::GetFormat() const {
    return m_format;
 }
 
-VkExtent3D VulkanImage::GetExtent() const {
+VkExtent3D VulkanTexture::GetExtent() const {
    return m_extent;
 }
 
-uint32_t VulkanImage::GetMipLevels() const {
+uint32_t VulkanTexture::GetMipLevels() const {
    return m_mipLevels;
 }
 
-uint32_t VulkanImage::GetArrayLayers() const {
+uint32_t VulkanTexture::GetArrayLayers() const {
    return m_arrayLayers;
 }
 

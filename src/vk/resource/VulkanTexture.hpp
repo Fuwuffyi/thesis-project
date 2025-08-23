@@ -6,7 +6,7 @@
 class VulkanDevice;
 class VulkanBuffer;
 
-class VulkanImage {
+class VulkanTexture {
 public:
    enum class Usage : VkImageUsageFlags {
       ColorAttachment = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -23,19 +23,19 @@ public:
       HostCoherent
    };
 
-   VulkanImage(const VulkanDevice& device, const uint32_t width, const uint32_t height,
-               const VkFormat format, const VkImageTiling tiling, const Usage usage,
-               const MemoryType memoryType, const uint32_t mipLevels = 1,
-               const uint32_t arrayLayers = 1, const VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
+   VulkanTexture(const VulkanDevice& device, const uint32_t width, const uint32_t height,
+                 const VkFormat format, const VkImageTiling tiling, const Usage usage,
+                 const MemoryType memoryType, const uint32_t mipLevels = 1,
+                 const uint32_t arrayLayers = 1, const VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
 
-   VulkanImage(const VulkanDevice& device, const std::string& filepath,
-               const bool generateMipmaps = true, const bool sRGB = true);
-   ~VulkanImage();
+   VulkanTexture(const VulkanDevice& device, const std::string& filepath,
+                 const bool generateMipmaps = true, const bool sRGB = true);
+   ~VulkanTexture();
 
-   VulkanImage(const VulkanImage&) = delete;
-   VulkanImage& operator=(const VulkanImage&) = delete;
-   VulkanImage(VulkanImage&& other) noexcept;
-   VulkanImage& operator=(VulkanImage&& other) noexcept;
+   VulkanTexture(const VulkanTexture&) = delete;
+   VulkanTexture& operator=(const VulkanTexture&) = delete;
+   VulkanTexture(VulkanTexture&& other) noexcept;
+   VulkanTexture& operator=(VulkanTexture&& other) noexcept;
 
    VkImage Get() const;
    VkImageView GetView() const;
@@ -81,8 +81,8 @@ private:
 };
 
 // Bitwise operators for Usage enum
-inline VulkanImage::Usage operator|(VulkanImage::Usage a, VulkanImage::Usage b) {
-   return static_cast<VulkanImage::Usage>(
+inline VulkanTexture::Usage operator|(VulkanTexture::Usage a, VulkanTexture::Usage b) {
+   return static_cast<VulkanTexture::Usage>(
       static_cast<VkImageUsageFlags>(a) | static_cast<VkImageUsageFlags>(b)
    );
 }

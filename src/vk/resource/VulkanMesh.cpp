@@ -1,27 +1,39 @@
 #include "VulkanMesh.hpp"
+
+#include "../VulkanDevice.hpp"
+
 #include <glad/gl.h>
+#include <stdexcept>
 
 VulkanMesh::VulkanMesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices,
-                       const VulkanDevice& device, const VkCommandPool& commandPool, const VkQueue& queue)
+                       const VulkanDevice& device)
    :
-   m_vertexBuffer(VulkanMesh::CreateVertexBuffer(vertices, device, commandPool, queue)),
-   m_indexBuffer(VulkanMesh::CreateIndexBuffer(indices, device, commandPool, queue)),
+   m_vertexBuffer(VulkanMesh::CreateVertexBuffer(vertices, device)),
+   m_indexBuffer(VulkanMesh::CreateIndexBuffer(indices, device)),
    m_indexCount(indices.size()),
    m_vertexCount(vertices.size())
 {}
 
 VulkanMesh::~VulkanMesh() = default;
 
-void VulkanMesh::Draw(const VkCommandBuffer& cmd) const {
-   VkBuffer vertexBuffers[] = { m_vertexBuffer.Get() };
-   VkDeviceSize offsets[] = { 0 };
-   vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
-   vkCmdBindIndexBuffer(cmd, m_indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT16);
-   vkCmdDrawIndexed(cmd, static_cast<uint32_t>(m_indexCount), 1, 0, 0, 0);
+ResourceType VulkanMesh::GetType() const {
+   return ResourceType::Mesh;
 }
 
-VulkanBuffer VulkanMesh::CreateVertexBuffer(const std::vector<Vertex>& vertices, const VulkanDevice& device,
-                                            const VkCommandPool& commandPool, const VkQueue& queue) {
+size_t VulkanMesh::GetMemoryUsage() const {
+   return (m_vertexCount * sizeof(Vertex)) + (m_indexCount * sizeof(uint16_t));
+}
+
+bool VulkanMesh::IsValid() const {
+   // Handled by RAII
+   return true;
+}
+
+void* VulkanMesh::GetNativeHandle() const {
+   return reinterpret_cast<void*>(m_vertexBuffer.Get());
+}
+
+VulkanBuffer VulkanMesh::CreateVertexBuffer(const std::vector<Vertex>& vertices, const VulkanDevice& device) {
    const VkDeviceSize bufferSize = sizeof(Vertex) * vertices.size();
    VulkanBuffer stagingBuffer(
       device, bufferSize, VulkanBuffer::Usage::TransferSrc,
@@ -33,12 +45,12 @@ VulkanBuffer VulkanMesh::CreateVertexBuffer(const std::vector<Vertex>& vertices,
       VulkanBuffer::Usage::TransferDst | VulkanBuffer::Usage::Vertex,
       VulkanBuffer::MemoryType::DeviceLocal
    );
-   VulkanBuffer::CopyBuffer(device, commandPool, queue, stagingBuffer, vertexBuffer, bufferSize);
+   VulkanBuffer::CopyBuffer(device, device.GetCommandPool(), device.GetGraphicsQueue(),
+                            stagingBuffer, vertexBuffer, bufferSize);
    return vertexBuffer;
 }
 
-VulkanBuffer VulkanMesh::CreateIndexBuffer(const std::vector<uint16_t>& indices, const VulkanDevice& device,
-                                           const VkCommandPool& commandPool, const VkQueue& queue) {
+VulkanBuffer VulkanMesh::CreateIndexBuffer(const std::vector<uint16_t>& indices, const VulkanDevice& device) {
    const VkDeviceSize bufferSize = sizeof(uint16_t) * indices.size();
    VulkanBuffer stagingBuffer(
       device, bufferSize, VulkanBuffer::Usage::TransferSrc,
@@ -50,8 +62,21 @@ VulkanBuffer VulkanMesh::CreateIndexBuffer(const std::vector<uint16_t>& indices,
       VulkanBuffer::Usage::TransferDst | VulkanBuffer::Usage::Index,
       VulkanBuffer::MemoryType::DeviceLocal
    );
-   VulkanBuffer::CopyBuffer(device, commandPool, queue, stagingBuffer, indexBuffer, bufferSize);
+   VulkanBuffer::CopyBuffer(device, device.GetCommandPool(), device.GetGraphicsQueue(),
+                            stagingBuffer, indexBuffer, bufferSize);
    return indexBuffer;
+}
+
+void VulkanMesh::Draw() const {
+   throw std::runtime_error("Method not implemented for VulkanMesh. (Draw())");
+}
+
+void VulkanMesh::Draw(const VkCommandBuffer& cmd) const {
+   VkBuffer vertexBuffers[] = { m_vertexBuffer.Get() };
+   VkDeviceSize offsets[] = { 0 };
+   vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
+   vkCmdBindIndexBuffer(cmd, m_indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT16);
+   vkCmdDrawIndexed(cmd, static_cast<uint32_t>(m_indexCount), 1, 0, 0, 0);
 }
 
 size_t VulkanMesh::GetIndexCount() const {

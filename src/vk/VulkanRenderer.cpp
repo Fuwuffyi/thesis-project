@@ -340,7 +340,7 @@ bool VulkanRenderer::HasStencilComponent(const VkFormat& format) const {
 }
 
 void VulkanRenderer::CreateTextureResources() {
-   m_textureImage = std::make_unique<VulkanImage>(
+   m_textureImage = std::make_unique<VulkanTexture>(
       m_device,
       "resources/textures/texture_base.jpg",
       true,
@@ -353,14 +353,14 @@ void VulkanRenderer::CreateTextureResources() {
 
 void VulkanRenderer::CreateDepthResources() {
    const VkFormat depthFormat = FindDepthFormat();
-   m_depthImage = std::make_unique<VulkanImage>(
+   m_depthImage = std::make_unique<VulkanTexture>(
       m_device,
       m_swapchain.GetExtent().width,
       m_swapchain.GetExtent().height,
       depthFormat,
       VK_IMAGE_TILING_OPTIMAL,
-      VulkanImage::Usage::DepthStencilAttachment,
-      VulkanImage::MemoryType::DeviceLocal
+      VulkanTexture::Usage::DepthStencilAttachment,
+      VulkanTexture::MemoryType::DeviceLocal
    );
    m_depthImage->TransitionLayout(
       VK_IMAGE_LAYOUT_UNDEFINED,
@@ -371,8 +371,7 @@ void VulkanRenderer::CreateDepthResources() {
 }
 
 void VulkanRenderer::CreateMesh() {
-   m_mesh = std::make_unique<VulkanMesh>(vertices, indices, m_device, m_device.GetCommandPool(),
-                                         m_device.GetGraphicsQueue());
+   m_mesh = std::make_unique<VulkanMesh>(vertices, indices, m_device);
 }
 
 void VulkanRenderer::CreateUniformBuffer() {
