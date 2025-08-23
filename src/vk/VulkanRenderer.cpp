@@ -38,43 +38,6 @@ const std::vector<const char *> validationLayers = {
 const std::vector<const char *> deviceExtensions = {
    VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-// Testing mesh
-const std::vector<Vertex> vertices = {
-   {{-0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-   {{ 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-   {{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-   {{-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-   {{ 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.5f}, {0.0f, 0.0f}},
-   {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.5f}, {1.0f, 0.0f}},
-   {{-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.5f}, {1.0f, 1.0f}},
-   {{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.5f}, {0.0f, 1.0f}},
-   {{-0.5f, -0.5f, -0.5f}, {0.5f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-   {{-0.5f, -0.5f,  0.5f}, {0.5f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-   {{-0.5f,  0.5f,  0.5f}, {0.5f, 0.0f, 0.0f}, {1.0f, 1.0f}},
-   {{-0.5f,  0.5f, -0.5f}, {0.5f, 0.0f, 0.0f}, {0.0f, 1.0f}},
-   {{ 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-   {{ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-   {{ 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
-   {{ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
-   {{-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-   {{ 0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-   {{ 0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-   {{-0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
-   {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.5f, 0.0f}, {0.0f, 0.0f}},
-   {{ 0.5f, -0.5f, -0.5f}, {0.0f, 0.5f, 0.0f}, {1.0f, 0.0f}},
-   {{ 0.5f, -0.5f,  0.5f}, {0.0f, 0.5f, 0.0f}, {1.0f, 1.0f}},
-   {{-0.5f, -0.5f,  0.5f}, {0.0f, 0.5f, 0.0f}, {0.0f, 1.0f}},
-};
-
-const std::vector<uint16_t> indices = {
-   0, 1, 2, 2, 3, 0,
-   4, 5, 6, 6, 7, 4,
-   8, 9, 10, 10, 11, 8,
-   12, 13, 14, 14, 15, 12,
-   16, 17, 18, 18, 19, 16,
-   20, 21, 22, 22, 23, 20
-};
-
 VulkanRenderer::VulkanRenderer(Window *windowHandle)
    : IRenderer(windowHandle),
    m_instance(deviceExtensions, validationLayers, enableValidationLayers),
@@ -266,7 +229,7 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
                          VK_SHADER_STAGE_VERTEX_BIT, 0,
                          sizeof(ObjectData), &objData);
       // Draw mesh
-      IMesh* mesh = m_resourceManager->GetMesh(m_mesh);
+      IMesh* mesh = m_resourceManager->GetMesh("testing_cube");
       if (mesh) {
          VulkanMesh* vkMesh = reinterpret_cast<VulkanMesh*>(mesh);
          vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
@@ -366,7 +329,6 @@ void VulkanRenderer::CreateDepthResources() {
 }
 
 void VulkanRenderer::CreateTestResources() {
-   m_mesh = m_resourceManager->LoadMesh("test_cube", vertices, indices);
    m_texture = m_resourceManager->LoadTexture("test_texture", "resources/textures/texture_base.jpg");
    m_textureSampler = std::make_unique<VulkanSampler>(
       VulkanSampler::CreateAnisotropic(m_device, 16.0f)

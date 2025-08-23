@@ -92,7 +92,6 @@ private:
    std::vector<VkSemaphore> m_renderFinishedSemaphores;
    std::vector<VkFence> m_inFlightFences;
    std::unique_ptr<VulkanTexture> m_depthImage;
-   MeshHandle m_mesh;
    TextureHandle m_texture;
    std::unique_ptr<VulkanSampler> m_textureSampler;
    std::vector<std::unique_ptr<VulkanBuffer>> m_uniformBuffers;

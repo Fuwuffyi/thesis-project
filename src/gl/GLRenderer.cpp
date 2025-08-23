@@ -30,47 +30,10 @@ struct CameraData {
    alignas(16) glm::mat4 proj;
 };
 
-const std::vector<Vertex> vertices = {
-   {{-0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-   {{ 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-   {{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-   {{-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-   {{ 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.5f}, {0.0f, 0.0f}},
-   {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 0.5f}, {1.0f, 0.0f}},
-   {{-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.5f}, {1.0f, 1.0f}},
-   {{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.5f}, {0.0f, 1.0f}},
-   {{-0.5f, -0.5f, -0.5f}, {0.5f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-   {{-0.5f, -0.5f,  0.5f}, {0.5f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-   {{-0.5f,  0.5f,  0.5f}, {0.5f, 0.0f, 0.0f}, {1.0f, 1.0f}},
-   {{-0.5f,  0.5f, -0.5f}, {0.5f, 0.0f, 0.0f}, {0.0f, 1.0f}},
-   {{ 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-   {{ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-   {{ 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
-   {{ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
-   {{-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-   {{ 0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-   {{ 0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-   {{-0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
-   {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.5f, 0.0f}, {0.0f, 0.0f}},
-   {{ 0.5f, -0.5f, -0.5f}, {0.0f, 0.5f, 0.0f}, {1.0f, 0.0f}},
-   {{ 0.5f, -0.5f,  0.5f}, {0.0f, 0.5f, 0.0f}, {1.0f, 1.0f}},
-   {{-0.5f, -0.5f,  0.5f}, {0.0f, 0.5f, 0.0f}, {0.0f, 1.0f}},
-};
-
-const std::vector<uint16_t> indices = {
-   0, 1, 2, 2, 3, 0,
-   4, 5, 6, 6, 7, 4,
-   8, 9, 10, 10, 11, 8,
-   12, 13, 14, 14, 15, 12,
-   16, 17, 18, 18, 19, 16,
-   20, 21, 22, 22, 23, 20
-};
-
 GLShader* shader = nullptr;
 GLBuffer* cameraUbo = nullptr;
 GLSampler* sampler = nullptr;
 
-MeshHandle mesh;
 TextureHandle texture;
 
 GLRenderer::GLRenderer(Window* window)
@@ -124,7 +87,6 @@ void GLRenderer::CreateTestResources() {
    shader->AttachShaderFromFile(GLShader::Type::Fragment, "resources/shaders/gl/test.frag");
    shader->Link();
    // Load mesh and texture from resource manager
-   mesh = m_resourceManager->LoadMesh("test_cube", vertices, indices);
    texture = m_resourceManager->LoadTexture("test_texture", "resources/textures/texture_base.jpg");
    // Create camera UBO
    cameraUbo = new GLBuffer(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
@@ -288,10 +250,10 @@ void GLRenderer::RenderFrame() {
       // Get transform
       TransformComponent* comp = c->GetComponent<TransformComponent>();
       // Draw mesh
-      IMesh* meshC = m_resourceManager->GetMesh(mesh);
-      if (meshC) {
+      IMesh* mesh = m_resourceManager->GetMesh("testing_cube");
+      if (mesh) {
          shader->SetMat4("model", comp->m_transform.GetTransformMatrix());
-         meshC->Draw();
+         mesh->Draw();
       }
       // Add all child elements to nodes to traverse
       std::ranges::for_each(c->GetChildren(), [&](auto& x) { nodesToCheck.push_back(x.get()); });
