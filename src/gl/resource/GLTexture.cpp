@@ -170,3 +170,24 @@ GLenum GLTexture::ConvertTarget() const {
    return GL_TEXTURE_2D;
 }
 
+
+uint32_t GLTexture::GetWidth() const {
+   return m_width;
+}
+
+uint32_t GLTexture::GetHeight() const {
+   return m_height;
+}
+
+uint32_t GLTexture::GetDepth() const {
+   return m_depth;
+}
+
+ITexture::Format GLTexture::GetFormat() const {
+   return m_format;
+}
+
+GLuint GLTexture::GetId() const {
+   return m_id;
+}
+

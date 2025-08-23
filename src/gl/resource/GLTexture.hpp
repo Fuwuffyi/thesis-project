@@ -21,14 +21,14 @@ public:
    size_t GetMemoryUsage() const override;
    bool IsValid() const override;
 
-   uint32_t GetWidth() const override { return m_width; }
-   uint32_t GetHeight() const override { return m_height; }
-   uint32_t GetDepth() const override { return m_depth; }
-   Format GetFormat() const override { return m_format; }
+   uint32_t GetWidth() const override;
+   uint32_t GetHeight() const override;
+   uint32_t GetDepth() const override;
+   Format GetFormat() const override;
    void Bind(uint32_t unit = 0) const override;
    void* GetNativeHandle() const override;
 
-   GLuint GetId() const { return m_id; }
+   GLuint GetId() const;
 
 private:
    void CreateStorage();

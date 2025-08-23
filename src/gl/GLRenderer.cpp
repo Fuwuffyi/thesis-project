@@ -220,6 +220,40 @@ void GLRenderer::RenderImgui() {
       }
       ImGui::End();
    }
+   // Show textures
+   {
+      ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + viewport->WorkSize.y - 300));
+      ImGui::SetNextWindowSize(ImVec2(300, 300));
+      ImGui::SetNextWindowBgAlpha(0.35f);
+      ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
+         ImGuiWindowFlags_NoMove |
+         ImGuiWindowFlags_NoCollapse |
+         ImGuiWindowFlags_NoResize |
+         ImGuiWindowFlags_NoSavedSettings |
+         ImGuiWindowFlags_NoFocusOnAppearing |
+         ImGuiWindowFlags_NoNav;
+      ImGui::Begin("Texture Browser", nullptr, flags);
+      const uint32_t columns = 4;
+      uint32_t count = 0;
+      ImGui::Columns(columns, nullptr, false);
+
+
+      ITexture* tex = m_resourceManager->GetTexture(texture);
+      if (tex) {
+         GLuint texId = static_cast<GLTexture*>(tex)->GetId();
+         ImGui::Image(
+            (ImTextureID)(intptr_t)texId,
+            ImVec2(64, 64),
+            ImVec2(0, 1),
+            ImVec2(1, 0)
+         );
+         ImGui::TextWrapped("Test texture");
+      }
+      ImGui::NextColumn();
+      count++;
+      ImGui::Columns(1);
+      ImGui::End();
+   }
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
