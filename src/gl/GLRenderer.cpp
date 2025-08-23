@@ -12,14 +12,15 @@
 
 #include "resource/GLResourceFactory.hpp"
 
+
 #include "../core/scene/Scene.hpp"
 #include "../core/scene/Node.hpp"
 #include "../core/scene/components/TransformComponent.hpp"
 
 // Stuff for mesh
 #include <vector>
+#include "GLBuffer.hpp"
 #include "GLShader.hpp"
-#include "resource/GLMesh.hpp"
 #include "GLSampler.hpp"
 #include "resource/GLTexture.hpp"
 
@@ -242,7 +243,7 @@ void GLRenderer::RenderImgui() {
 
       ITexture* tex = m_resourceManager->GetTexture(texture);
       if (tex) {
-         GLuint texId = static_cast<GLTexture*>(tex)->GetId();
+         const GLuint texId = static_cast<GLTexture*>(tex)->GetId();
          ImGui::Image(
             (ImTextureID)(intptr_t)texId,
             ImVec2(64, 64),

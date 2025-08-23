@@ -12,6 +12,7 @@
 #include "../core/scene/Node.hpp"
 #include "../core/scene/components/TransformComponent.hpp"
 
+#include "vk/resource/VulkanMesh.hpp"
 #include "vk/resource/VulkanResourceFactory.hpp"
 
 #include <GLFW/glfw3.h>
@@ -93,8 +94,7 @@ VulkanRenderer::VulkanRenderer(Window *windowHandle)
    CreateDepthResources();
    CreateFramebuffers();
    SetupImgui();
-   CreateTextureResources();
-   CreateMesh();
+   CreateTestResources();
    CreateUniformBuffer();
    CreateDescriptorPool();
    CreateDescriptorSets();
@@ -266,7 +266,11 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
                          VK_SHADER_STAGE_VERTEX_BIT, 0,
                          sizeof(ObjectData), &objData);
       // Draw mesh
-      m_mesh->Draw(m_commandBuffers->Get(m_currentFrame));
+      IMesh* mesh = m_resourceManager->GetMesh(m_mesh);
+      if (mesh) {
+         VulkanMesh* vkMesh = reinterpret_cast<VulkanMesh*>(mesh);
+         vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
+      }
       // Add all child elements to nodes to traverse
       std::ranges::for_each(c->GetChildren(), [&](auto& x) { nodesToCheck.push_back(x.get()); });
    }
@@ -344,18 +348,6 @@ bool VulkanRenderer::HasStencilComponent(const VkFormat& format) const {
    return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void VulkanRenderer::CreateTextureResources() {
-   m_textureImage = std::make_unique<VulkanTexture>(
-      m_device,
-      "resources/textures/texture_base.jpg",
-      true,
-      true
-   );
-   m_textureSampler = std::make_unique<VulkanSampler>(
-      VulkanSampler::CreateAnisotropic(m_device, 16.0f)
-   );
-}
-
 void VulkanRenderer::CreateDepthResources() {
    m_depthImage = std::make_unique<VulkanTexture>(
       m_device,
@@ -373,8 +365,12 @@ void VulkanRenderer::CreateDepthResources() {
    );
 }
 
-void VulkanRenderer::CreateMesh() {
-   m_mesh = std::make_unique<VulkanMesh>(vertices, indices, m_device);
+void VulkanRenderer::CreateTestResources() {
+   m_mesh = m_resourceManager->LoadMesh("test_cube", vertices, indices);
+   m_texture = m_resourceManager->LoadTexture("test_texture", "resources/textures/texture_base.jpg");
+   m_textureSampler = std::make_unique<VulkanSampler>(
+      VulkanSampler::CreateAnisotropic(m_device, 16.0f)
+   );
 }
 
 void VulkanRenderer::CreateUniformBuffer() {
@@ -436,7 +432,11 @@ void VulkanRenderer::CreateDescriptorSets() {
       bufferInfo.range = sizeof(CameraData);
       VkDescriptorImageInfo imageInfo{};
       imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-      imageInfo.imageView = m_textureImage->GetImageView();
+      ITexture* texture = m_resourceManager->GetTexture(m_texture);
+      if (texture) {
+         VulkanTexture* vkTexture = reinterpret_cast<VulkanTexture *>(texture);
+         imageInfo.imageView = vkTexture->GetImageView();
+      }
       imageInfo.sampler = m_textureSampler->Get();
       std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
       descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

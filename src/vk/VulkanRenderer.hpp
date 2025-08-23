@@ -13,8 +13,8 @@
 
 #include "VulkanSampler.hpp"
 
+#include "../core/resource/ResourceHandle.hpp"
 #include "resource/VulkanTexture.hpp"
-#include "resource/VulkanMesh.hpp"
 
 #include <vulkan/vulkan.h>
 #define GLM_FORCE_RADIANS
@@ -67,9 +67,8 @@ private:
    bool HasStencilComponent(const VkFormat& format) const;
    // TODO: Remove once scene impl complete
    // Functions to create textures
-   void CreateTextureResources();
    // Testing mesh
-   void CreateMesh();
+   void CreateTestResources();
    void CreateUniformBuffer();
    void UpdateUniformBuffer(const uint32_t currentImage);
 private:
@@ -93,8 +92,8 @@ private:
    std::vector<VkSemaphore> m_renderFinishedSemaphores;
    std::vector<VkFence> m_inFlightFences;
    std::unique_ptr<VulkanTexture> m_depthImage;
-   std::unique_ptr<VulkanMesh> m_mesh;
-   std::unique_ptr<VulkanTexture> m_textureImage;
+   MeshHandle m_mesh;
+   TextureHandle m_texture;
    std::unique_ptr<VulkanSampler> m_textureSampler;
    std::vector<std::unique_ptr<VulkanBuffer>> m_uniformBuffers;
    std::vector<void*> m_uniformBuffersMapped;

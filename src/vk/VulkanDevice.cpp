@@ -29,6 +29,52 @@ VulkanDevice::~VulkanDevice() {
    if (m_device != VK_NULL_HANDLE) {
       vkDestroyDevice(m_device, nullptr);
    }
+
+}
+
+VulkanDevice::VulkanDevice(VulkanDevice&& other) noexcept
+   :
+   m_instance(other.m_instance),
+   m_surface(other.m_surface),
+   m_physicalDevice(other.m_physicalDevice),
+   m_device(other.m_device),
+   m_queueFamilies(other.m_queueFamilies),
+   m_graphicsQueue(other.m_graphicsQueue),
+   m_presentQueue(other.m_presentQueue)
+{
+   other.m_instance = nullptr;
+   other.m_surface = nullptr;
+   other.m_physicalDevice = VK_NULL_HANDLE;
+   other.m_device = VK_NULL_HANDLE;
+   other.m_queueFamilies = {};
+   other.m_graphicsQueue = VK_NULL_HANDLE;
+   other.m_presentQueue = VK_NULL_HANDLE;
+}
+
+VulkanDevice& VulkanDevice::operator=(VulkanDevice&& other) noexcept {
+   if (this != &other) {
+      if (m_commandPool != VK_NULL_HANDLE) {
+         vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+      }
+      if (m_device != VK_NULL_HANDLE) {
+         vkDestroyDevice(m_device, nullptr);
+      }
+      m_instance = other.m_instance;
+      m_surface = other.m_surface;
+      m_physicalDevice = other.m_physicalDevice;
+      m_device = other.m_device;
+      m_queueFamilies = other.m_queueFamilies;
+      m_graphicsQueue = other.m_graphicsQueue;
+      m_presentQueue = other.m_presentQueue;
+      other.m_instance = nullptr;
+      other.m_surface = nullptr;
+      other.m_physicalDevice = VK_NULL_HANDLE;
+      other.m_device = VK_NULL_HANDLE;
+      other.m_queueFamilies = {};
+      other.m_graphicsQueue = VK_NULL_HANDLE;
+      other.m_presentQueue = VK_NULL_HANDLE;
+   }
+   return *this;
 }
 
 void VulkanDevice::CreatePhysicalDevice(const std::vector<const char*>& requiredExtensions) {
@@ -144,45 +190,6 @@ void VulkanDevice::GetDeviceQueues() {
    }
 }
 
-VulkanDevice::VulkanDevice(VulkanDevice&& other) noexcept
-   :
-   m_instance(other.m_instance),
-   m_surface(other.m_surface),
-   m_physicalDevice(other.m_physicalDevice),
-   m_device(other.m_device),
-   m_queueFamilies(other.m_queueFamilies),
-   m_graphicsQueue(other.m_graphicsQueue),
-   m_presentQueue(other.m_presentQueue)
-{
-   other.m_instance = nullptr;
-   other.m_surface = nullptr;
-   other.m_physicalDevice = VK_NULL_HANDLE;
-   other.m_device = VK_NULL_HANDLE;
-   other.m_queueFamilies = {};
-   other.m_graphicsQueue = VK_NULL_HANDLE;
-   other.m_presentQueue = VK_NULL_HANDLE;
-}
-
-VulkanDevice& VulkanDevice::operator=(VulkanDevice&& other) noexcept {
-   if (this != &other) {
-      m_instance = other.m_instance;
-      m_surface = other.m_surface;
-      m_physicalDevice = other.m_physicalDevice;
-      m_device = other.m_device;
-      m_queueFamilies = other.m_queueFamilies;
-      m_graphicsQueue = other.m_graphicsQueue;
-      m_presentQueue = other.m_presentQueue;
-      other.m_instance = nullptr;
-      other.m_surface = nullptr;
-      other.m_physicalDevice = VK_NULL_HANDLE;
-      other.m_device = VK_NULL_HANDLE;
-      other.m_queueFamilies = {};
-      other.m_graphicsQueue = VK_NULL_HANDLE;
-      other.m_presentQueue = VK_NULL_HANDLE;
-   }
-   return *this;
-}
-
 uint32_t VulkanDevice::RateDevice(const VkPhysicalDevice& device) {
    // Set base score to 0
    uint32_t score = 0;
@@ -265,7 +272,6 @@ SwapChainSupportDetails VulkanDevice::QuerySwapChainSupport(const VkPhysicalDevi
    uint32_t presentModeCount;
    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface,
                                              &presentModeCount, nullptr);
-
    if (presentModeCount != 0) {
       details.presentModes.resize(presentModeCount);
       vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface,
