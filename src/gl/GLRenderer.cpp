@@ -13,6 +13,8 @@
 #include <vector>
 #include "GLShader.hpp"
 #include "resource/GLMesh.hpp"
+#include "GLSampler.hpp"
+#include "resource/GLTexture.hpp"
 
 // Testing stuff
 struct CameraData {
@@ -60,6 +62,9 @@ GLShader* shader = nullptr;
 GLBuffer* cameraUbo = nullptr;
 GLMesh* mesh = nullptr;
 
+GLTexture* texture = nullptr;
+GLSampler* sampler = nullptr;
+
 GLRenderer::GLRenderer(Window* window)
    :
    IRenderer(window)
@@ -90,6 +95,7 @@ GLRenderer::GLRenderer(Window* window)
    glFrontFace(GL_CCW);
 
    CreateTestMesh();
+   CreateTestTexture();
 }
 
 void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) {
@@ -114,8 +120,15 @@ void GLRenderer::CreateTestMesh() {
    cameraUbo->BindBase(0);
 }
 
+void GLRenderer::CreateTestTexture() {
+   texture = new GLTexture("resources/textures/texture_base.jpg", true, true);
+   sampler = new GLSampler(GLSampler::CreateAnisotropic(16.0f));
+}
+
 GLRenderer::~GLRenderer() {
    DestroyImgui();
+   delete texture;
+   delete sampler;
    delete mesh;
    delete shader;
    delete cameraUbo;
@@ -173,6 +186,10 @@ void GLRenderer::RenderFrame() {
    };
    cameraUbo->UpdateData(&camData, sizeof(CameraData));
    shader->BindUniformBlock("CameraData", 0);
+   // Set up shader test
+   texture->BindUnit(1);
+   sampler->BindUnit(1);
+   // Render
    shader->SetMat4("model", model);
    mesh->Draw();
    // Render Ui

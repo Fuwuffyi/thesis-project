@@ -65,6 +65,7 @@ private:
                                 const VkFormatFeatureFlags features) const;
    VkFormat FindDepthFormat() const;
    bool HasStencilComponent(const VkFormat& format) const;
+   // TODO: Remove once scene impl complete
    // Functions to create textures
    void CreateTextureResources();
    // Testing mesh

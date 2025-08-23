@@ -16,6 +16,8 @@ private:
 
    void FramebufferCallback(const int32_t width, const int32_t height);
 
+   // TODO: Remove once scene impl complete
    void CreateTestMesh();
+   void CreateTestTexture();
 };
 

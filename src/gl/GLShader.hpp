@@ -54,6 +54,7 @@ private:
    std::string ReadFile(const std::string& filepath);
    GLint GetUniformLocation(const std::string& name);
 
+private:
    GLuint m_program = 0;
    bool m_isLinked = false;
    std::unordered_map<std::string, GLint> m_uniformLocations;
