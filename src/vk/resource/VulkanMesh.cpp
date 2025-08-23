@@ -72,8 +72,8 @@ void VulkanMesh::Draw() const {
 }
 
 void VulkanMesh::Draw(const VkCommandBuffer& cmd) const {
-   VkBuffer vertexBuffers[] = { m_vertexBuffer.Get() };
-   VkDeviceSize offsets[] = { 0 };
+   const VkBuffer vertexBuffers[] = { m_vertexBuffer.Get() };
+   const VkDeviceSize offsets[] = { 0 };
    vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
    vkCmdBindIndexBuffer(cmd, m_indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT16);
    vkCmdDrawIndexed(cmd, static_cast<uint32_t>(m_indexCount), 1, 0, 0, 0);

@@ -12,6 +12,8 @@
 #include "../core/scene/Node.hpp"
 #include "../core/scene/components/TransformComponent.hpp"
 
+#include "vk/resource/VulkanResourceFactory.hpp"
+
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <chrono>
@@ -83,6 +85,9 @@ VulkanRenderer::VulkanRenderer(Window *windowHandle)
             enableValidationLayers),
    m_swapchain(m_device, m_surface, *m_window),
    m_renderPass(m_device, m_swapchain.GetFormat(), FindDepthFormat()) {
+   m_resourceManager = std::make_unique<ResourceManager>(
+      std::make_unique<VulkanResourceFactory>(m_device)
+   );
    CreateDescriptorSetLayout();
    CreateGraphicsPipeline();
    CreateDepthResources();
@@ -184,7 +189,7 @@ void VulkanRenderer::CreateFramebuffers() {
    for (size_t i = 0; i < m_swapchain.GetImageViews().size(); ++i) {
       const std::array<VkImageView, 2> attachments = {
          m_swapchain.GetImageViews()[i],
-         m_depthImage->GetView()
+         m_depthImage->GetImageView()
       };
       VkFramebufferCreateInfo framebufferInfo{};
       framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -220,12 +225,12 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    m_commandBuffers->BeginRenderPass(m_renderPass, m_swapchainFramebuffers[imageIndex],
                                      m_swapchain.GetExtent(),
                                      {
-                                       {
-                                          {0.0f, 0.0f, 0.0f, 1.0f}
-                                       },
-                                       {
-                                          {1.0f, 0.0f}
-                                       }
+                                     {
+                                     {0.0f, 0.0f, 0.0f, 1.0f}
+                                     },
+                                     {
+                                     {1.0f, 0.0f}
+                                     }
                                      }, m_currentFrame);
    m_commandBuffers->BindPipeline(m_graphicsPipeline->GetPipeline(),
                                   VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
@@ -352,15 +357,13 @@ void VulkanRenderer::CreateTextureResources() {
 }
 
 void VulkanRenderer::CreateDepthResources() {
-   const VkFormat depthFormat = FindDepthFormat();
    m_depthImage = std::make_unique<VulkanTexture>(
       m_device,
       m_swapchain.GetExtent().width,
       m_swapchain.GetExtent().height,
-      depthFormat,
-      VK_IMAGE_TILING_OPTIMAL,
-      VulkanTexture::Usage::DepthStencilAttachment,
-      VulkanTexture::MemoryType::DeviceLocal
+      ITexture::Format::Depth32F,
+      true,
+      1
    );
    m_depthImage->TransitionLayout(
       VK_IMAGE_LAYOUT_UNDEFINED,
@@ -433,7 +436,7 @@ void VulkanRenderer::CreateDescriptorSets() {
       bufferInfo.range = sizeof(CameraData);
       VkDescriptorImageInfo imageInfo{};
       imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-      imageInfo.imageView = m_textureImage->GetView();
+      imageInfo.imageView = m_textureImage->GetImageView();
       imageInfo.sampler = m_textureSampler->Get();
       std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
       descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -546,6 +549,8 @@ void VulkanRenderer::RenderImgui() {
       ImGui::Begin("FPS Overlay", nullptr, flags);
       ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
       ImGui::Text("Frame: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
+      ImGui::Text("Resource MEM: %.3f MB", static_cast<float>(m_resourceManager->GetTotalMemoryUsage()) /
+                  (1024.0f * 1024.0f));
       ImGui::End();
    }
    // Scene graph
