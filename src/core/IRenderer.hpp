@@ -1,21 +1,27 @@
 #pragma once
 
-// Forward declaration for Window stuff
+#include "resource/ResourceManager.hpp"
 
+#include <memory>
+
+// Forward declaration for Window stuff
 class Window;
 class Camera;
 class Scene;
+class ResourceManager;
 
 class IRenderer {
 public:
    virtual ~IRenderer() = default;
 
+   IRenderer(const IRenderer&) = delete;
+   IRenderer& operator=(const IRenderer&) = delete;
+
    virtual void RenderFrame() = 0;
    void SetActiveCamera(Camera* cam);
    void SetActiveScene(Scene* scene);
 
-   IRenderer(const IRenderer&) = delete;
-   IRenderer& operator=(const IRenderer&) = delete;
+   ResourceManager* GetResourceManager();
 protected:
    IRenderer(Window* window);
    virtual void SetupImgui() = 0;
@@ -25,5 +31,6 @@ protected:
    Window* m_window;
    Camera* m_activeCamera;
    Scene* m_activeScene;
+   std::unique_ptr<ResourceManager> m_resourceManager;
 };
 

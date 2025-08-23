@@ -14,3 +14,7 @@ void IRenderer::SetActiveScene(Scene* scene) {
    m_activeScene = scene;
 }
 
+ResourceManager* IRenderer::GetResourceManager() {
+   return m_resourceManager.get();
+}
+

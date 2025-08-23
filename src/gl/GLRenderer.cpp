@@ -10,6 +10,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#include "resource/GLResourceFactory.hpp"
+
 #include "../core/scene/Scene.hpp"
 #include "../core/scene/Node.hpp"
 #include "../core/scene/components/TransformComponent.hpp"
@@ -65,10 +67,10 @@ const std::vector<uint16_t> indices = {
 
 GLShader* shader = nullptr;
 GLBuffer* cameraUbo = nullptr;
-GLMesh* mesh = nullptr;
-
-GLTexture* texture = nullptr;
 GLSampler* sampler = nullptr;
+
+MeshHandle mesh;
+TextureHandle texture;
 
 GLRenderer::GLRenderer(Window* window)
    :
@@ -78,6 +80,10 @@ GLRenderer::GLRenderer(Window* window)
    if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
       throw std::runtime_error("GLAD init failed.");
    }
+   // Setup resource manager
+   m_resourceManager = std::make_unique<ResourceManager>(
+      std::make_unique<GLResourceFactory>()
+   );
    // Setup imgui
    SetupImgui();
    // Set initial viewport
@@ -99,8 +105,7 @@ GLRenderer::GLRenderer(Window* window)
    glCullFace(GL_BACK);
    glFrontFace(GL_CCW);
 
-   CreateTestMesh();
-   CreateTestTexture();
+   CreateTestResources();
 }
 
 void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) {
@@ -111,30 +116,27 @@ void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) 
    }
 }
 
-void GLRenderer::CreateTestMesh() {
+void GLRenderer::CreateTestResources() {
+   // Create shader
    shader = new GLShader();
    shader->AttachShaderFromFile(GLShader::Type::Vertex, "resources/shaders/gl/test.vert");
    shader->AttachShaderFromFile(GLShader::Type::Fragment, "resources/shaders/gl/test.frag");
    shader->Link();
-
-   mesh = new GLMesh(vertices, indices);
-
+   // Load mesh and texture from resource manager
+   mesh = m_resourceManager->LoadMesh("test_cube", vertices, indices);
+   texture = m_resourceManager->LoadTexture("test_texture", "resources/textures/texture_base.jpg");
+   // Create camera UBO
    cameraUbo = new GLBuffer(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
    const CameraData camData{};
    cameraUbo->UploadData(&camData, sizeof(CameraData));
    cameraUbo->BindBase(0);
-}
-
-void GLRenderer::CreateTestTexture() {
-   texture = new GLTexture("resources/textures/texture_base.jpg", true, true);
+   // Create sampler
    sampler = new GLSampler(GLSampler::CreateAnisotropic(16.0f));
 }
 
 GLRenderer::~GLRenderer() {
    DestroyImgui();
-   delete texture;
    delete sampler;
-   delete mesh;
    delete shader;
    delete cameraUbo;
 }
@@ -234,12 +236,13 @@ void GLRenderer::RenderFrame() {
    };
    cameraUbo->UpdateData(&camData, sizeof(CameraData));
    shader->BindUniformBlock("CameraData", 0);
-   // Set up shader test
-   texture->BindUnit(1);
-   sampler->BindUnit(1);
-   // Render
+   // Set up shader texture test
+   ITexture* tex = m_resourceManager->GetTexture(texture);
+   if (tex) {
+      tex->Bind(1);
+      sampler->BindUnit(1);
+   }
    // Draw the scene
-   glm::mat4 model = glm::mat4(1.0f);
    Node* root = m_activeScene->GetRootNode();
    std::vector<Node*> nodesToCheck{root};
    while (!nodesToCheck.empty()) {
@@ -247,10 +250,12 @@ void GLRenderer::RenderFrame() {
       nodesToCheck.pop_back();
       // Get transform
       TransformComponent* comp = c->GetComponent<TransformComponent>();
-      // Update it on shader
-      shader->SetMat4("model", comp->m_transform.GetTransformMatrix());
       // Draw mesh
-      mesh->Draw();
+      IMesh* meshC = m_resourceManager->GetMesh(mesh);
+      if (meshC) {
+         shader->SetMat4("model", comp->m_transform.GetTransformMatrix());
+         meshC->Draw();
+      }
       // Add all child elements to nodes to traverse
       std::ranges::for_each(c->GetChildren(), [&](auto& x) { nodesToCheck.push_back(x.get()); });
    }

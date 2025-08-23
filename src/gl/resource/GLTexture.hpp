@@ -1,34 +1,15 @@
 #pragma once
 
+#include "../../core/resource/ITexture.hpp"
+
 #include <glad/gl.h>
 #include <string>
 
-class GLTexture {
+class GLTexture : public ITexture {
 public:
-   enum class Target : GLenum {
-      Tex2D       = GL_TEXTURE_2D,
-      Tex3D       = GL_TEXTURE_3D,
-      CubeMap     = GL_TEXTURE_CUBE_MAP,
-      Tex2DArray  = GL_TEXTURE_2D_ARRAY
-   };
-
-   enum class Format : GLenum {
-      RGBA8       = GL_RGBA8,
-      RGBA16F     = GL_RGBA16F,
-      SRGB8_ALPHA8= GL_SRGB8_ALPHA8,
-      Depth24     = GL_DEPTH_COMPONENT24,
-      Depth32F    = GL_DEPTH_COMPONENT32F
-   };
-
-   GLTexture(const Target target,
-             const Format format,
-             const uint32_t width,
-             const uint32_t height,
-             const uint32_t depth = 1,
-             const uint32_t mipLevels = 1);
-
-   GLTexture(const std::string& filepath, const bool generateMipmaps = true, const bool sRGB = true);
-
+   GLTexture(const CreateInfo& info);
+   GLTexture(const std::string& filepath, bool generateMipmaps, bool sRGB);
+   GLTexture(uint32_t width, uint32_t height, Format format, bool isDepth = false, uint32_t samples = 1);
    ~GLTexture();
 
    GLTexture(const GLTexture&) = delete;
@@ -36,33 +17,30 @@ public:
    GLTexture(GLTexture&& other) noexcept;
    GLTexture& operator=(GLTexture&& other) noexcept;
 
-   GLuint Get() const;
-   Target GetTarget() const;
-   Format GetFormat() const;
-   uint32_t GetWidth() const;
-   uint32_t GetHeight() const;
-   uint32_t GetDepth() const;
-   uint32_t GetMipLevels() const;
+   ResourceType GetType() const override;
+   size_t GetMemoryUsage() const override;
+   bool IsValid() const override;
 
-   void BindUnit(const GLuint unit) const;
+   uint32_t GetWidth() const override { return m_width; }
+   uint32_t GetHeight() const override { return m_height; }
+   uint32_t GetDepth() const override { return m_depth; }
+   Format GetFormat() const override { return m_format; }
+   void Bind(uint32_t unit = 0) const override;
+   void* GetNativeHandle() const override;
 
-   void Upload2D(const uint32_t level, const uint32_t x, const uint32_t y, const uint32_t width, const uint32_t height,
-                 const GLenum format, const GLenum type, const void* pixels);
-
-   void GenerateMipmaps();
-
-   static uint32_t CalculateMipLevels(const uint32_t width, const uint32_t height);
+   GLuint GetId() const { return m_id; }
 
 private:
    void CreateStorage();
+   GLenum ConvertFormat(Format format) const;
+   GLenum ConvertTarget() const;
 
-private:
-   GLuint m_id = 0;
-   Target m_target;
-   Format m_format;
+   GLuint m_id;
    uint32_t m_width;
    uint32_t m_height;
    uint32_t m_depth;
-   uint32_t m_mipLevels;
+   Format m_format;
+   bool m_isDepth;
+   uint32_t m_samples;
 };
 

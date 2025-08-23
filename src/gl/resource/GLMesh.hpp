@@ -1,20 +1,29 @@
 #pragma once
 
+#include "../../core/resource/IMesh.hpp"
+
 #include "../../core/Vertex.hpp"
 #include "../GLBuffer.hpp"
 #include "../GLVertexArray.hpp"
 
 #include <cstddef>
 
-class GLMesh {
+class GLMesh : public IMesh {
 public:
    GLMesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices);
    ~GLMesh();
 
-   void Draw() const;
+   GLMesh(const GLMesh&) = delete;
+   GLMesh& operator=(const GLMesh&) = delete;
 
-   size_t GetIndexCount() const;
-   size_t GetVertexCount() const;
+   ResourceType GetType() const override;
+   size_t GetMemoryUsage() const override;
+   bool IsValid() const override;
+
+   void Draw() const override;
+   size_t GetVertexCount() const override;
+   size_t GetIndexCount() const override;
+   void* GetNativeHandle() const override;
 
 private:
    GLBuffer m_ebo;
