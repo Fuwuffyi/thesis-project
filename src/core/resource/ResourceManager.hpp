@@ -23,7 +23,8 @@ public:
    TextureHandle CreateRenderTarget(const std::string& name, const uint32_t width, const uint32_t height,
                                     const ITexture::Format format = ITexture::Format::RGBA8, uint32_t samples = 1);
    // Mesh management
-   MeshHandle LoadMesh(const std::string& name, const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices);
+   MeshHandle LoadMesh(const std::string& name, const std::vector<Vertex>& vertices,
+                       const std::vector<uint16_t>& indices);
    MeshHandle LoadMeshFromFile(const std::string& name, const std::string& filepath);
    // Resource access
    ITexture* GetTexture(const TextureHandle& handle);
@@ -41,20 +42,18 @@ public:
    size_t GetTotalMemoryUsage() const;
    size_t GetResourceCount() const;
    std::vector<std::string> GetLoadedResourceNames() const;
-   // Hot reload support
-   void ReloadTexture(const std::string& name);
-   void SetTextureReloadCallback(std::function<void(const std::string&)> callback);
 private:
    uint64_t GetNextId();
    template<typename T>
-   ResourceHandle<T> RegisterResource(const std::string& name, std::unique_ptr<T> resource, const std::string& filepath = "");
+   ResourceHandle<T> RegisterResource(const std::string& name, std::unique_ptr<T> resource,
+                                      const std::string& filepath = "");
 
-   void RemoveResource(uint64_t id);
+   void RemoveResource(const uint64_t id);
 private:
    struct ResourceEntry {
       std::unique_ptr<IResource> resource;
       std::string name;
-      std::string filepath; // For reloading
+      std::string filepath;
       uint64_t id;
       size_t refCount;
    };
@@ -65,7 +64,5 @@ private:
 
    mutable std::mutex m_mutex;
    uint64_t m_nextId;
-
-   std::function<void(const std::string&)> m_textureReloadCallback;
 };
 

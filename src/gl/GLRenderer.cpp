@@ -175,6 +175,8 @@ void GLRenderer::RenderImgui() {
       ImGui::Begin("FPS Overlay", nullptr, flags);
       ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
       ImGui::Text("Frame: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
+      ImGui::Text("Resource MEM: %.3f MB", static_cast<float>(m_resourceManager->GetTotalMemoryUsage()) /
+                  (1024.0f * 1024.0f));
       ImGui::End();
    }
    // Scene graph

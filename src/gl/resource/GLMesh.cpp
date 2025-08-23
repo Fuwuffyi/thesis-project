@@ -26,7 +26,7 @@ size_t GLMesh::GetMemoryUsage() const {
 }
 
 bool GLMesh::IsValid() const {
-   // Otherwise the object creation would break
+   // RAII handles this, would throw exception otherwise
    return true;
 }
 
@@ -43,6 +43,6 @@ size_t GLMesh::GetVertexCount() const {
 }
 
 void* GLMesh::GetNativeHandle() const {
-    return reinterpret_cast<void*>(static_cast<uintptr_t>(m_vao.Get()));
+   return reinterpret_cast<void*>(static_cast<uintptr_t>(m_vao.Get()));
 }
 

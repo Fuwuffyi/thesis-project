@@ -7,15 +7,15 @@ std::unique_ptr<ITexture> GLResourceFactory::CreateTexture(const ITexture::Creat
    return std::make_unique<GLTexture>(info);
 }
 
-std::unique_ptr<ITexture> GLResourceFactory::CreateTextureFromFile(const std::string& filepath, bool generateMipmaps, bool sRGB) {
+std::unique_ptr<ITexture> GLResourceFactory::CreateTextureFromFile(const std::string& filepath, const bool generateMipmaps, const bool sRGB) {
    return std::make_unique<GLTexture>(filepath, generateMipmaps, sRGB);
 }
 
-std::unique_ptr<ITexture> GLResourceFactory::CreateDepthTexture(uint32_t width, uint32_t height, ITexture::Format format) {
+std::unique_ptr<ITexture> GLResourceFactory::CreateDepthTexture(const uint32_t width, const uint32_t height, const ITexture::Format format) {
    return std::make_unique<GLTexture>(width, height, format, true);
 }
 
-std::unique_ptr<ITexture> GLResourceFactory::CreateRenderTarget(uint32_t width, uint32_t height, ITexture::Format format, uint32_t samples) {
+std::unique_ptr<ITexture> GLResourceFactory::CreateRenderTarget(const uint32_t width, const uint32_t height, const ITexture::Format format, const uint32_t samples) {
    return std::make_unique<GLTexture>(width, height, format, false, samples);
 }
 
