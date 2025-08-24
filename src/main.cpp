@@ -50,7 +50,7 @@ const std::vector<uint16_t> indices = {
 
 int main() {
    try {
-      constexpr GraphicsAPI api = GraphicsAPI::Vulkan;
+      constexpr GraphicsAPI api = GraphicsAPI::OpenGL;
 
       // Create the window
       WindowDesc windowDesc{
@@ -63,19 +63,17 @@ int main() {
       Window window(api, windowDesc);
 
       // Create the scene
-      Scene scene;
-      std::unique_ptr<Node> node2 = std::make_unique<Node>();
+      Scene scene("Test scene");
+      Node* node2 = scene.CreateNode("Cube 0");
       node2->AddComponent(std::make_unique<TransformComponent>());
-      node2->GetComponent<TransformComponent>()->m_transform.SetPosition(glm::vec3(0.0f, 5.0f, 0.0f));
-      scene.GetRootNode()->AddChild(std::move(node2));
-      std::unique_ptr<Node> node3 = std::make_unique<Node>();
+      node2->GetTransform()->SetPosition(glm::vec3(0.0f, 5.0f, 0.0f));
+      Node* node3 = scene.CreateNode("Cube 1");
       node3->AddComponent(std::make_unique<TransformComponent>());
-      node3->GetComponent<TransformComponent>()->m_transform.SetPosition(glm::vec3(2.0f, 0.0f, 0.0f));
-      scene.GetRootNode()->AddChild(std::move(node3));
-      std::unique_ptr<Node> node4 = std::make_unique<Node>();
+      node3->GetTransform()->SetPosition(glm::vec3(2.0f, 0.0f, 0.0f));
+      Node* node4 = scene.CreateNode("Cube 2");
       node4->AddComponent(std::make_unique<TransformComponent>());
-      node4->GetComponent<TransformComponent>()->m_transform.SetPosition(glm::vec3(0.0f, 0.0f, 2.0f));
-      scene.GetRootNode()->AddChild(std::move(node4));
+      node4->GetTransform()->SetPosition(glm::vec3(0.0f, 0.0f, 2.0f));
+      scene.UpdateScene(0.0f);
 
       // Create the camera
       const glm::vec3 startPos = glm::vec3(2.0f);

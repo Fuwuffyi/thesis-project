@@ -151,33 +151,62 @@ void GLRenderer::RenderImgui() {
          ImGuiWindowFlags_NoFocusOnAppearing |
          ImGuiWindowFlags_NoNav;
       ImGui::Begin("Scene Graph", nullptr, flags);
-      Node* root = m_activeScene->GetRootNode();
-      std::vector<Node*> nodesToCheck{root};
-      uint32_t id = 0;
-      while (!nodesToCheck.empty()) {
-         auto c = nodesToCheck.back();
-         nodesToCheck.pop_back();
-         // Get transform
-         TransformComponent* comp = c->GetComponent<TransformComponent>();
-         if (ImGui::TreeNode(std::to_string(++id).c_str())) {
-            if (comp) {
-               glm::vec3 posInput = comp->m_transform.GetPosition();
-               if (ImGui::DragFloat3("Position", &posInput.x, 0.01f, 0.0f, 10000.0f)) {
-                  comp->m_transform.SetPosition(posInput);
-               }
-               glm::quat rotInput = comp->m_transform.GetRotation();
-               if (ImGui::DragFloat4("Rotation", &rotInput.x, 0.01f, 0.0f, 3.14f)) {
-                  comp->m_transform.SetRotation(rotInput);
-               }
-               glm::vec3 scaleInput = comp->m_transform.GetScale();
-               if (ImGui::DragFloat3("Scale", &scaleInput.x, 0.01f, 0.0f, 10000.0f)) {
-                  comp->m_transform.SetScale(scaleInput);
+      if (m_activeScene) {
+         // Recursive function to display hierarchy
+         std::function<void(Node*)> displayNodeHierarchy = [&](Node* node) {
+            if (!node) return;
+            ImGui::PushID(node);
+            // Tree node display
+            bool hasChildren = node->GetChildCount() > 0;
+            ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | 
+               ImGuiTreeNodeFlags_OpenOnDoubleClick |
+               ImGuiTreeNodeFlags_SpanAvailWidth;
+            if (!hasChildren) {
+               nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+            }
+            bool nodeOpen = ImGui::TreeNodeEx(node->GetName().c_str(), nodeFlags);
+            // Show transform controls when node is selected/opened
+            if (nodeOpen) {
+               bool nodeActive = node->IsActive();
+               if (ImGui::Checkbox("Active", &nodeActive)) {
+                  node->SetActive(nodeActive);
                }
             }
-            ImGui::TreePop();
+            if (nodeOpen || !hasChildren) {
+               if (TransformComponent* comp = node->GetComponent<TransformComponent>()) {
+                  ImGui::PushID("transform");
+                  glm::vec3 posInput = comp->m_transform.GetPosition();
+                  if (ImGui::DragFloat3("Position", &posInput.x, 0.01f)) {
+                     comp->m_transform.SetPosition(posInput);
+                     node->MarkTransformDirty();
+                  }
+                  glm::vec3 eulerAngles = glm::degrees(comp->m_transform.GetEulerAngles());
+                  if (ImGui::DragFloat3("Rotation", &eulerAngles.x, 0.1f, -180.0f, 180.0f)) {
+                     comp->m_transform.SetRotation(glm::radians(eulerAngles));
+                     node->MarkTransformDirty();
+                  }
+                  glm::vec3 scaleInput = comp->m_transform.GetScale();
+                  if (ImGui::DragFloat3("Scale", &scaleInput.x, 0.01f, 0.01f, 100.0f)) {
+                     comp->m_transform.SetScale(scaleInput);
+                     node->MarkTransformDirty();
+                  }
+                  ImGui::PopID();
+               }
+            }
+            // Display children
+            if (nodeOpen && hasChildren) {
+               node->ForEachChild([&](Node* child) {
+                  displayNodeHierarchy(child);
+               }, false);
+               ImGui::TreePop();
+            }
+            ImGui::PopID();
+         };
+         // Start from root
+         Node* root = m_activeScene->GetRootNode();
+         if (root) {
+            displayNodeHierarchy(root);
          }
-         // Add all child elements to nodes to traverse
-         std::ranges::for_each(c->GetChildren(), [&](auto& x) { nodesToCheck.push_back(x.get()); });
       }
       ImGui::End();
    }
@@ -239,21 +268,31 @@ void GLRenderer::RenderFrame() {
       sampler->BindUnit(1);
    }
    // Draw the scene
-   Node* root = m_activeScene->GetRootNode();
-   std::vector<Node*> nodesToCheck{root};
-   while (!nodesToCheck.empty()) {
-      auto c = nodesToCheck.back();
-      nodesToCheck.pop_back();
-      // Get transform
-      TransformComponent* comp = c->GetComponent<TransformComponent>();
-      // Draw mesh
-      IMesh* mesh = m_resourceManager->GetMesh("testing_cube");
-      if (mesh) {
-         shader->SetMat4("model", comp->m_transform.GetTransformMatrix());
-         mesh->Draw();
-      }
-      // Add all child elements to nodes to traverse
-      std::ranges::for_each(c->GetChildren(), [&](auto& x) { nodesToCheck.push_back(x.get()); });
+   if (m_activeScene) {
+      m_activeScene->UpdateTransforms();
+      m_activeScene->ForEachNode([&](Node* node) {
+         // Skip inactive nodes
+         if (!node->IsActive()) {
+            return;
+         }
+         // Get transform component
+         TransformComponent* comp = node->GetComponent<TransformComponent>();
+         if (!comp) {
+            return;
+         }
+         // Get world transform
+         Transform* worldTransform = node->GetWorldTransform();
+         if (!worldTransform) {
+            return;
+         }
+         // Draw mesh if available
+         IMesh* mesh = m_resourceManager->GetMesh("testing_cube");
+         if (mesh) {
+            // Use world transform matrix 
+            shader->SetMat4("model", worldTransform->GetTransformMatrix());
+            mesh->Draw();
+         }
+      });
    }
    // Render Ui
    RenderImgui();
