@@ -86,8 +86,6 @@ void GLRenderer::CreateTestResources() {
    shader->AttachShaderFromFile(GLShader::Type::Vertex, "resources/shaders/gl/test.vert");
    shader->AttachShaderFromFile(GLShader::Type::Fragment, "resources/shaders/gl/test.frag");
    shader->Link();
-   // Load mesh and texture from resource manager
-   texture = m_resourceManager->LoadTexture("test_texture", "resources/textures/texture_base.jpg");
    // Create camera UBO
    cameraUbo = new GLBuffer(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
    const CameraData camData{};
@@ -203,19 +201,21 @@ void GLRenderer::RenderImgui() {
       ImGui::Columns(columns, nullptr, false);
 
 
-      ITexture* tex = m_resourceManager->GetTexture(texture);
-      if (tex) {
-         const GLuint texId = static_cast<GLTexture*>(tex)->GetId();
-         ImGui::Image(
-            (ImTextureID)(intptr_t)texId,
-            ImVec2(64, 64),
-            ImVec2(0, 1),
-            ImVec2(1, 0)
-         );
-         ImGui::TextWrapped("Test texture");
+      auto namedTextures = m_resourceManager->GetAllTexturesNamed();
+      for (const auto& tex : namedTextures) {
+         if (tex.first) {
+            const GLuint texId = static_cast<GLTexture*>(tex.first)->GetId();
+            ImGui::Image(
+               (ImTextureID)(intptr_t)texId,
+               ImVec2(64, 64),
+               ImVec2(0, 1),
+               ImVec2(1, 0)
+            );
+            ImGui::TextWrapped(tex.second.c_str());
+         }
+         ImGui::NextColumn();
+         count++;
       }
-      ImGui::NextColumn();
-      count++;
       ImGui::Columns(1);
       ImGui::End();
    }
@@ -236,7 +236,7 @@ void GLRenderer::RenderFrame() {
    cameraUbo->UpdateData(&camData, sizeof(CameraData));
    shader->BindUniformBlock("CameraData", 0);
    // Set up shader texture test
-   ITexture* tex = m_resourceManager->GetTexture(texture);
+   ITexture* tex = m_resourceManager->GetTexture("testing_albedo");
    if (tex) {
       tex->Bind(1);
       sampler->BindUnit(1);

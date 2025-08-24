@@ -1,3 +1,4 @@
+#include "core/GraphicsAPI.hpp"
 #include "core/RendererFactory.hpp"
 #include "core/Window.hpp"
 #include "core/Camera.hpp"
@@ -49,7 +50,7 @@ const std::vector<uint16_t> indices = {
 
 int main() {
    try {
-      constexpr GraphicsAPI api = GraphicsAPI::OpenGL;
+      constexpr GraphicsAPI api = GraphicsAPI::Vulkan;
 
       // Create the window
       WindowDesc windowDesc{
@@ -95,6 +96,13 @@ int main() {
       // Get renderer resource manager
       ResourceManager* resourceManager = renderer->GetResourceManager();
       resourceManager->LoadMesh("testing_cube", vertices, indices);
+      // FIXME: Currently vulkan loads texture (is static)
+      if (api == GraphicsAPI::OpenGL) {
+         resourceManager->LoadTexture("testing_albedo", "resources/textures/texture_base.jpg", true, true);
+      }
+      resourceManager->LoadTexture("testing_displacement", "resources/textures/texture_displ.jpg", true, false);
+      resourceManager->LoadTexture("testing_normal", "resources/textures/texture_normal.jpg", true, false);
+      resourceManager->LoadTexture("testing_roughness", "resources/textures/texture_roughness.jpg", true, false);
 
       // Setup events
       EventSystem* events = window.GetEventSystem();

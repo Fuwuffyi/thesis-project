@@ -193,13 +193,31 @@ size_t ResourceManager::GetResourceCount() const {
    return m_resources.size();
 }
 
-std::vector<std::string> ResourceManager::GetLoadedResourceNames() const {
+std::vector<std::pair<ITexture*, std::string>> ResourceManager::GetAllTexturesNamed() {
    std::lock_guard<std::mutex> lock(m_mutex);
-   std::vector<std::string> names;
-   names.reserve(m_resources.size());
-   for (const auto& [name, id] : m_nameToId) {
-      names.push_back(name);
+   std::vector<std::pair<ITexture*, std::string>> textures;
+   textures.reserve(m_resources.size());
+   for (auto& [id, entry] : m_resources) {
+      if (entry && entry->resource) {
+         if (auto* tex = dynamic_cast<ITexture*>(entry->resource.get())) {
+            textures.emplace_back(tex, entry->name);
+         }
+      }
    }
-   return names;
+   return textures;
+}
+
+std::vector<std::pair<IMesh*, std::string>> ResourceManager::GetAllMeshesNamed() {
+   std::lock_guard<std::mutex> lock(m_mutex);
+   std::vector<std::pair<IMesh*, std::string>> meshes;
+   meshes.reserve(m_resources.size());
+   for (auto& [id, entry] : m_resources) {
+      if (entry && entry->resource) {
+         if (auto* mesh = dynamic_cast<IMesh*>(entry->resource.get())) {
+            meshes.emplace_back(mesh, entry->name);
+         }
+      }
+   }
+   return meshes;
 }
 

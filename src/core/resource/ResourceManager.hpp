@@ -41,7 +41,8 @@ public:
    void UnloadAll();
    size_t GetTotalMemoryUsage() const;
    size_t GetResourceCount() const;
-   std::vector<std::string> GetLoadedResourceNames() const;
+   std::vector<std::pair<ITexture*, std::string>> GetAllTexturesNamed();
+   std::vector<std::pair<IMesh*, std::string>> GetAllMeshesNamed();
 private:
    uint64_t GetNextId();
    template<typename T>
