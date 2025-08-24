@@ -48,10 +48,21 @@ const std::vector<uint16_t> indices = {
    20, 21, 22, 22, 23, 20
 };
 
-int main() {
+int main(int argc, char* argv[]) {
+   // Check argv for api
+   GraphicsAPI api = GraphicsAPI::Vulkan;
+   for (int32_t i = 1; i < argc; ++i) {
+      const std::string arg = argv[i];
+      if (arg == "-v") {
+         api = GraphicsAPI::Vulkan;
+      } else if (arg == "-g") {
+         api = GraphicsAPI::OpenGL;
+      } else {
+         return 1;
+      }
+   }
+   // Main program
    try {
-      constexpr GraphicsAPI api = GraphicsAPI::OpenGL;
-
       // Create the window
       WindowDesc windowDesc{
          .title = "Deferred Rendering Engine",
