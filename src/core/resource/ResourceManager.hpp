@@ -19,7 +19,7 @@ public:
                              const bool sRGB = true);
    TextureHandle CreateTexture(const std::string& name, const ITexture::CreateInfo& info);
    TextureHandle CreateDepthTexture(const std::string& name, const uint32_t width, const uint32_t height,
-                                    const ITexture::Format format = ITexture::Format::Depth24);
+                                    const ITexture::Format format = ITexture::Format::Depth32F);
    TextureHandle CreateRenderTarget(const std::string& name, const uint32_t width, const uint32_t height,
                                     const ITexture::Format format = ITexture::Format::RGBA8, uint32_t samples = 1);
    // Mesh management

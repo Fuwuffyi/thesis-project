@@ -150,10 +150,14 @@ void VulkanRenderer::CreateFramebuffers() {
    // Create framebuffers from the given swapchain images
    m_swapchainFramebuffers.resize(m_swapchain.GetImageViews().size());
    for (size_t i = 0; i < m_swapchain.GetImageViews().size(); ++i) {
-      const std::array<VkImageView, 2> attachments = {
-         m_swapchain.GetImageViews()[i],
-         m_depthImage->GetImageView()
-      };
+      std::vector<VkImageView> attachments;
+      attachments.reserve(2);
+      attachments.push_back(m_swapchain.GetImageViews()[i]);
+      ITexture* depthTexture = m_resourceManager->GetTexture(m_depthTexture);
+      if (depthTexture) {
+         VulkanTexture* vkDepthTexture = reinterpret_cast<VulkanTexture*>(depthTexture);
+         attachments.push_back(vkDepthTexture->GetImageView());
+      }
       VkFramebufferCreateInfo framebufferInfo{};
       framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
       framebufferInfo.renderPass = m_renderPass.Get();
@@ -312,20 +316,18 @@ bool VulkanRenderer::HasStencilComponent(const VkFormat& format) const {
 }
 
 void VulkanRenderer::CreateDepthResources() {
-   m_depthImage = std::make_unique<VulkanTexture>(
-      m_device,
-      m_swapchain.GetExtent().width,
-      m_swapchain.GetExtent().height,
-      ITexture::Format::Depth32F,
-      true,
-      1
-   );
-   m_depthImage->TransitionLayout(
-      VK_IMAGE_LAYOUT_UNDEFINED,
-      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-      VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
-   );
+   m_depthTexture = m_resourceManager->CreateDepthTexture("depth_texture", m_swapchain.GetExtent().width,
+                                                          m_swapchain.GetExtent().height);
+   ITexture* depthTexture = m_resourceManager->GetTexture(m_depthTexture);
+   if (depthTexture) {
+      VulkanTexture* vkDepthTexture = reinterpret_cast<VulkanTexture *>(depthTexture);
+      vkDepthTexture->TransitionLayout(
+         VK_IMAGE_LAYOUT_UNDEFINED,
+         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+         VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
+      );
+   }
 }
 
 void VulkanRenderer::CreateTestResources() {
@@ -555,6 +557,34 @@ void VulkanRenderer::RenderImgui() {
          }
          // Add all child elements to nodes to traverse
          std::ranges::for_each(c->GetChildren(), [&](auto& x) { nodesToCheck.push_back(x.get()); });
+      }
+      ImGui::End();
+   }
+   // Show textures
+   {
+      const uint32_t columns = 4;
+      const uint32_t imgSize = 128;
+      ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + viewport->WorkSize.y - 600));
+      ImGui::SetNextWindowSize(ImVec2(columns * imgSize, 600));
+      ImGui::SetNextWindowBgAlpha(0.35f);
+      ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove |
+         ImGuiWindowFlags_NoResize |
+         ImGuiWindowFlags_NoSavedSettings |
+         ImGuiWindowFlags_NoFocusOnAppearing |
+         ImGuiWindowFlags_NoNav;
+      if (ImGui::Begin("Texture Browser", nullptr, flags)) {
+         ImGui::BeginChild("TextureScrollRegion", ImVec2(0, 0),
+                           false, ImGuiWindowFlags_HorizontalScrollbar);
+         ImGui::Columns(columns, nullptr, false);
+         const auto namedTextures = m_resourceManager->GetAllTexturesNamed();
+         for (const auto& tex : namedTextures) {
+            if (tex.first) {
+               // TODO: Render textures
+            }
+            ImGui::NextColumn();
+         }
+         ImGui::Columns(1);
+         ImGui::EndChild();
       }
       ImGui::End();
    }

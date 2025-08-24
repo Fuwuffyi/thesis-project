@@ -30,25 +30,52 @@ GLTexture::GLTexture(const std::string& filepath, const bool generateMipmaps, co
    glGenTextures(1, &m_id);
    int32_t width, height, channels;
    stbi_set_flip_vertically_on_load(true);
-   unsigned char* data = stbi_load(filepath.c_str(), &width, &height,
-                                   &channels, 0);
+   uint8_t* data = stbi_load(filepath.c_str(), &width, &height, &channels, 0);
    if (!data) {
+      glDeleteTextures(1, &m_id);
+      m_id = 0;
       return;
    }
    m_width = static_cast<uint32_t>(width);
    m_height = static_cast<uint32_t>(height);
    m_depth = 1;
-   m_format = sRGB ? Format::SRGB8_ALPHA8 : Format::RGBA8;
+   GLenum format = GL_RGBA;
+   GLenum internal = GL_RGBA8;
+   switch (channels) {
+      case 1:
+         format = GL_RED;
+         internal = GL_R8;
+         m_format = Format::R8;
+         break;
+      case 2:
+         format = GL_RG;
+         internal = GL_RG8;
+         m_format = Format::RG8;
+         break;
+      case 3:
+         format = GL_RGB;
+         internal = sRGB ? GL_SRGB8 : GL_RGB8;
+         m_format = Format::RGB8;
+         break;
+      case 4:
+         format = GL_RGBA;
+         internal = sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+         m_format = sRGB ? Format::SRGB8_ALPHA8 : Format::RGBA8;
+         break;
+      default:
+         // Unexpected channel count, force RGBA
+         format   = GL_RGBA;
+         internal = GL_RGBA8;
+         m_format = Format::RGBA8;
+         break;
+   }
    glBindTexture(GL_TEXTURE_2D, m_id);
-   const GLenum internalFormat = sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
-   const GLenum format = (channels == 3) ? GL_RGB : GL_RGBA;
-   glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width,
-                height, 0, format, GL_UNSIGNED_BYTE, data);
+   glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // Safe for all channel counts
+   glTexImage2D(GL_TEXTURE_2D, 0, internal, width, height, 0, format, GL_UNSIGNED_BYTE, data);
    if (generateMipmaps) {
       glGenerateMipmap(GL_TEXTURE_2D);
    }
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                   generateMipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, generateMipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);

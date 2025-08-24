@@ -34,8 +34,6 @@ GLShader* shader = nullptr;
 GLBuffer* cameraUbo = nullptr;
 GLSampler* sampler = nullptr;
 
-TextureHandle texture;
-
 GLRenderer::GLRenderer(Window* window)
    :
    IRenderer(window)
@@ -185,38 +183,37 @@ void GLRenderer::RenderImgui() {
    }
    // Show textures
    {
-      ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + viewport->WorkSize.y - 300));
-      ImGui::SetNextWindowSize(ImVec2(300, 300));
+      const uint32_t columns = 4;
+      const uint32_t imgSize = 128;
+      ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + viewport->WorkSize.y - 600));
+      ImGui::SetNextWindowSize(ImVec2(columns * imgSize, 600));
       ImGui::SetNextWindowBgAlpha(0.35f);
-      ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
-         ImGuiWindowFlags_NoMove |
-         ImGuiWindowFlags_NoCollapse |
+      ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove |
          ImGuiWindowFlags_NoResize |
          ImGuiWindowFlags_NoSavedSettings |
          ImGuiWindowFlags_NoFocusOnAppearing |
          ImGuiWindowFlags_NoNav;
-      ImGui::Begin("Texture Browser", nullptr, flags);
-      const uint32_t columns = 4;
-      uint32_t count = 0;
-      ImGui::Columns(columns, nullptr, false);
-
-
-      auto namedTextures = m_resourceManager->GetAllTexturesNamed();
-      for (const auto& tex : namedTextures) {
-         if (tex.first) {
-            const GLuint texId = static_cast<GLTexture*>(tex.first)->GetId();
-            ImGui::Image(
-               (ImTextureID)(intptr_t)texId,
-               ImVec2(64, 64),
-               ImVec2(0, 1),
-               ImVec2(1, 0)
-            );
-            ImGui::TextWrapped(tex.second.c_str());
+      if (ImGui::Begin("Texture Browser", nullptr, flags)) {
+         ImGui::BeginChild("TextureScrollRegion", ImVec2(0, 0),
+                           false, ImGuiWindowFlags_HorizontalScrollbar);
+         ImGui::Columns(columns, nullptr, false);
+         const auto namedTextures = m_resourceManager->GetAllTexturesNamed();
+         for (const auto& tex : namedTextures) {
+            if (tex.first) {
+               const GLuint texId = static_cast<GLTexture*>(tex.first)->GetId();
+               ImGui::Image(
+                  (ImTextureID)(intptr_t)texId,
+                  ImVec2(imgSize, imgSize),
+                  ImVec2(0, 1),
+                  ImVec2(1, 0)
+               );
+               ImGui::TextWrapped(tex.second.c_str());
+            }
+            ImGui::NextColumn();
          }
-         ImGui::NextColumn();
-         count++;
+         ImGui::Columns(1);
+         ImGui::EndChild();
       }
-      ImGui::Columns(1);
       ImGui::End();
    }
    ImGui::Render();
