@@ -29,18 +29,49 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const std::string& file
 {
    int32_t width, height, channels;
    stbi_set_flip_vertically_on_load(true);
-   stbi_uc* pixels = stbi_load(filepath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+   uint8_t* pixels = stbi_load(filepath.c_str(), &width, &height,
+                               &channels, 0);
    if (!pixels) {
       return;
+   }
+   switch (channels) {
+      case 1:
+         m_format = Format::R8;
+         break;
+      case 2:
+         m_format = Format::RG8;
+         break;
+      case 3:
+         stbi_image_free(pixels);
+         pixels = stbi_load(filepath.c_str(), &width, &height,
+                            &channels, STBI_rgb_alpha);
+      case 4:
+         m_format = sRGB ? Format::SRGB8_ALPHA8 : Format::RGBA8;
+         break;
+      default:
+         // Unexpected channel count, force RGBA
+         m_format = Format::RGBA8;
+         break;
    }
    m_width = static_cast<uint32_t>(width);
    m_height = static_cast<uint32_t>(height);
    m_depth = 1;
-   m_format = sRGB ? Format::SRGB8_ALPHA8 : Format::RGBA8;
    m_vkFormat = ConvertFormat(m_format);
    m_mipLevels = generateMipmaps ? static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height)))) + 1 : 1;
    // Create staging buffer
-   VkDeviceSize imageSize = m_width * m_height * 4;
+   uint32_t bytesPerPixel = 4; // default
+   switch (m_format) {
+      case Format::R8: bytesPerPixel = 1; break;
+      case Format::RG8: bytesPerPixel = 2; break;
+      case Format::RGB8: bytesPerPixel = 3; break;
+      case Format::RGBA8:
+      case Format::SRGB8_ALPHA8: bytesPerPixel = 4; break;
+      case Format::RGBA16F: bytesPerPixel = 8; break;
+      case Format::RGBA32F: bytesPerPixel = 16; break;
+      case Format::Depth24: bytesPerPixel = 3; break;
+      case Format::Depth32F: bytesPerPixel = 4; break;
+   }
+   VkDeviceSize imageSize = m_width * m_height * bytesPerPixel;
    VulkanBuffer stagingBuffer(device, imageSize, VulkanBuffer::Usage::TransferSrc, VulkanBuffer::MemoryType::HostVisible);
    stagingBuffer.UpdateMapped(pixels, static_cast<size_t>(imageSize));
    CreateImage();
@@ -87,11 +118,20 @@ VulkanTexture::~VulkanTexture() {
 }
 
 VulkanTexture::VulkanTexture(VulkanTexture&& other) noexcept
-   : m_device(other.m_device), m_image(other.m_image), m_imageView(other.m_imageView),
-   m_imageMemory(other.m_imageMemory), m_vkFormat(other.m_vkFormat),
-   m_width(other.m_width), m_height(other.m_height), m_depth(other.m_depth),
-   m_format(other.m_format), m_isDepth(other.m_isDepth), m_samples(other.m_samples),
-   m_mipLevels(other.m_mipLevels) {
+   :
+   m_device(other.m_device),
+   m_image(other.m_image),
+   m_imageView(other.m_imageView),
+   m_imageMemory(other.m_imageMemory),
+   m_vkFormat(other.m_vkFormat),
+   m_width(other.m_width),
+   m_height(other.m_height),
+   m_depth(other.m_depth),
+   m_format(other.m_format),
+   m_isDepth(other.m_isDepth),
+   m_samples(other.m_samples),
+   m_mipLevels(other.m_mipLevels)
+{
    other.m_image = VK_NULL_HANDLE;
    other.m_imageView = VK_NULL_HANDLE;
    other.m_imageMemory = VK_NULL_HANDLE;
@@ -193,7 +233,7 @@ void VulkanTexture::CreateImage() {
    allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, 
                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
    if (vkAllocateMemory(m_device->Get(), &allocInfo, nullptr, &m_imageMemory) != VK_SUCCESS) {
-      throw std::runtime_error("Failed to allocate image memory!");
+      throw std::runtime_error("Failed to allocate image memory.");
    }
    vkBindImageMemory(m_device->Get(), m_image, m_imageMemory, 0);
 }

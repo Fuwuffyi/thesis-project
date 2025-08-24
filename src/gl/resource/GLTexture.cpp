@@ -30,7 +30,8 @@ GLTexture::GLTexture(const std::string& filepath, const bool generateMipmaps, co
    glGenTextures(1, &m_id);
    int32_t width, height, channels;
    stbi_set_flip_vertically_on_load(true);
-   uint8_t* data = stbi_load(filepath.c_str(), &width, &height, &channels, 0);
+   uint8_t* data = stbi_load(filepath.c_str(), &width, &height,
+                             &channels, 0);
    if (!data) {
       glDeleteTextures(1, &m_id);
       m_id = 0;
@@ -64,7 +65,7 @@ GLTexture::GLTexture(const std::string& filepath, const bool generateMipmaps, co
          break;
       default:
          // Unexpected channel count, force RGBA
-         format   = GL_RGBA;
+         format = GL_RGBA;
          internal = GL_RGBA8;
          m_format = Format::RGBA8;
          break;
