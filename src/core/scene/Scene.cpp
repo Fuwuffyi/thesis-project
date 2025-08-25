@@ -8,10 +8,8 @@
 #include <sstream>
 
 Scene::Scene(const std::string& name) : m_name(name) {
-   // Create root node with world transform
    m_rootNode = std::make_unique<Node>("Root");
    m_rootNode->AddComponent(std::make_unique<TransformComponent>());
-
    RegisterNode(m_rootNode.get());
 }
 
@@ -24,14 +22,11 @@ Node* Scene::CreateNode(const std::string& name) {
    if (nodeName.empty()) {
       nodeName = "Node_" + std::to_string(m_nodeCounter++);
    }
-
    auto node = std::make_unique<Node>(nodeName);
    node->AddComponent(std::make_unique<TransformComponent>());
-
    Node* nodePtr = node.get();
    m_rootNode->AddChild(std::move(node));
    RegisterNode(nodePtr);
-
    return nodePtr;
 }
 
@@ -39,19 +34,15 @@ Node* Scene::CreateChildNode(Node* parent, const std::string& name) {
    if (!parent) {
       return CreateNode(name);
    }
-
    std::string nodeName = name;
    if (nodeName.empty()) {
       nodeName = "Node_" + std::to_string(m_nodeCounter++);
    }
-
    auto node = std::make_unique<Node>(nodeName);
    node->AddComponent(std::make_unique<TransformComponent>());
-
    Node* nodePtr = node.get();
    parent->AddChild(std::move(node));
    RegisterNode(nodePtr);
-
    return nodePtr;
 }
 
@@ -62,31 +53,25 @@ Node* Scene::CreateChildNode(const std::string& parentName, const std::string& c
 
 bool Scene::AddNode(std::unique_ptr<Node> node, Node* parent) {
    if (!node) return false;
-
    Node* nodePtr = node.get();
-
    if (parent) {
       parent->AddChild(std::move(node));
    } else {
       m_rootNode->AddChild(std::move(node));
    }
-
    RegisterNode(nodePtr);
    return true;
 }
 
 bool Scene::RemoveNode(Node* node) {
    if (!node || node == m_rootNode.get()) {
-      return false; // Can't remove root node
+      return false;
    }
-
    UnregisterNode(node);
-
    Node* parent = node->GetParent();
    if (parent) {
       return parent->RemoveChild(node);
    }
-
    return false;
 }
 
@@ -109,27 +94,20 @@ Node* Scene::FindNode(const std::string& name) const {
 std::vector<Node*> Scene::FindNodes(const std::string& name) const {
    std::vector<Node*> result;
    auto range = m_nodeRegistry.equal_range(name);
-
    for (auto it = range.first; it != range.second; ++it) {
       result.push_back(it->second);
    }
-
    return result;
 }
 
 void Scene::ForEachNode(const std::function<void(Node*)>& func) {
    if (!func || !m_rootNode) return;
-
-   // Use breadth-first traversal for better cache locality
    std::queue<Node*> queue;
    queue.push(m_rootNode.get());
-
    while (!queue.empty()) {
       Node* current = queue.front();
       queue.pop();
-
       func(current);
-
       // Add children to queue
       for (Node* child : current->GetChildrenRaw()) {
          queue.push(child);
@@ -139,16 +117,12 @@ void Scene::ForEachNode(const std::function<void(Node*)>& func) {
 
 void Scene::ForEachNode(const std::function<void(const Node*)>& func) const {
    if (!func || !m_rootNode) return;
-
    std::queue<const Node*> queue;
    queue.push(m_rootNode.get());
-
    while (!queue.empty()) {
       const Node* current = queue.front();
       queue.pop();
-
       func(current);
-
       for (const auto& child : current->GetChildren()) {
          queue.push(child.get());
       }
@@ -161,11 +135,9 @@ void Scene::UpdateTransforms() {
    }
 }
 
-void Scene::UpdateScene(float deltaTime) {
-   // Update transforms first
+void Scene::UpdateScene(const float deltaTime) {
    UpdateTransforms();
-
-   // Future: Add component updates, animation systems, etc.
+   // TODO: Add component updates
    // ForEachNode([deltaTime](Node* node) {
    //     // Update components that need per-frame updates
    // });
@@ -199,9 +171,8 @@ void Scene::RegisterNode(Node* node) {
 
 void Scene::UnregisterNode(Node* node) {
    if (!node) return;
-
    // Remove all entries with this node pointer
-   auto range = m_nodeRegistry.equal_range(node->GetName());
+   const auto range = m_nodeRegistry.equal_range(node->GetName());
    for (auto it = range.first; it != range.second;) {
       if (it->second == node) {
          it = m_nodeRegistry.erase(it);
@@ -209,7 +180,6 @@ void Scene::UnregisterNode(Node* node) {
          ++it;
       }
    }
-
    // Also unregister all children
    for (Node* child : node->GetChildrenRaw()) {
       UnregisterNode(child);
@@ -218,18 +188,17 @@ void Scene::UnregisterNode(Node* node) {
 
 void Scene::CollectAllNodes(Node* node, std::vector<Node*>& nodes) const {
    if (!node) return;
-
    nodes.push_back(node);
    for (Node* child : node->GetChildrenRaw()) {
       CollectAllNodes(child, nodes);
    }
 }
 
-size_t Scene::CalculateMaxDepth(const Node* node, size_t currentDepth) const {
+size_t Scene::CalculateMaxDepth(const Node* node, const size_t currentDepth) const {
    if (!node) return currentDepth;
    size_t maxDepth = currentDepth;
    for (const auto& child : node->GetChildren()) {
-      size_t childDepth = CalculateMaxDepth(child.get(), currentDepth + 1);
+      const size_t childDepth = CalculateMaxDepth(child.get(), currentDepth + 1);
       maxDepth = std::max(maxDepth, childDepth);
    }
    return maxDepth;

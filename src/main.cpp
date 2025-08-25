@@ -7,7 +7,6 @@
 
 #include "core/scene/Scene.hpp"
 #include "core/scene/Node.hpp"
-#include "core/scene/components/TransformComponent.hpp"
 #include "core/scene/components/RendererComponent.hpp"
 
 #include <memory>
@@ -79,7 +78,6 @@ int main(int argc, char* argv[]) {
       // Create the scene
       Scene scene("Test scene");
       Node* dragonNode = scene.CreateNode("Dragon");
-      dragonNode->AddComponent(std::make_unique<TransformComponent>());
       dragonNode->AddComponent(std::make_unique<RendererComponent>(dragonMesh));
       dragonNode->GetTransform()->SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
       renderer->SetActiveScene(&scene);

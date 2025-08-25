@@ -52,7 +52,7 @@ private:
    void RegisterNode(Node* node);
    void UnregisterNode(Node* node);
    void CollectAllNodes(Node* node, std::vector<Node*>& nodes) const;
-   size_t CalculateMaxDepth(const Node* node, size_t currentDepth = 0) const;
+   size_t CalculateMaxDepth(const Node* node, const size_t currentDepth = 0) const;
 
 private:
    std::string m_name;
