@@ -20,6 +20,8 @@ struct MouseState {
    float sensitivity = 0.05f;
    bool firstMouse = true;
    bool shouldUpdate = true;
+   float yaw = -90.0f;
+   float pitch = 0.0f;
 };
 
 // Testing mesh
@@ -169,6 +171,11 @@ int main(int argc, char* argv[]) {
       });
       // Rotation stuff
       MouseState mouseState;
+      {
+         glm::vec3 dir = cam.GetViewDirection();
+         mouseState.yaw = glm::degrees(std::atan2(dir.x, -dir.z));
+         mouseState.pitch = glm::degrees(std::asin(dir.y));
+      }
       window.SetCursorVisible(false);
       events->OnCursorPos([&](float xpos, float ypos) {
          if (!mouseState.shouldUpdate) return;
@@ -176,24 +183,21 @@ int main(int argc, char* argv[]) {
             mouseState.lastX = xpos;
             mouseState.lastY = ypos;
             mouseState.firstMouse = false;
+            return;
          }
-         float xoffset = xpos - mouseState.lastX;
-         float yoffset = mouseState.lastY - ypos;
+         float xoffset = (xpos - mouseState.lastX) * mouseState.sensitivity;
+         float yoffset = (mouseState.lastY - ypos) * mouseState.sensitivity; 
          mouseState.lastX = xpos;
          mouseState.lastY = ypos;
-         xoffset *= mouseState.sensitivity;
-         yoffset *= mouseState.sensitivity;
-         Transform& transform = cam.GetMutableTransform();
-         glm::quat rotation = transform.GetRotation();
-         float pitch = glm::degrees(glm::asin(cam.GetViewDirection().y));
-         pitch += yoffset;
-         if (pitch > 89.0f) yoffset -= pitch - 89.0f;
-         if (pitch < -89.0f) yoffset -= pitch + 89.0f;
-         rotation = glm::normalize(glm::angleAxis(glm::radians(-xoffset),
-                                                  glm::vec3(0.0f, 1.0f, 0.0f)) * rotation);
-         rotation = glm::normalize(glm::angleAxis(glm::radians(pitch),
-                                                  cam.GetRightVector()) * rotation);
-         transform.SetRotation(rotation);
+         mouseState.yaw -= xoffset;
+         mouseState.pitch += yoffset;
+         if (mouseState.pitch > 89.0f) mouseState.pitch = 89.0f;
+         if (mouseState.pitch < -89.0f) mouseState.pitch = -89.0f;
+         glm::quat qYaw = glm::angleAxis(glm::radians(mouseState.yaw), glm::vec3(0,1,0));
+         glm::quat qPitch = glm::angleAxis(glm::radians(mouseState.pitch), glm::vec3(1,0,0));
+         glm::quat rotation = qYaw * qPitch;
+         cam.GetMutableTransform().SetRotation(rotation);
+
       });
       events->OnKeyDown(GLFW_KEY_LEFT_ALT, [&](const uint32_t, const uint32_t, const uint32_t) {
          window.SetCursorVisible(true);
@@ -202,6 +206,7 @@ int main(int argc, char* argv[]) {
       events->OnKeyUp(GLFW_KEY_LEFT_ALT, [&](const uint32_t, const uint32_t, const uint32_t) {
          window.SetCursorVisible(false);
          mouseState.shouldUpdate = true;
+         mouseState.firstMouse = true;
       });
       // ESC to close window
       events->OnKeyDown(GLFW_KEY_ESCAPE, [&](const uint32_t, const uint32_t, const uint32_t) {
