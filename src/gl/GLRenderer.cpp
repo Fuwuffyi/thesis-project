@@ -271,25 +271,23 @@ void GLRenderer::RenderFrame() {
    // Draw the scene
    if (m_activeScene) {
       m_activeScene->UpdateTransforms();
-      m_activeScene->ForEachNode([&](Node* node) {
+      m_activeScene->ForEachNode([&](const Node* node) {
          // Skip inactive nodes
          if (!node->IsActive()) return;
-         // Get transform component
-         TransformComponent* transformComp = node->GetComponent<TransformComponent>();
-         if (!transformComp) return;
-         // Get world transform
-         Transform* worldTransform = node->GetWorldTransform();
-         if (!worldTransform) return;
-         // Get mesh component
-         RendererComponent* meshComp = node->GetComponent<RendererComponent>();
-         if (!meshComp) return;
-         MeshHandle meshHandle = meshComp->GetMesh();
-         // Draw mesh if available
-         IMesh* mesh = m_resourceManager->GetMesh(meshHandle);
-         if (mesh) {
-            // Use world transform matrix 
-            shader->SetMat4("model", worldTransform->GetTransformMatrix());
-            mesh->Draw();
+         if (const auto* renderer = node->GetComponent<RendererComponent>()) {
+            // If not visible, do not render
+            if (!renderer->IsVisible()) return;
+            // Get the mesh and check if valid
+            const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh());
+            if (mesh && mesh->IsValid()) {
+               // If has position, load it in
+               if (const Transform* worldTransform = node->GetWorldTransform()) {
+                  // Set up transformation matrix for rendering
+                  shader->SetMat4("model", worldTransform->GetTransformMatrix());
+               }
+               // Render the mesh
+               mesh->Draw();
+            }
          }
       });
    }

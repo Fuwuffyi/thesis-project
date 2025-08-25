@@ -2,7 +2,10 @@
 
 RendererComponent::RendererComponent(const MeshHandle& mesh) 
    :
-   m_mesh(mesh)
+   m_mesh(mesh),
+   m_visible(true),
+   m_castsShadows(true),
+   m_receivesShadows(true)
 {}
 
 void RendererComponent::SetMesh(const MeshHandle& mesh) {

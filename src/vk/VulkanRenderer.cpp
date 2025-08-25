@@ -221,34 +221,31 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
                            &m_descriptorSets[m_currentFrame], 0, nullptr);
    // Draw the scene
    if (m_activeScene) {
+      // Update transforms
       m_activeScene->UpdateTransforms();
-      m_activeScene->ForEachNode([&](Node* node) {
+      m_activeScene->ForEachNode([&](const Node* node) {
          // Skip inactive nodes
          if (!node->IsActive()) return;
-         // Get transform component
-         TransformComponent* transformComp = node->GetComponent<TransformComponent>();
-         if (!transformComp) return;
-         // Get world transform
-         Transform* worldTransform = node->GetWorldTransform();
-         if (!worldTransform) return;
-         // Get mesh component
-         RendererComponent* meshComp = node->GetComponent<RendererComponent>();
-         if (!meshComp) return;
-         MeshHandle meshHandle = meshComp->GetMesh();
-         // Draw mesh if available
-         IMesh* mesh = m_resourceManager->GetMesh(meshHandle);
-         if (mesh) {
-            // Load new position
-            ObjectData objData {
-               worldTransform->GetTransformMatrix()
-            };
-            vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame), m_pipelineLayout->Get(),
-                               VK_SHADER_STAGE_VERTEX_BIT, 0,
-                               sizeof(ObjectData), &objData);
-            // Render the mesh
-            VulkanMesh* vkMesh = reinterpret_cast<VulkanMesh*>(mesh);
-            vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
-
+         if (const auto* renderer = node->GetComponent<RendererComponent>()) {
+            // If not visible, do not render
+            if (!renderer->IsVisible()) return;
+            // Get the mesh and check if valid
+            const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh());
+            if (mesh && mesh->IsValid()) {
+               // If has position, load it in
+               if (const Transform* worldTransform = node->GetWorldTransform()) {
+                  // Set up transformation matrix for rendering
+                  ObjectData objData {
+                     worldTransform->GetTransformMatrix()
+                  };
+                  vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame), m_pipelineLayout->Get(),
+                                     VK_SHADER_STAGE_VERTEX_BIT, 0,
+                                     sizeof(ObjectData), &objData);
+               }
+               // Render the mesh
+               const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
+               vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
+            }
          }
       });
    }

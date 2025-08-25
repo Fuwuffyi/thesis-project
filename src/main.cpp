@@ -172,7 +172,7 @@ int main(int argc, char* argv[]) {
       // Rotation stuff
       MouseState mouseState;
       {
-         glm::vec3 dir = cam.GetViewDirection();
+         const glm::vec3 dir = cam.GetViewDirection();
          mouseState.yaw = glm::degrees(std::atan2(dir.x, -dir.z));
          mouseState.pitch = glm::degrees(std::asin(dir.y));
       }
@@ -185,17 +185,17 @@ int main(int argc, char* argv[]) {
             mouseState.firstMouse = false;
             return;
          }
-         float xoffset = (xpos - mouseState.lastX) * mouseState.sensitivity;
-         float yoffset = (mouseState.lastY - ypos) * mouseState.sensitivity; 
+         const float xoffset = (xpos - mouseState.lastX) * mouseState.sensitivity;
+         const float yoffset = (mouseState.lastY - ypos) * mouseState.sensitivity; 
          mouseState.lastX = xpos;
          mouseState.lastY = ypos;
          mouseState.yaw -= xoffset;
          mouseState.pitch += yoffset;
          if (mouseState.pitch > 89.0f) mouseState.pitch = 89.0f;
          if (mouseState.pitch < -89.0f) mouseState.pitch = -89.0f;
-         glm::quat qYaw = glm::angleAxis(glm::radians(mouseState.yaw), glm::vec3(0,1,0));
-         glm::quat qPitch = glm::angleAxis(glm::radians(mouseState.pitch), glm::vec3(1,0,0));
-         glm::quat rotation = qYaw * qPitch;
+         const glm::quat qYaw = glm::angleAxis(glm::radians(mouseState.yaw), glm::vec3(0,1,0));
+         const glm::quat qPitch = glm::angleAxis(glm::radians(mouseState.pitch), glm::vec3(1,0,0));
+         const glm::quat rotation = qYaw * qPitch;
          cam.GetMutableTransform().SetRotation(rotation);
 
       });
