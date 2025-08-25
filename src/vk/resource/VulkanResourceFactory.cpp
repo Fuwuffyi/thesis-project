@@ -32,8 +32,9 @@ std::unique_ptr<IMesh> VulkanResourceFactory::CreateMesh(const std::vector<Verte
 }
 
 std::unique_ptr<IMesh> VulkanResourceFactory::CreateMeshFromFile(const std::string& filepath) {
-   auto meshData = MeshLoader::GetMeshData(filepath);
-   return std::make_unique<VulkanMesh>(meshData.first, meshData.second, *m_device);
+   const MeshLoader::MeshData meshData = MeshLoader::LoadMesh(filepath);
+   const auto values = meshData.GetCombinedData();
+   return std::make_unique<VulkanMesh>(values.first, values.second, *m_device);
 
 }
 

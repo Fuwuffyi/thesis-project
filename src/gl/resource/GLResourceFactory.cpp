@@ -25,7 +25,8 @@ std::unique_ptr<IMesh> GLResourceFactory::CreateMesh(const std::vector<Vertex>& 
 }
 
 std::unique_ptr<IMesh> GLResourceFactory::CreateMeshFromFile(const std::string& filepath) {
-   auto meshData = MeshLoader::GetMeshData(filepath);
-   return std::make_unique<GLMesh>(meshData.first, meshData.second);
+   const MeshLoader::MeshData meshData = MeshLoader::LoadMesh(filepath);
+   const auto values = meshData.GetCombinedData();
+   return std::make_unique<GLMesh>(values.first, values.second);
 }
 
