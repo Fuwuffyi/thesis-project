@@ -4,13 +4,14 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
-#include "../core/Vertex.hpp"
-#include "../core/Window.hpp"
-#include "../core/Camera.hpp"
+#include "core/Vertex.hpp"
+#include "core/Window.hpp"
+#include "core/Camera.hpp"
 
-#include "../core/scene/Scene.hpp"
-#include "../core/scene/Node.hpp"
-#include "../core/scene/components/TransformComponent.hpp"
+#include "core/scene/Scene.hpp"
+#include "core/scene/Node.hpp"
+#include "core/scene/components/RendererComponent.hpp"
+#include "core/scene/components/TransformComponent.hpp"
 
 #include "vk/resource/VulkanMesh.hpp"
 #include "vk/resource/VulkanResourceFactory.hpp"
@@ -219,32 +220,32 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
                            m_pipelineLayout->Get(), 0, 1,
                            &m_descriptorSets[m_currentFrame], 0, nullptr);
    // Draw the scene
-   ObjectData objData {};
    if (m_activeScene) {
       m_activeScene->UpdateTransforms();
       m_activeScene->ForEachNode([&](Node* node) {
          // Skip inactive nodes
-         if (!node->IsActive()) {
-            return;
-         }
+         if (!node->IsActive()) return;
          // Get transform component
-         TransformComponent* comp = node->GetComponent<TransformComponent>();
-         if (!comp) {
-            return;
-         }
+         TransformComponent* transformComp = node->GetComponent<TransformComponent>();
+         if (!transformComp) return;
          // Get world transform
          Transform* worldTransform = node->GetWorldTransform();
-         if (!worldTransform) {
-            return;
-         }
+         if (!worldTransform) return;
+         // Get mesh component
+         RendererComponent* meshComp = node->GetComponent<RendererComponent>();
+         if (!meshComp) return;
+         MeshHandle meshHandle = meshComp->GetMesh();
          // Draw mesh if available
-         objData.model = worldTransform->GetTransformMatrix();
-         IMesh* mesh = m_resourceManager->GetMesh("testing_cube");
+         IMesh* mesh = m_resourceManager->GetMesh(meshHandle);
          if (mesh) {
-            // Use world transform matrix 
+            // Load new position
+            ObjectData objData {
+               worldTransform->GetTransformMatrix()
+            };
             vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame), m_pipelineLayout->Get(),
                                VK_SHADER_STAGE_VERTEX_BIT, 0,
                                sizeof(ObjectData), &objData);
+            // Render the mesh
             VulkanMesh* vkMesh = reinterpret_cast<VulkanMesh*>(mesh);
             vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
 

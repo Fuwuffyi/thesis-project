@@ -7,6 +7,7 @@
 
 #include "../core/Window.hpp"
 #include "../core/Camera.hpp"
+#include "core/scene/components/RendererComponent.hpp"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
@@ -272,21 +273,19 @@ void GLRenderer::RenderFrame() {
       m_activeScene->UpdateTransforms();
       m_activeScene->ForEachNode([&](Node* node) {
          // Skip inactive nodes
-         if (!node->IsActive()) {
-            return;
-         }
+         if (!node->IsActive()) return;
          // Get transform component
-         TransformComponent* comp = node->GetComponent<TransformComponent>();
-         if (!comp) {
-            return;
-         }
+         TransformComponent* transformComp = node->GetComponent<TransformComponent>();
+         if (!transformComp) return;
          // Get world transform
          Transform* worldTransform = node->GetWorldTransform();
-         if (!worldTransform) {
-            return;
-         }
+         if (!worldTransform) return;
+         // Get mesh component
+         RendererComponent* meshComp = node->GetComponent<RendererComponent>();
+         if (!meshComp) return;
+         MeshHandle meshHandle = meshComp->GetMesh();
          // Draw mesh if available
-         IMesh* mesh = m_resourceManager->GetMesh("testing_cube");
+         IMesh* mesh = m_resourceManager->GetMesh(meshHandle);
          if (mesh) {
             // Use world transform matrix 
             shader->SetMat4("model", worldTransform->GetTransformMatrix());

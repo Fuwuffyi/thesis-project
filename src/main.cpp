@@ -3,9 +3,12 @@
 #include "core/Window.hpp"
 #include "core/Camera.hpp"
 
+#include "core/resource/ResourceHandle.hpp"
+
 #include "core/scene/Scene.hpp"
 #include "core/scene/Node.hpp"
 #include "core/scene/components/TransformComponent.hpp"
+#include "core/scene/components/RendererComponent.hpp"
 
 #include <memory>
 #include <print>
@@ -14,8 +17,9 @@
 struct MouseState {
    float lastX = 0.0f;
    float lastY = 0.0f;
+   float sensitivity = 0.05f;
    bool firstMouse = true;
-   float sensitivity = 0.05f; // tweak to taste
+   bool shouldUpdate = true;
 };
 
 // Testing mesh
@@ -80,18 +84,20 @@ int main(int argc, char* argv[]) {
       };
       Window window(api, windowDesc);
 
-      // Create the scene
-      Scene scene("Test scene");
-      Node* node2 = scene.CreateNode("Cube 0");
-      node2->AddComponent(std::make_unique<TransformComponent>());
-      node2->GetTransform()->SetPosition(glm::vec3(0.0f, 5.0f, 0.0f));
-      Node* node3 = scene.CreateNode("Cube 1");
-      node3->AddComponent(std::make_unique<TransformComponent>());
-      node3->GetTransform()->SetPosition(glm::vec3(2.0f, 0.0f, 0.0f));
-      Node* node4 = scene.CreateNode("Cube 2");
-      node4->AddComponent(std::make_unique<TransformComponent>());
-      node4->GetTransform()->SetPosition(glm::vec3(0.0f, 0.0f, 2.0f));
-      scene.UpdateScene(0.0f);
+      // Create the renderer
+      std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api, &window);
+      float deltaTime = 0.0f;
+
+      // Get renderer resource manager
+      ResourceManager* resourceManager = renderer->GetResourceManager();
+      const MeshHandle testMesh = resourceManager->LoadMesh("testing_cube", vertices, indices);
+      // FIXME: Currently vulkan loads texture (is static)
+      if (api == GraphicsAPI::OpenGL) {
+         resourceManager->LoadTexture("testing_albedo", "resources/textures/texture_base.jpg", true, true);
+      }
+      resourceManager->LoadTexture("testing_displacement", "resources/textures/texture_displ.jpg", true, false);
+      resourceManager->LoadTexture("testing_normal", "resources/textures/texture_normal.jpg", true, false);
+      resourceManager->LoadTexture("testing_roughness", "resources/textures/texture_roughness.jpg", true, false);
 
       // Create the camera
       const glm::vec3 startPos = glm::vec3(2.0f);
@@ -102,23 +108,24 @@ int main(int argc, char* argv[]) {
                  1.0f, 0.01f, 100.0f);
       const float camSpeed = 3.0f;
       const float camRotateSpeed = glm::radians(60.0f);
-
-      // Create the renderer
-      std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api, &window);
       renderer->SetActiveCamera(&cam);
-      renderer->SetActiveScene(&scene);
-      float deltaTime = 0.0f;
 
-      // Get renderer resource manager
-      ResourceManager* resourceManager = renderer->GetResourceManager();
-      resourceManager->LoadMesh("testing_cube", vertices, indices);
-      // FIXME: Currently vulkan loads texture (is static)
-      if (api == GraphicsAPI::OpenGL) {
-         resourceManager->LoadTexture("testing_albedo", "resources/textures/texture_base.jpg", true, true);
-      }
-      resourceManager->LoadTexture("testing_displacement", "resources/textures/texture_displ.jpg", true, false);
-      resourceManager->LoadTexture("testing_normal", "resources/textures/texture_normal.jpg", true, false);
-      resourceManager->LoadTexture("testing_roughness", "resources/textures/texture_roughness.jpg", true, false);
+      // Create the scene
+      Scene scene("Test scene");
+      Node* node2 = scene.CreateNode("Cube 0");
+      node2->AddComponent(std::make_unique<TransformComponent>());
+      node2->AddComponent(std::make_unique<RendererComponent>(testMesh));
+      node2->GetTransform()->SetPosition(glm::vec3(0.0f, 5.0f, 0.0f));
+      Node* node3 = scene.CreateNode("Cube 1");
+      node3->AddComponent(std::make_unique<TransformComponent>());
+      node3->AddComponent(std::make_unique<RendererComponent>(testMesh));
+      node3->GetTransform()->SetPosition(glm::vec3(2.0f, 0.0f, 0.0f));
+      Node* node4 = scene.CreateNode("Cube 2");
+      node4->AddComponent(std::make_unique<TransformComponent>());
+      node4->AddComponent(std::make_unique<RendererComponent>(testMesh));
+      node4->GetTransform()->SetPosition(glm::vec3(0.0f, 0.0f, 2.0f));
+      scene.UpdateScene(0.0f);
+      renderer->SetActiveScene(&scene);
 
       // Setup events
       EventSystem* events = window.GetEventSystem();
@@ -164,6 +171,7 @@ int main(int argc, char* argv[]) {
       MouseState mouseState;
       window.SetCursorVisible(false);
       events->OnCursorPos([&](float xpos, float ypos) {
+         if (!mouseState.shouldUpdate) return;
          if (mouseState.firstMouse) {
             mouseState.lastX = xpos;
             mouseState.lastY = ypos;
@@ -186,6 +194,14 @@ int main(int argc, char* argv[]) {
          rotation = glm::normalize(glm::angleAxis(glm::radians(pitch),
                                                   cam.GetRightVector()) * rotation);
          transform.SetRotation(rotation);
+      });
+      events->OnKeyDown(GLFW_KEY_LEFT_ALT, [&](const uint32_t, const uint32_t, const uint32_t) {
+         window.SetCursorVisible(true);
+         mouseState.shouldUpdate = false;
+      });
+      events->OnKeyUp(GLFW_KEY_LEFT_ALT, [&](const uint32_t, const uint32_t, const uint32_t) {
+         window.SetCursorVisible(false);
+         mouseState.shouldUpdate = true;
       });
       // ESC to close window
       events->OnKeyDown(GLFW_KEY_ESCAPE, [&](const uint32_t, const uint32_t, const uint32_t) {
