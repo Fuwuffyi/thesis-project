@@ -20,7 +20,7 @@ std::unique_ptr<ITexture> GLResourceFactory::CreateRenderTarget(const uint32_t w
    return std::make_unique<GLTexture>(width, height, format, false, samples);
 }
 
-std::unique_ptr<IMesh> GLResourceFactory::CreateMesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices) {
+std::unique_ptr<IMesh> GLResourceFactory::CreateMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
    return std::make_unique<GLMesh>(vertices, indices);
 }
 

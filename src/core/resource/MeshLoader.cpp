@@ -14,20 +14,20 @@ size_t MeshLoader::MeshData::GetSubMeshCount() const {
    return subMeshes.size();
 }
 
-std::pair<std::vector<Vertex>, std::vector<uint16_t>> MeshLoader::MeshData::GetCombinedData() const {
+std::pair<std::vector<Vertex>, std::vector<uint32_t>> MeshLoader::MeshData::GetCombinedData() const {
    std::vector<Vertex> combinedVertices;
-   std::vector<uint16_t> combinedIndices;
-   uint16_t vertexOffset = 0;
+   std::vector<uint32_t> combinedIndices;
+   uint32_t vertexOffset = 0;
    for (const auto& subMesh : subMeshes) {
       // Add vertices
       combinedVertices.insert(combinedVertices.end(), 
                               subMesh.vertices.begin(), 
                               subMesh.vertices.end());
       // Add indices with offset
-      for (const uint16_t index : subMesh.indices) {
+      for (const uint32_t index : subMesh.indices) {
          combinedIndices.push_back(index + vertexOffset);
       }
-      vertexOffset += static_cast<uint16_t>(subMesh.vertices.size());
+      vertexOffset += static_cast<uint32_t>(subMesh.vertices.size());
    }
    return std::make_pair(std::move(combinedVertices), std::move(combinedIndices));
 }
@@ -119,18 +119,18 @@ void MeshLoader::Internal::ExtractVertexData(const aiMesh* mesh, std::vector<Ver
    }
 }
 
-void MeshLoader::Internal::ExtractIndexData(const aiMesh* mesh, std::vector<uint16_t>& indices) {
+void MeshLoader::Internal::ExtractIndexData(const aiMesh* mesh, std::vector<uint32_t>& indices) {
    indices.reserve(mesh->mNumFaces * 3);
    for (size_t i = 0; i < mesh->mNumFaces; ++i) {
       const aiFace face = mesh->mFaces[i];
       if (face.mNumIndices == 3) {
          for (size_t j = 0; j < face.mNumIndices; ++j) {
             // Check for uint16_t overflow
-            if (face.mIndices[j] > UINT16_MAX) {
-               std::println("Warning: Index overflow, mesh too large for uint16_t indices.");
+            if (face.mIndices[j] > UINT32_MAX) {
+               std::println("Warning: Index overflow, mesh too large for uint32_t indices.");
                indices.push_back(0);
             } else {
-               indices.push_back(static_cast<uint16_t>(face.mIndices[j]));
+               indices.push_back(static_cast<uint32_t>(face.mIndices[j]));
             }
          }
       }

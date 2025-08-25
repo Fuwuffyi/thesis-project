@@ -1,6 +1,6 @@
 #include "GLMesh.hpp"
 
-GLMesh::GLMesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices)
+GLMesh::GLMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
    :
    m_ebo(GLBuffer::Type::Element, GLBuffer::Usage::StaticDraw),
    m_vbo(GLBuffer::Type::Array, GLBuffer::Usage::StaticDraw),
@@ -22,7 +22,7 @@ ResourceType GLMesh::GetType() const {
 }
 
 size_t GLMesh::GetMemoryUsage() const {
-   return (m_vertexCount * sizeof(Vertex)) + (m_indexCount * sizeof(uint16_t));
+   return (m_vertexCount * sizeof(Vertex)) + (m_indexCount * sizeof(uint32_t));
 }
 
 bool GLMesh::IsValid() const {
@@ -31,7 +31,7 @@ bool GLMesh::IsValid() const {
 }
 
 void GLMesh::Draw() const {
-   m_vao.DrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_SHORT);
+   m_vao.DrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT);
 }
 
 size_t GLMesh::GetIndexCount() const {

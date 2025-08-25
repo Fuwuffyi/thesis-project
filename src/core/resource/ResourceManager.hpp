@@ -24,7 +24,7 @@ public:
                                     const ITexture::Format format = ITexture::Format::RGBA8, uint32_t samples = 1);
    // Mesh management
    MeshHandle LoadMesh(const std::string& name, const std::vector<Vertex>& vertices,
-                       const std::vector<uint16_t>& indices);
+                       const std::vector<uint32_t>& indices);
    MeshHandle LoadMeshFromFile(const std::string& name, const std::string& filepath);
    // Resource access
    ITexture* GetTexture(const TextureHandle& handle);

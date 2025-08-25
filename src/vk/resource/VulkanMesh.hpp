@@ -10,7 +10,7 @@
 
 class VulkanMesh : public IMesh {
 public:
-   VulkanMesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices,
+   VulkanMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices,
               const VulkanDevice& device);
    ~VulkanMesh();
 
@@ -32,7 +32,7 @@ public:
    const VulkanBuffer& GetIndexBuffer() const;
 private:
    static VulkanBuffer CreateVertexBuffer(const std::vector<Vertex>& vertices, const VulkanDevice& device);
-   static VulkanBuffer CreateIndexBuffer(const std::vector<uint16_t>& indices, const VulkanDevice& device);
+   static VulkanBuffer CreateIndexBuffer(const std::vector<uint32_t>& indices, const VulkanDevice& device);
 
 private:
    VulkanBuffer m_vertexBuffer;

@@ -5,7 +5,7 @@
 #include <glad/gl.h>
 #include <stdexcept>
 
-VulkanMesh::VulkanMesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices,
+VulkanMesh::VulkanMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices,
                        const VulkanDevice& device)
    :
    m_vertexBuffer(VulkanMesh::CreateVertexBuffer(vertices, device)),
@@ -21,7 +21,7 @@ ResourceType VulkanMesh::GetType() const {
 }
 
 size_t VulkanMesh::GetMemoryUsage() const {
-   return (m_vertexCount * sizeof(Vertex)) + (m_indexCount * sizeof(uint16_t));
+   return (m_vertexCount * sizeof(Vertex)) + (m_indexCount * sizeof(uint32_t));
 }
 
 bool VulkanMesh::IsValid() const {
@@ -50,8 +50,8 @@ VulkanBuffer VulkanMesh::CreateVertexBuffer(const std::vector<Vertex>& vertices,
    return vertexBuffer;
 }
 
-VulkanBuffer VulkanMesh::CreateIndexBuffer(const std::vector<uint16_t>& indices, const VulkanDevice& device) {
-   const VkDeviceSize bufferSize = sizeof(uint16_t) * indices.size();
+VulkanBuffer VulkanMesh::CreateIndexBuffer(const std::vector<uint32_t>& indices, const VulkanDevice& device) {
+   const VkDeviceSize bufferSize = sizeof(uint32_t) * indices.size();
    VulkanBuffer stagingBuffer(
       device, bufferSize, VulkanBuffer::Usage::TransferSrc,
       VulkanBuffer::MemoryType::HostVisible
@@ -75,7 +75,7 @@ void VulkanMesh::Draw(const VkCommandBuffer& cmd) const {
    const VkBuffer vertexBuffers[] = { m_vertexBuffer.Get() };
    const VkDeviceSize offsets[] = { 0 };
    vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
-   vkCmdBindIndexBuffer(cmd, m_indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT16);
+   vkCmdBindIndexBuffer(cmd, m_indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
    vkCmdDrawIndexed(cmd, static_cast<uint32_t>(m_indexCount), 1, 0, 0, 0);
 }
 
