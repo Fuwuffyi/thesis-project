@@ -8,6 +8,7 @@
 #include "core/scene/Scene.hpp"
 #include "core/scene/Node.hpp"
 #include "core/scene/components/RendererComponent.hpp"
+#include "glm/trigonometric.hpp"
 
 #include <memory>
 #include <print>
@@ -54,8 +55,8 @@ int main(int argc, char* argv[]) {
 
       // Get renderer resource manager
       ResourceManager* resourceManager = renderer->GetResourceManager();
-      const MeshHandle dragonMesh = resourceManager->LoadMeshFromFile("dragon_mesh",
-                                                                      "resources/meshes/dragon.fbx");
+      const MeshHandle sponzaMesh = resourceManager->LoadMeshFromFile("dragon_mesh",
+                                                                      "resources/meshes/sponza.fbx");
       // FIXME: Currently vulkan loads texture statically
       if (api == GraphicsAPI::OpenGL) {
          resourceManager->LoadTexture("testing_albedo", "resources/textures/texture_base.jpg", true, true);
@@ -77,9 +78,9 @@ int main(int argc, char* argv[]) {
 
       // Create the scene
       Scene scene("Test scene");
-      Node* dragonNode = scene.CreateNode("Dragon");
-      dragonNode->AddComponent(std::make_unique<RendererComponent>(dragonMesh));
-      dragonNode->GetTransform()->SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+      Node* dragonNode = scene.CreateNode("Sponza");
+      dragonNode->AddComponent(std::make_unique<RendererComponent>(sponzaMesh));
+      dragonNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
       renderer->SetActiveScene(&scene);
 
       // Setup events
