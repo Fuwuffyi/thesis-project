@@ -60,14 +60,6 @@ GLRenderer::GLRenderer(Window* window)
          FramebufferCallback(width, height);
       }
    );
-   // Setup depth testing
-   glEnable(GL_DEPTH_TEST);
-   glDepthFunc(GL_LESS);
-   // Cull back faces
-   glEnable(GL_CULL_FACE);
-   glCullFace(GL_BACK);
-   glFrontFace(GL_CCW);
-
    CreateTestResources();
 }
 
@@ -77,6 +69,56 @@ void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) 
       m_activeCamera->SetAspectRatio(static_cast<float>(width) /
                                      static_cast<float>(height));
    }
+   CreateGBuffer();
+   CreateGeometryPass();
+}
+
+void GLRenderer::CreateGBuffer() {
+if (m_gBuffer) {
+      m_gBuffer.reset();
+   }
+   const TextureHandle colorTex = m_resourceManager->CreateRenderTarget("gbuffer_color", m_window->GetWidth(),
+                                                                        m_window->GetHeight(), ITexture::Format::RGBA32F);
+   const TextureHandle depthTex = m_resourceManager->CreateDepthTexture("gbuffer_depth",
+                                                                        m_window->GetWidth(), m_window->GetHeight());
+   auto* colorTexPtr= reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(colorTex));
+   auto* depthTexPtr= reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(depthTex));
+   GLFramebuffer::CreateInfo gbufferInfo;
+   gbufferInfo.width = m_window->GetWidth();
+   gbufferInfo.height = m_window->GetHeight();
+   gbufferInfo.colorAttachments = {
+      {
+         colorTexPtr, 0, 0
+      },
+   };
+   gbufferInfo.depthAttachment = {
+      depthTexPtr
+   };
+   m_gBuffer = std::make_unique<GLFramebuffer>(gbufferInfo);
+   if (!m_gBuffer->IsComplete()) {
+      throw std::runtime_error("G-Buffer creation incomplete: \n" + m_gBuffer->GetStatusString());
+   }
+}
+
+void GLRenderer::CreateGeometryPass() {
+   GLRenderPass::CreateInfo geometryPassInfo;
+   geometryPassInfo.framebuffer = m_gBuffer.get();
+   geometryPassInfo.colorAttachments = {
+      {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
+   };
+   geometryPassInfo.depthStencilAttachment = {
+      GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store,
+      GLRenderPass::LoadOp::DontCare, GLRenderPass::StoreOp::DontCare,
+      1.0f, 0
+   };
+   geometryPassInfo.renderState.depthTest = GLRenderPass::DepthTest::Less;
+   geometryPassInfo.renderState.cullMode = GLRenderPass::CullMode::Back;
+   geometryPassInfo.renderState.primitiveType = GLRenderPass::PrimitiveType::Triangles;
+   m_geometryPass = std::make_unique<GLRenderPass>(geometryPassInfo);
+   // Set shader
+   m_geometryPass->Begin();
+   m_geometryPass->SetShader(shader);
+   m_geometryPass->End();
 }
 
 void GLRenderer::CreateTestResources() {
@@ -251,16 +293,13 @@ void GLRenderer::RenderImgui() {
 }
 
 void GLRenderer::RenderFrame() {
-   // Clear the screen
-   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-   // Test pipeline with cube
-   shader->Use();
+   // Update the camera
    const CameraData camData = {
       m_activeCamera->GetViewMatrix(),
       m_activeCamera->GetProjectionMatrix()
    };
    cameraUbo->UpdateData(&camData, sizeof(CameraData));
+   m_geometryPass->Begin();
    shader->BindUniformBlock("CameraData", 0);
    // Set up shader texture test
    ITexture* tex = m_resourceManager->GetTexture("testing_albedo");
@@ -291,6 +330,9 @@ void GLRenderer::RenderFrame() {
          }
       });
    }
+   m_geometryPass->End();
+   // TODO: Remove once lighting pass has been made
+   m_gBuffer->BlitToScreen(m_window->GetWidth(), m_window->GetHeight());
    // Render Ui
    RenderImgui();
    // Swap buffers

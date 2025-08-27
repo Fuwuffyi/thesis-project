@@ -172,14 +172,37 @@ void GLTexture::CreateStorage() {
    const GLenum internalFormat = ConvertFormat(m_format);
    glBindTexture(target, m_id);
    if (m_samples > 1) {
-      glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, m_samples, internalFormat, m_width, m_height, GL_TRUE);
-   } else {
-      glTexImage2D(target, 0, internalFormat, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-      glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, m_samples,
+                              internalFormat, m_width, m_height, GL_TRUE);
+      return;
    }
+   GLenum externalFormat = GL_RGBA;
+   GLenum externalType = GL_UNSIGNED_BYTE;
+   if (m_isDepth) {
+      externalFormat = GL_DEPTH_COMPONENT;
+      externalType   = (m_format == Format::Depth32F) ? GL_FLOAT : GL_UNSIGNED_INT;
+   } else {
+      switch (m_format) {
+         case Format::R8: externalFormat = GL_RED;  break;
+         case Format::RG8: externalFormat = GL_RG;   break;
+         case Format::RGB8: externalFormat = GL_RGB;  break;
+         case Format::RGBA8:
+         case Format::SRGB8_ALPHA8:
+         case Format::RGBA16F:
+         case Format::RGBA32F: externalFormat = GL_RGBA; break;
+         default: externalFormat = GL_RGBA; break;
+      }
+      if (m_format == Format::RGBA16F || m_format == Format::RGBA32F) {
+         externalType = GL_FLOAT;
+      }
+   }
+   glTexImage2D(target, 0, internalFormat, m_width, m_height, 0,
+                externalFormat, externalType, nullptr);
+   // Filters/wraps. For depth textures, NEAREST is typical.
+   glTexParameteri(target, GL_TEXTURE_MIN_FILTER, m_isDepth ? GL_NEAREST : GL_LINEAR);
+   glTexParameteri(target, GL_TEXTURE_MAG_FILTER, m_isDepth ? GL_NEAREST : GL_LINEAR);
+   glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+   glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
 GLenum GLTexture::ConvertFormat(Format format) const {
