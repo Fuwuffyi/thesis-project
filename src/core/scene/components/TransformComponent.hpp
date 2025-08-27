@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../../Transform.hpp"
-#include "Component.hpp"
+#include "core/scene/components/Component.hpp"
+
+#include "core/Transform.hpp"
 
 class TransformComponent : public Component {
 public:

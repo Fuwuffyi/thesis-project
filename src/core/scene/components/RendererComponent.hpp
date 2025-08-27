@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Component.hpp"
-#include "../../resource/ResourceHandle.hpp"
+#include "core/scene/components/Component.hpp"
+
+#include "core/resource/ResourceHandle.hpp"
 
 class RendererComponent : public Component {
 public:
