@@ -8,6 +8,6 @@
 *.jpg binary
 *.jpeg binary
 # Save resources using git lfs
-resources/textures filter=lfs diff=lfs merge=lfs -text
-resources/meshes filter=lfs diff=lfs merge=lfs -text
+resources/textures/** filter=lfs diff=lfs merge=lfs -text
+resources/meshes/** filter=lfs diff=lfs merge=lfs -text
 *.fbx filter=lfs diff=lfs merge=lfs -text
