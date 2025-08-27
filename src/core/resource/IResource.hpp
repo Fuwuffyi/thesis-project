@@ -2,9 +2,6 @@
 
 #include <cstddef>
 
-class ITexture;
-class IMesh;
-
 enum class ResourceType {
    Texture2D,
    TextureCube,

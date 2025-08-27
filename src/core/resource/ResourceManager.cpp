@@ -1,4 +1,4 @@
-#include "ResourceManager.hpp"
+#include "core/resource/ResourceManager.hpp"
 
 ResourceManager::ResourceManager(std::unique_ptr<IResourceFactory> factory)
    :
@@ -23,14 +23,14 @@ ResourceHandle<T> ResourceManager::RegisterResource(const std::string& name,
    if (nameIt != m_nameToId.end()) {
       // Replace existing resource
       const uint64_t existingId = nameIt->second;
-      auto& entry = m_resources[existingId];
+      const std::unique_ptr<ResourceEntry>& entry = m_resources[existingId];
       entry->resource = std::move(resource);
       entry->filepath = filepath;
       return ResourceHandle<T>(existingId);
    }
    // Create new resource entry
    const uint64_t id = GetNextId();
-   auto entry = std::make_unique<ResourceEntry>();
+   std::unique_ptr<ResourceEntry> entry = std::make_unique<ResourceEntry>();
    entry->resource = std::move(resource);
    entry->name = name;
    entry->filepath = filepath;
@@ -43,7 +43,7 @@ ResourceHandle<T> ResourceManager::RegisterResource(const std::string& name,
 
 TextureHandle ResourceManager::LoadTexture(const std::string& name, const std::string& filepath,
                                            const bool generateMipmaps, const bool sRGB) {
-   auto texture = m_factory->CreateTextureFromFile(filepath, generateMipmaps, sRGB);
+   std::unique_ptr<ITexture> texture = m_factory->CreateTextureFromFile(filepath, generateMipmaps, sRGB);
    if (!texture || !texture->IsValid()) {
       return TextureHandle();
    }
@@ -51,7 +51,7 @@ TextureHandle ResourceManager::LoadTexture(const std::string& name, const std::s
 }
 
 TextureHandle ResourceManager::CreateTexture(const std::string& name, const ITexture::CreateInfo& info) {
-   auto texture = m_factory->CreateTexture(info);
+   std::unique_ptr<ITexture> texture = m_factory->CreateTexture(info);
    if (!texture || !texture->IsValid()) {
       return TextureHandle();
    }
@@ -60,7 +60,7 @@ TextureHandle ResourceManager::CreateTexture(const std::string& name, const ITex
 
 TextureHandle ResourceManager::CreateDepthTexture(const std::string& name, const uint32_t width, const uint32_t height,
                                                   const ITexture::Format format) {
-   auto texture = m_factory->CreateDepthTexture(width, height, format);
+   std::unique_ptr<ITexture> texture = m_factory->CreateDepthTexture(width, height, format);
    if (!texture || !texture->IsValid()) {
       return TextureHandle();
    }
@@ -69,7 +69,7 @@ TextureHandle ResourceManager::CreateDepthTexture(const std::string& name, const
 
 TextureHandle ResourceManager::CreateRenderTarget(const std::string& name, const uint32_t width, const uint32_t height,
                                                   const ITexture::Format format, const uint32_t samples) {
-   auto texture = m_factory->CreateRenderTarget(width, height, format, samples);
+   std::unique_ptr<ITexture> texture = m_factory->CreateRenderTarget(width, height, format, samples);
    if (!texture || !texture->IsValid()) {
       return TextureHandle();
    }
@@ -78,7 +78,7 @@ TextureHandle ResourceManager::CreateRenderTarget(const std::string& name, const
 
 MeshHandle ResourceManager::LoadMesh(const std::string& name, const std::vector<Vertex>& vertices,
                                      const std::vector<uint32_t>& indices) {
-   auto mesh = m_factory->CreateMesh(vertices, indices);
+   std::unique_ptr<IMesh> mesh = m_factory->CreateMesh(vertices, indices);
    if (!mesh || !mesh->IsValid()) {
       return MeshHandle();
    }
@@ -86,7 +86,7 @@ MeshHandle ResourceManager::LoadMesh(const std::string& name, const std::vector<
 }
 
 MeshHandle ResourceManager::LoadMeshFromFile(const std::string& name, const std::string& filepath) {
-   auto mesh = m_factory->CreateMeshFromFile(filepath);
+   std::unique_ptr<IMesh> mesh = m_factory->CreateMeshFromFile(filepath);
    if (!mesh || !mesh->IsValid()) {
       return MeshHandle();
    }
@@ -199,7 +199,7 @@ std::vector<std::pair<ITexture*, std::string>> ResourceManager::GetAllTexturesNa
    textures.reserve(m_resources.size());
    for (auto& [id, entry] : m_resources) {
       if (entry && entry->resource) {
-         if (auto* tex = dynamic_cast<ITexture*>(entry->resource.get())) {
+         if (ITexture* tex = dynamic_cast<ITexture*>(entry->resource.get())) {
             textures.emplace_back(tex, entry->name);
          }
       }
@@ -213,7 +213,7 @@ std::vector<std::pair<IMesh*, std::string>> ResourceManager::GetAllMeshesNamed()
    meshes.reserve(m_resources.size());
    for (auto& [id, entry] : m_resources) {
       if (entry && entry->resource) {
-         if (auto* mesh = dynamic_cast<IMesh*>(entry->resource.get())) {
+         if (IMesh* mesh = dynamic_cast<IMesh*>(entry->resource.get())) {
             meshes.emplace_back(mesh, entry->name);
          }
       }

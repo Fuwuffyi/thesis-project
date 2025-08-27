@@ -3,8 +3,7 @@
 #include "core/resource/IResourceFactory.hpp"
 #include "core/resource/ResourceHandle.hpp"
 
-#include <functional>
-#include <memory>
+#include <unordered_map>
 
 class ResourceManager {
 public:
@@ -21,7 +20,7 @@ public:
    TextureHandle CreateDepthTexture(const std::string& name, const uint32_t width, const uint32_t height,
                                     const ITexture::Format format = ITexture::Format::Depth32F);
    TextureHandle CreateRenderTarget(const std::string& name, const uint32_t width, const uint32_t height,
-                                    const ITexture::Format format = ITexture::Format::RGBA8, uint32_t samples = 1);
+                                    const ITexture::Format format = ITexture::Format::RGBA8, const uint32_t samples = 1);
    // Mesh management
    MeshHandle LoadMesh(const std::string& name, const std::vector<Vertex>& vertices,
                        const std::vector<uint32_t>& indices);

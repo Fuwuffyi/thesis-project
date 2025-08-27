@@ -1,10 +1,10 @@
-#include "MeshLoader.hpp"
+#include "core/resource/MeshLoader.hpp"
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+
 #include <print>
-#include <algorithm>
 
 bool MeshLoader::MeshData::IsEmpty() const {
    return subMeshes.empty();
@@ -18,10 +18,10 @@ std::pair<std::vector<Vertex>, std::vector<uint32_t>> MeshLoader::MeshData::GetC
    std::vector<Vertex> combinedVertices;
    std::vector<uint32_t> combinedIndices;
    uint32_t vertexOffset = 0;
-   for (const auto& subMesh : subMeshes) {
+   for (const SubMesh& subMesh : subMeshes) {
       // Add vertices
-      combinedVertices.insert(combinedVertices.end(), 
-                              subMesh.vertices.begin(), 
+      combinedVertices.insert(combinedVertices.end(),
+                              subMesh.vertices.begin(),
                               subMesh.vertices.end());
       // Add indices with offset
       for (const uint32_t index : subMesh.indices) {
@@ -36,10 +36,10 @@ MeshLoader::MeshData MeshLoader::LoadMesh(const std::string& filepath) {
    MeshData meshData;
    meshData.filepath = filepath;
    Assimp::Importer importer;
-   // Set processing flags for optimal mesh loading
-   const unsigned int flags = aiProcess_Triangulate |
+   // Set processing flags for optimal meshing
+   const unsigned int flags =
+      aiProcess_Triangulate |
       aiProcess_FlipUVs |
-      // aiProcess_GenNormals |
       aiProcess_GenSmoothNormals |
       aiProcess_JoinIdenticalVertices |
       aiProcess_ImproveCacheLocality |
@@ -49,7 +49,7 @@ MeshLoader::MeshData MeshLoader::LoadMesh(const std::string& filepath) {
    // Setup importer
    const aiScene* scene = importer.ReadFile(filepath, flags);
    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-      std::println("ASSIMP Error: {}",  importer.GetErrorString());
+      std::println("Assimp failed to load sceen: {}",  importer.GetErrorString());
       return meshData;
    }
    // Process all nodes starting from root
@@ -127,7 +127,7 @@ void MeshLoader::Internal::ExtractIndexData(const aiMesh* mesh, std::vector<uint
          for (size_t j = 0; j < face.mNumIndices; ++j) {
             // Check for uint16_t overflow
             if (face.mIndices[j] > UINT32_MAX) {
-               std::println("Warning: Index overflow, mesh too large for uint32_t indices.");
+               std::println("Assimp index overflow, mesh too large for uint32_t indices.");
                indices.push_back(0);
             } else {
                indices.push_back(static_cast<uint32_t>(face.mIndices[j]));
