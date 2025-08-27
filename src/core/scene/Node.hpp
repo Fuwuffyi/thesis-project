@@ -79,7 +79,7 @@ public:
    // Transform access
    Transform* GetTransform() const;
    Transform* GetWorldTransform() const;
-   void UpdateWorldTransform(const bool force = false);
+   void UpdateWorldTransform(bool force = false);
    void MarkTransformDirty();
 
    // Utility

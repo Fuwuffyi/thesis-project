@@ -562,19 +562,19 @@ void VulkanRenderer::RenderImgui() {
             if (nodeOpen || !hasChildren) {
                if (TransformComponent* comp = node->GetComponent<TransformComponent>()) {
                   ImGui::PushID("transform");
-                  glm::vec3 posInput = comp->m_transform.GetPosition();
+                  glm::vec3 posInput = comp->GetTransform()->GetPosition();
                   if (ImGui::DragFloat3("Position", &posInput.x, 0.01f)) {
-                     comp->m_transform.SetPosition(posInput);
+                     comp->SetPosition(posInput);
                      node->MarkTransformDirty();
                   }
-                  glm::vec3 eulerAngles = glm::degrees(comp->m_transform.GetEulerAngles());
+                  glm::vec3 eulerAngles = glm::degrees(comp->GetTransform()->GetEulerAngles());
                   if (ImGui::DragFloat3("Rotation", &eulerAngles.x, 0.1f, -180.0f, 180.0f)) {
-                     comp->m_transform.SetRotation(glm::radians(eulerAngles));
+                     comp->SetRotation(glm::radians(eulerAngles));
                      node->MarkTransformDirty();
                   }
-                  glm::vec3 scaleInput = comp->m_transform.GetScale();
+                  glm::vec3 scaleInput = comp->GetTransform()->GetScale();
                   if (ImGui::DragFloat3("Scale", &scaleInput.x, 0.01f, 0.01f, 100.0f)) {
-                     comp->m_transform.SetScale(scaleInput);
+                     comp->SetScale(scaleInput);
                      node->MarkTransformDirty();
                   }
                   ImGui::PopID();

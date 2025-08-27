@@ -1,4 +1,4 @@
-#include "RendererComponent.hpp"
+#include "core/scene/components/RendererComponent.hpp"
 
 RendererComponent::RendererComponent(const MeshHandle& mesh) 
    :

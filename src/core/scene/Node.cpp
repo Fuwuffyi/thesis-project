@@ -189,7 +189,7 @@ void Node::AddComponent(std::unique_ptr<Component> component) {
    m_components.emplace_back(std::move(component));
    UpdateComponentLookup();
    if (auto* transform = dynamic_cast<TransformComponent*>(m_components.back().get())) {
-      m_localTransform = &transform->m_transform;
+      m_localTransform = transform->GetTransform();
       MarkTransformDirty();
    }
 }
@@ -217,7 +217,7 @@ Transform* Node::GetTransform() const {
    if (!m_localTransform) {
       for (const auto& component : m_components) {
          if (auto* transformComp = dynamic_cast<TransformComponent*>(component.get())) {
-            m_localTransform = &transformComp->m_transform;
+            m_localTransform = transformComp->GetTransform();
             break;
          }
       }
