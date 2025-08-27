@@ -5,24 +5,28 @@
 #include <print>
 #include <GLFW/glfw3.h>
 
-#include "../core/Window.hpp"
-#include "../core/Camera.hpp"
-#include "core/scene/components/RendererComponent.hpp"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#include "resource/GLResourceFactory.hpp"
+#include "core/Window.hpp"
+#include "core/Camera.hpp"
 
+#include "core/scene/Scene.hpp"
+#include "core/scene/Node.hpp"
 
-#include "../core/scene/Scene.hpp"
-#include "../core/scene/Node.hpp"
-#include "../core/scene/components/TransformComponent.hpp"
+#include "core/scene/components/RendererComponent.hpp"
+#include "core/scene/components/TransformComponent.hpp"
+
+#include "gl/GLFramebuffer.hpp"
+#include "gl/GLRenderPass.hpp"
+#include "gl/GLShader.hpp"
+
+#include "gl/resource/GLResourceFactory.hpp"
 
 // Stuff for mesh
 #include <vector>
 #include "GLBuffer.hpp"
 #include "GLShader.hpp"
-#include "GLSampler.hpp"
 #include "resource/GLTexture.hpp"
 
 // Testing stuff
@@ -31,9 +35,7 @@ struct CameraData {
    alignas(16) glm::mat4 proj;
 };
 
-GLShader* shader = nullptr;
 GLBuffer* cameraUbo = nullptr;
-GLSampler* sampler = nullptr;
 
 GLRenderer::GLRenderer(Window* window)
    :
@@ -49,7 +51,11 @@ GLRenderer::GLRenderer(Window* window)
    );
    // Setup imgui
    SetupImgui();
-   // Set initial viewport
+   // Create the fullscreen quad for lighting pass
+   CreateFullscreenQuad();
+   // Load shaders
+   LoadShaders();
+   // Set initial viewport (sets up g-buffer too)
    FramebufferCallback(
       static_cast<int32_t>(m_window->GetWidth()),
       static_cast<int32_t>(m_window->GetHeight())
@@ -60,6 +66,9 @@ GLRenderer::GLRenderer(Window* window)
          FramebufferCallback(width, height);
       }
    );
+   // Create lighting pass resources
+   CreateLightingPass();
+   // Create some testing resources
    CreateTestResources();
 }
 
@@ -73,16 +82,45 @@ void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) 
    CreateGeometryPass();
 }
 
+void GLRenderer::CreateFullscreenQuad() {
+   const std::vector<Vertex> quadVerts = {
+      { glm::vec3(-1.0f, -1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(0.0f, 0.0f) },
+      { glm::vec3(1.0f, -1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(1.0f, 0.0f) },
+      { glm::vec3(1.0f, 1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(1.0f, 1.0f) },
+      { glm::vec3(-1.0f, 1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(0.0f, 1.0f) },
+   };
+   const std::vector<uint32_t> quadInds ={
+      0, 1, 2, 2, 3, 0
+   };
+   m_fullscreenQuad = m_resourceManager->LoadMesh("quad", quadVerts, quadInds);
+}
+
+void GLRenderer::LoadShaders() {
+   // Setup geometry pass shader
+   m_geometryPassShader = std::make_unique<GLShader>();
+   m_geometryPassShader->AttachShaderFromFile(GLShader::Type::Vertex, "resources/shaders/gl/geometry_pass.vert");
+   m_geometryPassShader->AttachShaderFromFile(GLShader::Type::Fragment, "resources/shaders/gl/geometry_pass.frag");
+   m_geometryPassShader->Link();
+   // Setup lighting pass shader
+   m_lightingPassShader = std::make_unique<GLShader>();
+   m_lightingPassShader->AttachShaderFromFile(GLShader::Type::Vertex, "resources/shaders/gl/lighting_pass.vert");
+   m_lightingPassShader->AttachShaderFromFile(GLShader::Type::Fragment, "resources/shaders/gl/lighting_pass.frag");
+   m_lightingPassShader->Link();
+}
+
 void GLRenderer::CreateGBuffer() {
-if (m_gBuffer) {
+   if (m_gBuffer) {
       m_gBuffer.reset();
    }
-   const TextureHandle colorTex = m_resourceManager->CreateRenderTarget("gbuffer_color", m_window->GetWidth(),
-                                                                        m_window->GetHeight(), ITexture::Format::RGBA32F);
-   const TextureHandle depthTex = m_resourceManager->CreateDepthTexture("gbuffer_depth",
-                                                                        m_window->GetWidth(), m_window->GetHeight());
-   auto* colorTexPtr= reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(colorTex));
-   auto* depthTexPtr= reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(depthTex));
+   m_gAlbedoTexture = m_resourceManager->CreateRenderTarget("gbuffer_color", m_window->GetWidth(),
+                                                            m_window->GetHeight(), ITexture::Format::RGBA8);
+   m_gNormalTexture = m_resourceManager->CreateRenderTarget("gbuffer_normals", m_window->GetWidth(),
+                                                            m_window->GetHeight(), ITexture::Format::RGB8);
+   m_gDepthTexture = m_resourceManager->CreateDepthTexture("gbuffer_depth",
+                                                           m_window->GetWidth(), m_window->GetHeight());
+   auto* colorTexPtr= reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_gAlbedoTexture));
+   auto* normalTexPtr= reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_gNormalTexture));
+   auto* depthTexPtr= reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_gDepthTexture));
    GLFramebuffer::CreateInfo gbufferInfo;
    gbufferInfo.width = m_window->GetWidth();
    gbufferInfo.height = m_window->GetHeight();
@@ -90,13 +128,16 @@ if (m_gBuffer) {
       {
          colorTexPtr, 0, 0
       },
+      {
+         normalTexPtr, 0, 0
+      },
    };
    gbufferInfo.depthAttachment = {
       depthTexPtr
    };
    m_gBuffer = std::make_unique<GLFramebuffer>(gbufferInfo);
    if (!m_gBuffer->IsComplete()) {
-      throw std::runtime_error("G-Buffer creation incomplete: \n" + m_gBuffer->GetStatusString());
+      throw std::runtime_error("G-Buffer creation incomplete:\n" + m_gBuffer->GetStatusString());
    }
 }
 
@@ -104,6 +145,7 @@ void GLRenderer::CreateGeometryPass() {
    GLRenderPass::CreateInfo geometryPassInfo;
    geometryPassInfo.framebuffer = m_gBuffer.get();
    geometryPassInfo.colorAttachments = {
+      {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
       {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
    };
    geometryPassInfo.depthStencilAttachment = {
@@ -115,31 +157,35 @@ void GLRenderer::CreateGeometryPass() {
    geometryPassInfo.renderState.cullMode = GLRenderPass::CullMode::Back;
    geometryPassInfo.renderState.primitiveType = GLRenderPass::PrimitiveType::Triangles;
    m_geometryPass = std::make_unique<GLRenderPass>(geometryPassInfo);
-   // Set shader
-   m_geometryPass->Begin();
-   m_geometryPass->SetShader(shader);
-   m_geometryPass->End();
+}
+
+void GLRenderer::CreateLightingPass() {
+   GLRenderPass::CreateInfo lightingPassInfo;
+   lightingPassInfo.framebuffer = nullptr;
+   lightingPassInfo.colorAttachments = {
+      {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
+   };
+   lightingPassInfo.depthStencilAttachment = {
+      GLRenderPass::LoadOp::DontCare, GLRenderPass::StoreOp::DontCare,
+      GLRenderPass::LoadOp::DontCare, GLRenderPass::StoreOp::DontCare,
+      1.0f, 0
+   };
+   lightingPassInfo.renderState.depthTest = GLRenderPass::DepthTest::Always;
+   lightingPassInfo.renderState.cullMode = GLRenderPass::CullMode::Back;
+   lightingPassInfo.renderState.primitiveType = GLRenderPass::PrimitiveType::Triangles;
+   m_lightingPass = std::make_unique<GLRenderPass>(lightingPassInfo);
 }
 
 void GLRenderer::CreateTestResources() {
-   // Create shader
-   shader = new GLShader();
-   shader->AttachShaderFromFile(GLShader::Type::Vertex, "resources/shaders/gl/test.vert");
-   shader->AttachShaderFromFile(GLShader::Type::Fragment, "resources/shaders/gl/test.frag");
-   shader->Link();
    // Create camera UBO
    cameraUbo = new GLBuffer(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
    const CameraData camData{};
    cameraUbo->UploadData(&camData, sizeof(CameraData));
    cameraUbo->BindBase(0);
-   // Create sampler
-   sampler = new GLSampler(GLSampler::CreateAnisotropic(16.0f));
 }
 
 GLRenderer::~GLRenderer() {
    DestroyImgui();
-   delete sampler;
-   delete shader;
    delete cameraUbo;
 }
 
@@ -300,12 +346,13 @@ void GLRenderer::RenderFrame() {
    };
    cameraUbo->UpdateData(&camData, sizeof(CameraData));
    m_geometryPass->Begin();
-   shader->BindUniformBlock("CameraData", 0);
+   m_geometryPass->SetShader(m_geometryPassShader.get());
+   m_geometryPassShader->BindUniformBlock("CameraData", 0);
    // Set up shader texture test
-   ITexture* tex = m_resourceManager->GetTexture("testing_albedo");
+   const ITexture* tex = m_resourceManager->GetTexture("testing_albedo");
    if (tex) {
       tex->Bind(1);
-      sampler->BindUnit(1);
+      // sampler->BindUnit(1);
    }
    // Draw the scene
    if (m_activeScene) {
@@ -322,7 +369,7 @@ void GLRenderer::RenderFrame() {
                // If has position, load it in
                if (const Transform* worldTransform = node->GetWorldTransform()) {
                   // Set up transformation matrix for rendering
-                  shader->SetMat4("model", worldTransform->GetTransformMatrix());
+                  m_geometryPassShader->SetMat4("model", worldTransform->GetTransformMatrix());
                }
                // Render the mesh
                mesh->Draw();
@@ -331,8 +378,29 @@ void GLRenderer::RenderFrame() {
       });
    }
    m_geometryPass->End();
-   // TODO: Remove once lighting pass has been made
-   m_gBuffer->BlitToScreen(m_window->GetWidth(), m_window->GetHeight());
+   // Lighting pass
+   m_lightingPass->Begin();
+   m_lightingPass->SetShader(m_lightingPassShader.get());
+   // Bind g buffer textures
+   const ITexture* gAlbedoTex = m_resourceManager->GetTexture(m_gAlbedoTexture);
+   const ITexture* gNormalTex = m_resourceManager->GetTexture(m_gNormalTexture);
+   const ITexture* gDepthTex = m_resourceManager->GetTexture(m_gDepthTexture);
+   if (gDepthTex && gAlbedoTex && gNormalTex) {
+      gAlbedoTex->Bind(1);
+      gNormalTex->Bind(2);
+      gDepthTex->Bind(3);
+      /*
+      sampler2->BindUnit(1);
+      sampler2->BindUnit(2);
+      sampler2->BindUnit(3);
+      */
+   }
+   // Draw fullscreen mesh
+   const IMesh* quadMesh = m_resourceManager->GetMesh(m_fullscreenQuad);
+   if (quadMesh && quadMesh->IsValid()) {
+      quadMesh->Draw();
+   }
+   m_lightingPass->End();
    // Render Ui
    RenderImgui();
    // Swap buffers

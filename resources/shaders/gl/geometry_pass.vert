@@ -10,13 +10,19 @@ layout(std140, binding = 0) uniform CameraData {
 } camera;
 
 layout(location = 0) out vec3 fragColor;
-layout(location = 1) out vec2 fragUV;
+layout(location = 1) out vec3 fragNormal;
+layout(location = 2) out vec2 fragUV;
 
 uniform mat4 model;
 
 void main() {
    vec4 worldPos = model * vec4(inPosition, 1.0);
+
+   mat3 normalMatrix = transpose(inverse(mat3(model)));
+   fragNormal = normalize(normalMatrix * inNormal);
+
    fragColor = inNormal;
    fragUV = inUV;
+
    gl_Position = camera.proj * camera.view * worldPos;
 }

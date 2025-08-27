@@ -71,7 +71,7 @@ GLTexture::GLTexture(const std::string& filepath, const bool generateMipmaps, co
          break;
    }
    glBindTexture(GL_TEXTURE_2D, m_id);
-   glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // Safe for all channel counts
+   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
    glTexImage2D(GL_TEXTURE_2D, 0, internal, width, height, 0, format, GL_UNSIGNED_BYTE, data);
    if (generateMipmaps) {
       glGenerateMipmap(GL_TEXTURE_2D);
@@ -180,7 +180,7 @@ void GLTexture::CreateStorage() {
    GLenum externalType = GL_UNSIGNED_BYTE;
    if (m_isDepth) {
       externalFormat = GL_DEPTH_COMPONENT;
-      externalType   = (m_format == Format::Depth32F) ? GL_FLOAT : GL_UNSIGNED_INT;
+      externalType = (m_format == Format::Depth32F) ? GL_FLOAT : GL_UNSIGNED_INT;
    } else {
       switch (m_format) {
          case Format::R8: externalFormat = GL_RED;  break;
@@ -198,7 +198,6 @@ void GLTexture::CreateStorage() {
    }
    glTexImage2D(target, 0, internalFormat, m_width, m_height, 0,
                 externalFormat, externalType, nullptr);
-   // Filters/wraps. For depth textures, NEAREST is typical.
    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, m_isDepth ? GL_NEAREST : GL_LINEAR);
    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, m_isDepth ? GL_NEAREST : GL_LINEAR);
    glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

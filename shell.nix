@@ -32,7 +32,6 @@ pkgs.mkShell {
       spirv-headers
       glslang
       # Debugging
-      renderdoc
       valgrind
       gdb
    ];
