@@ -32,17 +32,6 @@ void Node::AddChild(std::unique_ptr<Node> child) {
    m_children.emplace_back(std::move(child));
 }
 
-void Node::AddChild(Node* child) {
-   if (!child) return;
-   // This version assumes external ownership management
-   // Just set up the parent-child relationship
-   if (child->m_parent && child->m_parent != this) {
-      child->m_parent->RemoveChild(child);
-   }
-   child->SetParent(this);
-   // Note: We don't store the child in m_children for external ownership
-}
-
 bool Node::RemoveChild(const Node* child) {
    if (!child) return false;
    const auto it = std::find_if(m_children.begin(), m_children.end(),

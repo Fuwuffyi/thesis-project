@@ -19,7 +19,6 @@ public:
 
    // Hierarchy management
    void AddChild(const std::unique_ptr<Node> child);
-   void AddChild(Node* child);
    bool RemoveChild(const Node* child);
    void RemoveAllChildren();
 
@@ -76,7 +75,7 @@ public:
    // Transform access
    Transform* GetTransform() const;
    Transform* GetWorldTransform() const;
-   void UpdateWorldTransform(bool force = false);
+   void UpdateWorldTransform(const bool force = false);
    void MarkTransformDirty();
 
    // Utility
