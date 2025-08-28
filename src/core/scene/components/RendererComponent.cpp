@@ -1,6 +1,6 @@
 #include "core/scene/components/RendererComponent.hpp"
 
-RendererComponent::RendererComponent(const MeshHandle& mesh) 
+RendererComponent::RendererComponent(const MeshHandle& mesh)
    :
    m_mesh(mesh),
    m_visible(true),
