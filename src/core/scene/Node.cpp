@@ -1,9 +1,9 @@
-#include "Node.hpp"
+#include "core/scene/Node.hpp"
 
-#include "components/Component.hpp"
-#include "components/TransformComponent.hpp"
+#include "core/scene/components/Component.hpp"
+#include "core/scene/components/TransformComponent.hpp"
+
 #include <algorithm>
-#include <stack>
 
 Node::Node(const std::string& name)
    :
@@ -48,19 +48,6 @@ bool Node::RemoveChild(const Node* child) {
    const auto it = std::find_if(m_children.begin(), m_children.end(),
                                 [child](const std::unique_ptr<Node>& ptr) {
                                 return ptr.get() == child;
-                                });
-   if (it != m_children.end()) {
-      (*it)->SetParent(nullptr);
-      m_children.erase(it);
-      return true;
-   }
-   return false;
-}
-
-bool Node::RemoveChild(const std::string& name) {
-   const auto it = std::find_if(m_children.begin(), m_children.end(),
-                                [&name](const std::unique_ptr<Node>& ptr) {
-                                return ptr->GetName() == name;
                                 });
    if (it != m_children.end()) {
       (*it)->SetParent(nullptr);
@@ -133,20 +120,6 @@ size_t Node::GetDepth() const {
       ++depth;
    }
    return depth;
-}
-
-bool Node::IsAncestorOf(const Node* node) const {
-   if (!node) return false;
-   const Node* current = node->m_parent;
-   while (current) {
-      if (current == this) return true;
-      current = current->m_parent;
-   }
-   return false;
-}
-
-bool Node::IsDescendantOf(const Node* node) const {
-   return node ? node->IsAncestorOf(this) : false;
 }
 
 Node* Node::GetRoot() {

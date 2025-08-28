@@ -134,8 +134,7 @@ GLTexture& GLTexture::operator=(GLTexture&& other) noexcept {
 }
 
 ResourceType GLTexture::GetType() const {
-   if (m_isDepth) return ResourceType::DepthTexture;
-   return ResourceType::Texture2D;
+   return ResourceType::Texture;
 }
 
 size_t GLTexture::GetMemoryUsage() const {

@@ -33,6 +33,7 @@ std::pair<std::vector<Vertex>, std::vector<uint32_t>> MeshLoader::MeshData::GetC
 }
 
 MeshLoader::MeshData MeshLoader::LoadMesh(const std::string& filepath) {
+   // TODO: Load multiple mesh into split meshes based on material
    MeshData meshData;
    meshData.filepath = filepath;
    Assimp::Importer importer;

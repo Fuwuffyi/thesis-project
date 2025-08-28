@@ -27,3 +27,4 @@ void TransformComponent::SetScale(const glm::vec3& newScale) {
 Transform* TransformComponent::GetTransform() {
    return &m_transform;
 }
+

@@ -25,7 +25,7 @@ size_t VulkanMesh::GetMemoryUsage() const {
 }
 
 bool VulkanMesh::IsValid() const {
-   // Handled by RAII
+   // NOTE: Handled by RAII
    return true;
 }
 

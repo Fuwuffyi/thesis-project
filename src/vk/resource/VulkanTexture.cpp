@@ -168,8 +168,7 @@ VulkanTexture& VulkanTexture::operator=(VulkanTexture&& other) noexcept {
 }
 
 ResourceType VulkanTexture::GetType() const {
-   if (m_isDepth) return ResourceType::DepthTexture;
-   return ResourceType::Texture2D;
+   return ResourceType::Texture;
 }
 
 size_t VulkanTexture::GetMemoryUsage() const {

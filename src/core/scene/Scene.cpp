@@ -1,11 +1,10 @@
-#include "Scene.hpp"
+#include "core/scene/Scene.hpp"
 
-#include "Node.hpp"
-#include "components/TransformComponent.hpp"
+#include "core/scene/Node.hpp"
 
-#include <iostream>
+#include "core/scene/components/TransformComponent.hpp"
+
 #include <queue>
-#include <sstream>
 
 Scene::Scene(const std::string& name) : m_name(name) {
    m_rootNode = std::make_unique<Node>("Root");

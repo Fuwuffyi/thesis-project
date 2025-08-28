@@ -1,8 +1,8 @@
 #pragma once
 
-#include <glm/glm.hpp>
-
 #include "core/scene/components/Component.hpp"
+
+#include <glm/glm.hpp>
 
 class LightComponent : public Component {
 public:

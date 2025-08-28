@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IResource.hpp"
+#include "core/resource/IResource.hpp"
 
 #include <cstdint>
 

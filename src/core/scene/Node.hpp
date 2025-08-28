@@ -21,7 +21,6 @@ public:
    void AddChild(const std::unique_ptr<Node> child);
    void AddChild(Node* child);
    bool RemoveChild(const Node* child);
-   bool RemoveChild(const std::string& name);
    void RemoveAllChildren();
 
    // Parent-child relationships
@@ -36,8 +35,6 @@ public:
    size_t GetDepth() const;
 
    // Hierarchy queries
-   bool IsAncestorOf(const Node* node) const;
-   bool IsDescendantOf(const Node* node) const;
    Node* GetRoot();
    const Node* GetRoot() const;
 

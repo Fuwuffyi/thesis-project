@@ -7,7 +7,7 @@
 
 class ResourceManager {
 public:
-   explicit ResourceManager(const std::unique_ptr<IResourceFactory> factory);
+   explicit ResourceManager(std::unique_ptr<IResourceFactory> factory);
    ~ResourceManager();
 
    ResourceManager(const ResourceManager&) = delete;

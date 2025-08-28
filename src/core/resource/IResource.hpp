@@ -3,13 +3,9 @@
 #include <cstddef>
 
 enum class ResourceType {
-   Texture2D,
-   TextureCube,
-   Texture3D,
-   DepthTexture,
-   RenderTarget,
+   Texture,
    Mesh,
-   Buffer
+   Material
 };
 
 class IResource {

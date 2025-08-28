@@ -26,7 +26,7 @@ size_t GLMesh::GetMemoryUsage() const {
 }
 
 bool GLMesh::IsValid() const {
-   // RAII handles this, would throw exception otherwise
+   // NOTE: RAII handles this, would throw exception otherwise
    return true;
 }
 
