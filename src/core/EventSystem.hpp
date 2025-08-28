@@ -1,10 +1,8 @@
 #pragma once
 
-#include <functional>
-#include <unordered_map>
+#include <cstdint>
 #include <unordered_set>
-#include <vector>
-#include <GLFW/glfw3.h>
+#include <functional>
 
 class EventSystem {
 public:

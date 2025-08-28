@@ -207,7 +207,6 @@ void GLFramebuffer::BlitToScreen(uint32_t screenWidth, uint32_t screenHeight,
                                  GLbitfield mask, GLenum filter) const {
    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo);
    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
    glBlitFramebuffer(
       0, 0, static_cast<GLint>(m_width), static_cast<GLint>(m_height),
       0, 0, static_cast<GLint>(screenWidth), static_cast<GLint>(screenHeight),
@@ -217,15 +216,12 @@ void GLFramebuffer::BlitToScreen(uint32_t screenWidth, uint32_t screenHeight,
 
 void GLFramebuffer::AttachTexture(const AttachmentDesc& attachment, GLenum attachmentType) {
    if (!attachment.texture) return;
-
-   const GLuint textureId = attachment.texture->GetId();
-
-   // For now, we only support 2D textures. Can be extended for arrays/cubemaps later
+   // TODO: Add other types of textures for proper support
    glFramebufferTexture2D(
       GL_FRAMEBUFFER,
       attachmentType,
       GL_TEXTURE_2D,
-      textureId,
+      attachment.texture->GetId(),
       static_cast<GLint>(attachment.mipLevel)
    );
 }

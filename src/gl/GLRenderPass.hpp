@@ -109,11 +109,11 @@ public:
    };
 
    struct CreateInfo {
-      GLFramebuffer* framebuffer;
+      GLFramebuffer* framebuffer = nullptr;
       std::vector<ColorAttachmentDesc> colorAttachments;
       DepthStencilAttachmentDesc depthStencilAttachment;
       RenderState renderState;
-      GLShader* shader;
+      GLShader* shader = nullptr;
    };
 
    GLRenderPass(const CreateInfo& info);

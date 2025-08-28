@@ -11,7 +11,7 @@ class ITexture;
 class GLFramebuffer {
 public:
    struct AttachmentDesc {
-      GLTexture* texture;
+      GLTexture* texture = nullptr;
       uint32_t mipLevel = 0;
       uint32_t layer = 0;
    };

@@ -10,6 +10,8 @@
 #include "core/scene/components/RendererComponent.hpp"
 #include "glm/trigonometric.hpp"
 
+#include <GLFW/glfw3.h>
+
 #include <memory>
 #include <print>
 #include <chrono>
