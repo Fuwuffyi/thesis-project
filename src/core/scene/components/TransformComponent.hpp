@@ -4,16 +4,20 @@
 
 #include "core/scene/components/Component.hpp"
 
-class TransformComponent : public Component {
+class TransformComponent final : public Component {
 public:
-   const glm::vec3& GetPosition() const;
+   TransformComponent() = default;
+   explicit TransformComponent(const Transform& transform) : m_transform(transform) {}
+
+   [[nodiscard]] const glm::vec3& GetPosition() const noexcept;
    void SetPosition(const glm::vec3& newPos);
-   const glm::vec3& GetRotation() const;
+   [[nodiscard]] const glm::vec3& GetRotation() const noexcept;
    void SetRotation(const glm::vec3& newRotation);
-   const glm::vec3& GetScale() const;
+   [[nodiscard]] const glm::vec3& GetScale() const noexcept;
    void SetScale(const glm::vec3& newScale);
 
-   Transform* GetTransform();
+   [[nodiscard]] const Transform& GetTransform() const noexcept;
+   [[nodiscard]] Transform& GetMutableTransform() noexcept;
 
 private:
    Transform m_transform;

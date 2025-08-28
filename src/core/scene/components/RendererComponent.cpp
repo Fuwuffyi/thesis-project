@@ -1,46 +1,48 @@
 #include "core/scene/components/RendererComponent.hpp"
 
-RendererComponent::RendererComponent(const MeshHandle& mesh)
+#include <utility>
+
+RendererComponent::RendererComponent(MeshHandle mesh)
    :
-   m_mesh(mesh),
+   m_mesh(std::move(mesh)),
    m_visible(true),
    m_castsShadows(true),
    m_receivesShadows(true)
 {}
 
-void RendererComponent::SetMesh(const MeshHandle& mesh) {
-   m_mesh = mesh;
+void RendererComponent::SetMesh(MeshHandle mesh) {
+   m_mesh = std::move(mesh);
 }
 
-const MeshHandle& RendererComponent::GetMesh() const {
+[[nodiscard]] const MeshHandle& RendererComponent::GetMesh() const noexcept {
    return m_mesh;
 }
 
-bool RendererComponent::HasMesh() const {
+[[nodiscard]] bool RendererComponent::HasMesh() const noexcept {
    return m_mesh.IsValid();
 }
 
-void RendererComponent::SetVisible(const bool visible) {
+void RendererComponent::SetVisible(const bool visible) noexcept {
    m_visible = visible;
 }
 
-bool RendererComponent::IsVisible() const {
+[[nodiscard]] bool RendererComponent::IsVisible() const noexcept {
    return m_visible;
 }
 
-void RendererComponent::SetCastsShadows(const bool castsShadows) {
+void RendererComponent::SetCastsShadows(const bool castsShadows) noexcept {
    m_castsShadows = castsShadows;
 }
 
-bool RendererComponent::CastsShadows() const {
+[[nodiscard]] bool RendererComponent::CastsShadows() const noexcept {
    return m_castsShadows;
 }
 
-void RendererComponent::SetReceivesShadows(const bool receivesShadows) {
+void RendererComponent::SetReceivesShadows(const bool receivesShadows) noexcept {
    m_receivesShadows = receivesShadows;
 }
 
-bool RendererComponent::ReceivesShadows() const {
+[[nodiscard]] bool RendererComponent::ReceivesShadows() const noexcept {
    return m_receivesShadows;
 }
 

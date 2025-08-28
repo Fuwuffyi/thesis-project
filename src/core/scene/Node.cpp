@@ -5,9 +5,9 @@
 
 #include <algorithm>
 
-Node::Node(const std::string& name)
+Node::Node(std::string name)
    :
-   m_name(name),
+   m_name(std::move(name)),
    m_active(true),
    m_parent(nullptr),
    m_localTransform(nullptr),
@@ -34,10 +34,10 @@ void Node::AddChild(std::unique_ptr<Node> child) {
 
 bool Node::RemoveChild(const Node* child) {
    if (!child) return false;
-   const auto it = std::find_if(m_children.begin(), m_children.end(),
-                                [child](const std::unique_ptr<Node>& ptr) {
-                                return ptr.get() == child;
-                                });
+   const auto it = std::ranges::find_if(m_children,
+                                        [child](const auto& ptr) {
+                                        return ptr.get() == child;
+                                        });
    if (it != m_children.end()) {
       (*it)->SetParent(nullptr);
       m_children.erase(it);
@@ -55,24 +55,23 @@ void Node::RemoveAllChildren() {
    m_children.clear();
 }
 
-Node* Node::GetParent() const {
+[[nodiscard]] Node* Node::GetParent() const noexcept {
    return m_parent;
 }
 
-const std::vector<std::unique_ptr<Node>>& Node::GetChildren() const {
+[[nodiscard]] const std::vector<std::unique_ptr<Node>>& Node::GetChildren() const noexcept {
    return m_children;
 }
 
-std::vector<Node*> Node::GetChildrenRaw() const {
+[[nodiscard]] std::vector<Node*> Node::GetChildrenRaw() const {
    std::vector<Node*> result;
    result.reserve(m_children.size());
-   for (const auto& child : m_children) {
-      result.push_back(child.get());
-   }
+   std::ranges::transform(m_children, std::back_inserter(result),
+                          [](const auto& child) { return child.get(); });
    return result;
 }
 
-Node* Node::FindChild(const std::string& name, const bool recursive) const {
+[[nodiscard]] Node* Node::FindChild(const std::string_view& name, const bool recursive) const {
    // Check direct children first
    for (const auto& child : m_children) {
       if (child->GetName() == name) {
@@ -90,18 +89,15 @@ Node* Node::FindChild(const std::string& name, const bool recursive) const {
    return nullptr;
 }
 
-Node* Node::FindChildByIndex(const size_t index) const {
-   if (index < m_children.size()) {
-      return m_children[index].get();
-   }
-   return nullptr;
+[[nodiscard]] Node* Node::FindChildByIndex(const size_t index) const noexcept {
+   return index < m_children.size() ? m_children[index].get() : nullptr;
 }
 
-size_t Node::GetChildCount() const {
+[[nodiscard]] size_t Node::GetChildCount() const noexcept {
    return m_children.size();
 }
 
-size_t Node::GetDepth() const {
+[[nodiscard]] size_t Node::GetDepth() const noexcept {
    size_t depth = 0;
    const Node* current = this;
    while (current->m_parent) {
@@ -111,7 +107,7 @@ size_t Node::GetDepth() const {
    return depth;
 }
 
-Node* Node::GetRoot() {
+[[nodiscard]] Node* Node::GetRoot() noexcept {
    Node* current = this;
    while (current->m_parent) {
       current = current->m_parent;
@@ -119,7 +115,7 @@ Node* Node::GetRoot() {
    return current;
 }
 
-const Node* Node::GetRoot() const {
+[[nodiscard]] const Node* Node::GetRoot() const noexcept {
    const Node* current = this;
    while (current->m_parent) {
       current = current->m_parent;
@@ -146,25 +142,15 @@ void Node::ForEachChild(const std::function<void(const Node*)>& func, const bool
    }
 }
 
-void Node::AddComponent(std::unique_ptr<Component> component) {
-   if (!component) return;
-   m_components.emplace_back(std::move(component));
-   UpdateComponentLookup();
-   if (auto* transform = dynamic_cast<TransformComponent*>(m_components.back().get())) {
-      m_localTransform = transform->GetTransform();
-      MarkTransformDirty();
-   }
-}
-
 bool Node::RemoveComponent(const Component* component) {
    if (!component) return false;
-   const auto it = std::find_if(m_components.begin(), m_components.end(),
-                                [component](const std::unique_ptr<Component>& ptr) {
-                                return ptr.get() == component;
-                                });
+   auto it = std::ranges::find_if(m_components,
+                                  [component](const auto& ptr) {
+                                  return ptr.get() == component;
+                                  });
    if (it != m_components.end()) {
       // Clear transform cache if removing transform component
-      if (m_localTransform && dynamic_cast<TransformComponent*>(it->get())) {
+      if (m_localTransform && dynamic_cast<const TransformComponent*>(it->get())) {
          m_localTransform = nullptr;
          MarkTransformDirty();
       }
@@ -175,19 +161,16 @@ bool Node::RemoveComponent(const Component* component) {
    return false;
 }
 
-Transform* Node::GetTransform() const {
+[[nodiscard]] Transform* Node::GetTransform() const {
    if (!m_localTransform) {
-      for (const auto& component : m_components) {
-         if (auto* transformComp = dynamic_cast<TransformComponent*>(component.get())) {
-            m_localTransform = transformComp->GetTransform();
-            break;
-         }
+      if (TransformComponent* transformComp = GetComponent<TransformComponent>()) {
+         m_localTransform = &transformComp->GetMutableTransform();
       }
    }
    return m_localTransform;
 }
 
-Transform* Node::GetWorldTransform() const {
+[[nodiscard]] Transform* Node::GetWorldTransform() const {
    if (m_worldTransformDirty) {
       const_cast<Node*>(this)->UpdateWorldTransform();
    }
@@ -205,12 +188,11 @@ void Node::UpdateWorldTransform(const bool force) {
       m_worldTransform = std::make_unique<Transform>();
    }
    if (m_parent) {
-      Transform* parentWorldTransform = m_parent->GetWorldTransform();
-      if (parentWorldTransform) {
+      if (Transform* parentWorldTransform = m_parent->GetWorldTransform()) {
          // Combine parent world transform with local transform
-         glm::mat4 parentMatrix = parentWorldTransform->GetTransformMatrix();
-         glm::mat4 localMatrix = localTransform->GetTransformMatrix();
-         glm::mat4 worldMatrix = parentMatrix * localMatrix;
+         const auto parentMatrix = parentWorldTransform->GetTransformMatrix();
+         const auto localMatrix = localTransform->GetTransformMatrix();
+         const auto worldMatrix = parentMatrix * localMatrix;
          *m_worldTransform = Transform(worldMatrix);
       } else {
          *m_worldTransform = *localTransform;
@@ -219,7 +201,6 @@ void Node::UpdateWorldTransform(const bool force) {
       *m_worldTransform = *localTransform;
    }
    m_worldTransformDirty = false;
-   // Update children
    UpdateChildrenWorldTransforms();
 }
 
@@ -227,19 +208,19 @@ void Node::MarkTransformDirty() {
    InvalidateWorldTransform();
 }
 
-const std::string& Node::GetName() const {
+[[nodiscard]] const std::string& Node::GetName() const noexcept {
    return m_name;
 }
 
-void Node::SetName(const std::string& name) {
-   m_name = name;
+void Node::SetName(std::string name) {
+   m_name = std::move(name);
 }
 
-bool Node::IsActive() const {
+[[nodiscard]] bool Node::IsActive() const noexcept {
    return m_active;
 }
 
-void Node::SetActive(const bool active) {
+void Node::SetActive(const bool active) noexcept {
    if (m_active != active) {
       m_active = active;
    }
@@ -255,8 +236,8 @@ void Node::SetParent(Node* parent) {
 void Node::UpdateComponentLookup() {
    m_componentLookup.clear();
    for (const auto& component : m_components) {
-      const size_t typeId = typeid(*component).hash_code();
-      m_componentLookup[typeId] = component.get();
+      const auto typeIndex = std::type_index(typeid(*component));
+      m_componentLookup[typeIndex] = component.get();
    }
 }
 

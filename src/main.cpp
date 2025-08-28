@@ -80,9 +80,9 @@ int main(int argc, char* argv[]) {
 
       // Create the scene
       Scene scene("Test scene");
-      Node* dragonNode = scene.CreateNode("Sponza");
-      dragonNode->AddComponent(std::make_unique<RendererComponent>(sponzaMesh));
-      dragonNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
+      Node* sponzaNode = scene.CreateNode("Sponza");
+      sponzaNode->AddComponent<RendererComponent>(sponzaMesh);
+      sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
       renderer->SetActiveScene(&scene);
 
       // Setup events

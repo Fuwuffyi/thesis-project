@@ -9,8 +9,7 @@ class Node;
 
 class Scene {
 public:
-   Scene(const std::string& name = "Scene");
-
+   Scene(std::string name = "Scene");
    ~Scene();
 
    Scene(const Scene&) = delete;
@@ -18,19 +17,19 @@ public:
    Scene(Scene&&) = default;
    Scene& operator=(Scene&&) = default;
 
-   Node* GetRootNode() const { return m_rootNode.get(); }
+   [[nodiscard]] Node* GetRootNode() const noexcept;
 
    // Node management with names for quick lookup
-   Node* CreateNode(const std::string& name = "");
-   Node* CreateChildNode(Node* parent, const std::string& name = "");
-   Node* CreateChildNode(const std::string& parentName, const std::string& childName = "");
+   Node* CreateNode(std::string_view name = {});
+   Node* CreateChildNode(Node* parent, std::string_view name = {});
+   Node* CreateChildNode(std::string_view parentName, std::string_view childName = {});
    bool AddNode(std::unique_ptr<Node> node, Node* parent = nullptr);
    bool RemoveNode(Node* node);
-   bool RemoveNode(const std::string& name);
+   bool RemoveNode(std::string_view name);
 
    // Fast node lookup
-   Node* FindNode(const std::string& name) const;
-   std::vector<Node*> FindNodes(const std::string& name) const;
+   [[nodiscard]] Node* FindNode(std::string_view name) const;
+   [[nodiscard]] std::vector<Node*> FindNodes(std::string_view name) const;
 
    // Scene traversal and operations
    void ForEachNode(const std::function<void(Node*)>& func);
@@ -42,22 +41,21 @@ public:
 
    // Scene management
    void Clear();
-   size_t GetNodeCount() const;
+   [[nodiscard]] size_t GetNodeCount() const noexcept;
 
    // Utility
-   const std::string& GetName() const;
-   void SetName(const std::string& name);
+   [[nodiscard]] const std::string& GetName() const noexcept;
+   void SetName(std::string name);
 
 private:
    void RegisterNode(Node* node);
    void UnregisterNode(Node* node);
-   void CollectAllNodes(Node* node, std::vector<Node*>& nodes) const;
-   size_t CalculateMaxDepth(const Node* node, const size_t currentDepth = 0) const;
+   [[nodiscard]] size_t CalculateMaxDepth(const Node* node, const size_t currentDepth = 0) const;
 
 private:
    std::string m_name;
    std::unique_ptr<Node> m_rootNode;
    std::unordered_multimap<std::string, Node*> m_nodeRegistry;
-   mutable size_t m_nodeCounter;
+   size_t m_nodeCounter;
 };
 

@@ -4,29 +4,27 @@
 
 #include "core/resource/ResourceHandle.hpp"
 
-class RendererComponent : public Component {
+class RendererComponent final : public Component {
 public:
    RendererComponent() = default;
-   explicit RendererComponent(const MeshHandle& mesh);
-
-   ~RendererComponent() override = default;
+   explicit RendererComponent(MeshHandle mesh);
 
    // Mesh management
-   void SetMesh(const MeshHandle& mesh);
-   const MeshHandle& GetMesh() const;
-   bool HasMesh() const;
+   void SetMesh(MeshHandle mesh);
+   [[nodiscard]] const MeshHandle& GetMesh() const noexcept;
+   [[nodiscard]] bool HasMesh() const noexcept;
 
    // TODO: Add material setup
 
    // Rendering properties
-   void SetVisible(const bool visible);
-   bool IsVisible() const;
+   void SetVisible(const bool visible) noexcept;
+   [[nodiscard]] bool IsVisible() const noexcept;
 
-   void SetCastsShadows(const bool castsShadows);
-   bool CastsShadows() const;
+   void SetCastsShadows(const bool castsShadows) noexcept;
+   [[nodiscard]] bool CastsShadows() const noexcept;
 
-   void SetReceivesShadows(const bool receivesShadows);
-   bool ReceivesShadows() const;
+   void SetReceivesShadows(const bool receivesShadows) noexcept;
+   [[nodiscard]] bool ReceivesShadows() const noexcept;
 
 private:
    MeshHandle m_mesh;

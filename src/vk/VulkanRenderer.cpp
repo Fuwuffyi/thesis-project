@@ -562,17 +562,17 @@ void VulkanRenderer::RenderImgui() {
             if (nodeOpen || !hasChildren) {
                if (TransformComponent* comp = node->GetComponent<TransformComponent>()) {
                   ImGui::PushID("transform");
-                  glm::vec3 posInput = comp->GetTransform()->GetPosition();
+                  glm::vec3 posInput = comp->GetTransform().GetPosition();
                   if (ImGui::DragFloat3("Position", &posInput.x, 0.01f)) {
                      comp->SetPosition(posInput);
                      node->MarkTransformDirty();
                   }
-                  glm::vec3 eulerAngles = glm::degrees(comp->GetTransform()->GetEulerAngles());
+                  glm::vec3 eulerAngles = glm::degrees(comp->GetTransform().GetEulerAngles());
                   if (ImGui::DragFloat3("Rotation", &eulerAngles.x, 0.1f, -180.0f, 180.0f)) {
                      comp->SetRotation(glm::radians(eulerAngles));
                      node->MarkTransformDirty();
                   }
-                  glm::vec3 scaleInput = comp->GetTransform()->GetScale();
+                  glm::vec3 scaleInput = comp->GetTransform().GetScale();
                   if (ImGui::DragFloat3("Scale", &scaleInput.x, 0.01f, 0.01f, 100.0f)) {
                      comp->SetScale(scaleInput);
                      node->MarkTransformDirty();
