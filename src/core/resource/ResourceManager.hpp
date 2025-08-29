@@ -6,7 +6,7 @@
 #include <shared_mutex>
 #include <unordered_map>
 
-class ResourceManager {
+class ResourceManager final {
 public:
    struct LoadedMeshGroup {
       std::vector<MeshHandle> subMeshes;

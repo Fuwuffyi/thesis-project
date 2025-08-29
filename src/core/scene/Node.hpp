@@ -11,7 +11,7 @@
 class Transform;
 class Component;
 
-class Node {
+class Node final {
 public:
    explicit Node(std::string name = "");
    ~Node();

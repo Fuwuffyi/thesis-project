@@ -1,10 +1,9 @@
 #pragma once
 
-#include "core/resource/IMesh.hpp"
-#include "core/resource/ITexture.hpp"
+#include <cstdint>
 
 template<typename T>
-class ResourceHandle {
+class ResourceHandle final {
 public:
    ResourceHandle()
       :
@@ -35,7 +34,4 @@ public:
 private:
    uint64_t m_id;
 };
-
-using TextureHandle = ResourceHandle<ITexture>;
-using MeshHandle = ResourceHandle<IMesh>;
 

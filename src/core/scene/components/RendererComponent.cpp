@@ -1,5 +1,7 @@
 #include "core/scene/components/RendererComponent.hpp"
 
+#include "core/resource/IMesh.hpp"
+
 #include <imgui.h>
 #include <utility>
 

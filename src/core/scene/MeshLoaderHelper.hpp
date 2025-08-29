@@ -5,7 +5,7 @@
 class Node;
 class Scene;
 
-class MeshLoaderHelper {
+class MeshLoaderHelper final {
 public:
    struct MeshLoadOptions {
       bool createSeparateNodes = true;

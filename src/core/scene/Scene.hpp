@@ -7,7 +7,7 @@
 
 class Node;
 
-class Scene {
+class Scene final {
 public:
    Scene(std::string name = "Scene");
    ~Scene();

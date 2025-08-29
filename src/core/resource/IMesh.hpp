@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/resource/IResource.hpp"
+#include "core/resource/ResourceHandle.hpp"
 
 class IMesh : public IResource {
 public:
@@ -10,4 +11,6 @@ public:
    virtual size_t GetIndexCount() const = 0;
    virtual void* GetNativeHandle() const = 0;
 };
+
+using MeshHandle = ResourceHandle<IMesh>;
 

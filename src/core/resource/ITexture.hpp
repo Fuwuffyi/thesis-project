@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/resource/IResource.hpp"
+#include "core/resource/ResourceHandle.hpp"
 
 #include <cstdint>
 
@@ -55,4 +56,6 @@ public:
    virtual void Bind(const uint32_t unit = 0) const = 0;
    virtual void* GetNativeHandle() const = 0;
 };
+
+using TextureHandle = ResourceHandle<ITexture>;
 

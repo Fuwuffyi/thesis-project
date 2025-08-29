@@ -1,7 +1,8 @@
 #pragma once
 
 #include "core/scene/components/Component.hpp"
-#include "core/resource/ResourceHandle.hpp"
+
+#include "core/resource/IMesh.hpp"
 
 #include <vector>
 
