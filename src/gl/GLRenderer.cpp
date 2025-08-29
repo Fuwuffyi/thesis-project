@@ -349,8 +349,7 @@ void GLRenderer::RenderFrame() {
    m_geometryPass->SetShader(m_geometryPassShader.get());
    m_geometryPassShader->BindUniformBlock("CameraData", 0);
    // Set up shader texture test
-   const ITexture* tex = m_resourceManager->GetTexture("testing_albedo");
-   if (tex) {
+   if (const ITexture* tex = m_resourceManager->GetTexture("testing_albedo")) {
       tex->Bind(1);
    }
    // Draw the scene
@@ -363,8 +362,7 @@ void GLRenderer::RenderFrame() {
             // If not visible, do not render
             if (!renderer->IsVisible()) return;
             // Get the mesh and check if valid
-            const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh());
-            if (mesh && mesh->IsValid()) {
+            if (IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
                // If has position, load it in
                if (const Transform* worldTransform = node->GetWorldTransform()) {
                   // Set up transformation matrix for rendering
@@ -381,17 +379,17 @@ void GLRenderer::RenderFrame() {
    m_lightingPass->Begin();
    m_lightingPass->SetShader(m_lightingPassShader.get());
    // Bind g buffer textures
-   const ITexture* gAlbedoTex = m_resourceManager->GetTexture(m_gAlbedoTexture);
-   const ITexture* gNormalTex = m_resourceManager->GetTexture(m_gNormalTexture);
-   const ITexture* gDepthTex = m_resourceManager->GetTexture(m_gDepthTexture);
-   if (gDepthTex && gAlbedoTex && gNormalTex) {
-      gAlbedoTex->Bind(1);
-      gNormalTex->Bind(2);
-      gDepthTex->Bind(3);
+   if (const ITexture* tex = m_resourceManager->GetTexture(m_gAlbedoTexture)) {
+      tex->Bind(1);
+   }
+   if (const ITexture* tex = m_resourceManager->GetTexture(m_gNormalTexture)) {
+      tex->Bind(2);
+   }
+   if (const ITexture* tex = m_resourceManager->GetTexture(m_gDepthTexture)) {
+      tex->Bind(3);
    }
    // Draw fullscreen mesh
-   const IMesh* quadMesh = m_resourceManager->GetMesh(m_fullscreenQuad);
-   if (quadMesh && quadMesh->IsValid()) {
+   if (const IMesh* quadMesh = m_resourceManager->GetMesh(m_fullscreenQuad)) {
       quadMesh->Draw();
    }
    m_lightingPass->End();

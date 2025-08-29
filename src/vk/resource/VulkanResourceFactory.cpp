@@ -15,8 +15,8 @@ std::unique_ptr<ITexture> VulkanResourceFactory::CreateTexture(const ITexture::C
    return std::make_unique<VulkanTexture>(*m_device, info);
 }
 
-std::unique_ptr<ITexture> VulkanResourceFactory::CreateTextureFromFile(const std::string& filepath, const bool generateMipmaps, const bool sRGB) {
-   return std::make_unique<VulkanTexture>(*m_device, filepath, generateMipmaps, sRGB);
+std::unique_ptr<ITexture> VulkanResourceFactory::CreateTextureFromFile(const std::string_view filepath, const bool generateMipmaps, const bool sRGB) {
+   return std::make_unique<VulkanTexture>(*m_device, std::string{filepath}, generateMipmaps, sRGB);
 }
 
 std::unique_ptr<ITexture> VulkanResourceFactory::CreateDepthTexture(const uint32_t width, const uint32_t height, const ITexture::Format format) {
@@ -31,7 +31,7 @@ std::unique_ptr<IMesh> VulkanResourceFactory::CreateMesh(const std::vector<Verte
    return std::make_unique<VulkanMesh>(vertices, indices, *m_device);
 }
 
-std::unique_ptr<IMesh> VulkanResourceFactory::CreateMeshFromFile(const std::string& filepath) {
+std::unique_ptr<IMesh> VulkanResourceFactory::CreateMeshFromFile(const std::string_view filepath) {
    const MeshLoader::MeshData meshData = MeshLoader::LoadMesh(filepath);
    const auto values = meshData.GetCombinedData();
    return std::make_unique<VulkanMesh>(values.first, values.second, *m_device);

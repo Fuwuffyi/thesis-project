@@ -4,7 +4,7 @@
 
 #include <glm/glm.hpp>
 
-class LightComponent : public Component {
+class LightComponent final : public Component {
 public:
    enum class LightType {
       Directional,

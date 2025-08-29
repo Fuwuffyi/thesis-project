@@ -3,6 +3,7 @@
 #include "core/resource/IResourceFactory.hpp"
 #include "core/resource/ResourceHandle.hpp"
 
+#include <shared_mutex>
 #include <unordered_map>
 
 class ResourceManager {
@@ -14,23 +15,23 @@ public:
    ResourceManager& operator=(const ResourceManager&) = delete;
 
    // Texture management
-   TextureHandle LoadTexture(const std::string& name, const std::string& filepath, const bool generateMipmaps = true,
+   TextureHandle LoadTexture(const std::string_view name, const std::string_view filepath, const bool generateMipmaps = true,
                              const bool sRGB = true);
-   TextureHandle CreateTexture(const std::string& name, const ITexture::CreateInfo& info);
-   TextureHandle CreateDepthTexture(const std::string& name, const uint32_t width, const uint32_t height,
+   TextureHandle CreateTexture(const std::string_view name, const ITexture::CreateInfo& info);
+   TextureHandle CreateDepthTexture(const std::string_view name, const uint32_t width, const uint32_t height,
                                     const ITexture::Format format = ITexture::Format::Depth32F);
-   TextureHandle CreateRenderTarget(const std::string& name, const uint32_t width, const uint32_t height,
+   TextureHandle CreateRenderTarget(const std::string_view name, const uint32_t width, const uint32_t height,
                                     const ITexture::Format format = ITexture::Format::RGBA8, const uint32_t samples = 1);
    // Mesh management
-   MeshHandle LoadMesh(const std::string& name, const std::vector<Vertex>& vertices,
+   MeshHandle LoadMesh(const std::string_view name, const std::vector<Vertex>& vertices,
                        const std::vector<uint32_t>& indices);
-   MeshHandle LoadMeshFromFile(const std::string& name, const std::string& filepath);
+   MeshHandle LoadMeshFromFile(const std::string_view name, const std::string_view filepath);
    // Resource access
-   ITexture* GetTexture(const TextureHandle& handle);
-   IMesh* GetMesh(const MeshHandle& handle);
+   ITexture* GetTexture(const TextureHandle& handle) const;
+   IMesh* GetMesh(const MeshHandle& handle) const;
    // Resource access by name
-   ITexture* GetTexture(const std::string& name);
-   IMesh* GetMesh(const std::string& name);
+   ITexture* GetTexture(const std::string_view name) const;
+   IMesh* GetMesh(const std::string_view name) const;
    // Resource management
    void UnloadTexture(const TextureHandle& handle);
    void UnloadMesh(const MeshHandle& handle);
@@ -45,8 +46,8 @@ public:
 private:
    uint64_t GetNextId();
    template<typename T>
-   ResourceHandle<T> RegisterResource(const std::string& name, std::unique_ptr<T> resource,
-                                      const std::string& filepath = "");
+   ResourceHandle<T> RegisterResource(const std::string_view name, std::unique_ptr<T> resource,
+                                      const std::string_view filepath = {});
 
    void RemoveResource(const uint64_t id);
 private:
@@ -62,7 +63,7 @@ private:
    std::unordered_map<uint64_t, std::unique_ptr<ResourceEntry>> m_resources;
    std::unordered_map<std::string, uint64_t> m_nameToId;
 
-   mutable std::mutex m_mutex;
+   mutable std::shared_mutex m_mutex;
    uint64_t m_nextId;
 };
 

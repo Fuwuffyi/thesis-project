@@ -230,8 +230,7 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
             // If not visible, do not render
             if (!renderer->IsVisible()) return;
             // Get the mesh and check if valid
-            const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh());
-            if (mesh && mesh->IsValid()) {
+            if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
                // If has position, load it in
                if (const Transform* worldTransform = node->GetWorldTransform()) {
                   // Set up transformation matrix for rendering

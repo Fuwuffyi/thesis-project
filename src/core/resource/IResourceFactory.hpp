@@ -13,7 +13,7 @@ public:
    virtual ~IResourceFactory() = default;
    // Texture creation methods
    virtual std::unique_ptr<ITexture> CreateTexture(const ITexture::CreateInfo& info) = 0;
-   virtual std::unique_ptr<ITexture> CreateTextureFromFile(const std::string& filepath,
+   virtual std::unique_ptr<ITexture> CreateTextureFromFile(const std::string_view filepath,
                                                            const bool generateMipmaps = true, const bool sRGB = true) = 0;
    virtual std::unique_ptr<ITexture> CreateDepthTexture(const uint32_t width, const uint32_t height,
                                                         const ITexture::Format format = ITexture::Format::Depth24) = 0;
@@ -23,6 +23,6 @@ public:
    // Mesh creation methods
    virtual std::unique_ptr<IMesh> CreateMesh(const std::vector<Vertex>& vertices,
                                              const std::vector<uint32_t>& indices) = 0;
-   virtual std::unique_ptr<IMesh> CreateMeshFromFile(const std::string& filepath) = 0;
+   virtual std::unique_ptr<IMesh> CreateMeshFromFile(const std::string_view filepath) = 0;
 };
 

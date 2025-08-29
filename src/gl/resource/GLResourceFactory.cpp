@@ -8,8 +8,8 @@ std::unique_ptr<ITexture> GLResourceFactory::CreateTexture(const ITexture::Creat
    return std::make_unique<GLTexture>(info);
 }
 
-std::unique_ptr<ITexture> GLResourceFactory::CreateTextureFromFile(const std::string& filepath, const bool generateMipmaps, const bool sRGB) {
-   return std::make_unique<GLTexture>(filepath, generateMipmaps, sRGB);
+std::unique_ptr<ITexture> GLResourceFactory::CreateTextureFromFile(const std::string_view filepath, const bool generateMipmaps, const bool sRGB) {
+   return std::make_unique<GLTexture>(std::string{filepath}, generateMipmaps, sRGB);
 }
 
 std::unique_ptr<ITexture> GLResourceFactory::CreateDepthTexture(const uint32_t width, const uint32_t height, const ITexture::Format format) {
@@ -24,7 +24,7 @@ std::unique_ptr<IMesh> GLResourceFactory::CreateMesh(const std::vector<Vertex>& 
    return std::make_unique<GLMesh>(vertices, indices);
 }
 
-std::unique_ptr<IMesh> GLResourceFactory::CreateMeshFromFile(const std::string& filepath) {
+std::unique_ptr<IMesh> GLResourceFactory::CreateMeshFromFile(const std::string_view filepath) {
    const MeshLoader::MeshData meshData = MeshLoader::LoadMesh(filepath);
    const auto values = meshData.GetCombinedData();
    return std::make_unique<GLMesh>(values.first, values.second);
