@@ -23,8 +23,13 @@ RendererComponent::RendererComponent(const std::vector<MeshHandle>& meshes,
 }
 
 void RendererComponent::DrawInspector(Node* node) {
-   ImGui::PushID("renderer");
-   ImGui::PopID();
+   if (ImGui::CollapsingHeader("Renderer",
+                               ImGuiTreeNodeFlags_DefaultOpen |
+                               ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
+      ImGui::Checkbox("Is Visible", &m_visible);
+      ImGui::Checkbox("Casts Shadows", &m_castsShadows);
+      ImGui::Checkbox("Receives Shadows", &m_receivesShadows);
+   }
 }
 
 void RendererComponent::SetMesh(MeshHandle mesh) {

@@ -13,7 +13,9 @@ LightComponent::LightComponent()
 {}
 
 void LightComponent::DrawInspector(Node* node) {
-   ImGui::PushID("light");
-   ImGui::PopID();
+   if (ImGui::CollapsingHeader("Light",
+                               ImGuiTreeNodeFlags_DefaultOpen |
+                               ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
+   }
 }
 

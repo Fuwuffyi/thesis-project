@@ -230,6 +230,7 @@ void GLRenderer::RenderImgui() {
    }
    // Scene graph
    {
+      static Node* selectedNode = nullptr;
       ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + viewport->WorkSize.x - 300, viewport->WorkPos.y)); // 300 px width
       ImGui::SetNextWindowSize(ImVec2(300, viewport->WorkSize.y));
       ImGui::SetNextWindowBgAlpha(0.35f);
@@ -248,33 +249,25 @@ void GLRenderer::RenderImgui() {
             ImGui::PushID(node);
             // Tree node display
             bool hasChildren = node->GetChildCount() > 0;
-            ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | 
+            ImGuiTreeNodeFlags nodeFlags =
+               ImGuiTreeNodeFlags_OpenOnArrow |
                ImGuiTreeNodeFlags_OpenOnDoubleClick |
-               ImGuiTreeNodeFlags_SpanAvailWidth;
-            if (!hasChildren) {
-               nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+               ImGuiTreeNodeFlags_SpanAvailWidth |
+               (hasChildren ? 0 : ImGuiTreeNodeFlags_Leaf);
+            if (selectedNode == node) nodeFlags |= ImGuiTreeNodeFlags_Selected;
+            bool open = ImGui::TreeNodeEx("##treenode", nodeFlags, node->GetName().c_str());
+            // Select object
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen()) {
+               selectedNode = node;
             }
-            bool nodeOpen = ImGui::TreeNodeEx(node->GetName().c_str(), nodeFlags);
-            // Show transform controls when node is selected/opened
-            if (nodeOpen) {
-               bool nodeActive = node->IsActive();
-               if (ImGui::Checkbox("Active", &nodeActive)) {
-                  node->SetActive(nodeActive);
-               }
+            // Show active checkbox on right side
+            ImGui::SameLine(ImGui::GetContentRegionAvail().x - 25);
+            bool active = node->IsActive();
+            if (ImGui::Checkbox("##active", &active)) {
+               node->SetActive(active);
             }
-            if (nodeOpen || !hasChildren) {
-               if (TransformComponent* comp = node->GetComponent<TransformComponent>()) {
-                  comp->DrawInspector(node);
-               }
-               if (RendererComponent* comp = node->GetComponent<RendererComponent>()) {
-                  comp->DrawInspector(node);
-               }
-               if (LightComponent* comp = node->GetComponent<LightComponent>()) {
-                  comp->DrawInspector(node);
-               }
-            }
-            // Display children
-            if (nodeOpen && hasChildren) {
+            // Children
+            if (open) {
                node->ForEachChild([&](Node* child) {
                   displayNodeHierarchy(child);
                }, false);
@@ -289,6 +282,17 @@ void GLRenderer::RenderImgui() {
          }
       }
       ImGui::End();
+      if (selectedNode) {
+         ImGui::SetNextWindowBgAlpha(0.35f);
+         ImGui::Begin("Inspector");
+         if (TransformComponent* comp = selectedNode->GetComponent<TransformComponent>())
+            comp->DrawInspector(selectedNode);
+         if (RendererComponent* comp = selectedNode->GetComponent<RendererComponent>())
+            comp->DrawInspector(selectedNode);
+         if (LightComponent* comp = selectedNode->GetComponent<LightComponent>())
+            comp->DrawInspector(selectedNode);
+         ImGui::End();
+      }
    }
    // Show textures
    {
