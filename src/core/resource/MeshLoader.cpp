@@ -106,10 +106,7 @@ MeshLoader::SubMesh MeshLoader::Internal::ProcessMesh(const aiScene* scene, cons
    if (mesh->mName.length > 0) {
       subMesh.name = std::string(mesh->mName.C_Str());
    }
-   // TODO: Process material values
-   // if (mesh->mMaterialIndex >= 0) {
-   //     subMesh.materialIndex = mesh->mMaterialIndex;
-   // }
+   subMesh.materialIndex = mesh->mMaterialIndex;
    return subMesh;
 }
 

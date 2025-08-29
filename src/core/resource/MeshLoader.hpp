@@ -16,6 +16,7 @@ namespace MeshLoader {
       std::vector<Vertex> vertices;
       std::vector<uint32_t> indices;
       std::string name;
+      uint32_t materialIndex = 0;
 
       size_t GetVertexCount() const noexcept;
       size_t GetIndexCount() const noexcept;
