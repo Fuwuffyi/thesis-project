@@ -19,6 +19,8 @@ public:
    explicit RendererComponent(MeshHandle mesh);
    explicit RendererComponent(const std::vector<MeshHandle>& meshes, const std::vector<uint32_t>& materialIndices);
 
+   void DrawInspector(Node* node) override;
+
    // Mesh management
    void SetMesh(MeshHandle mesh);
    [[nodiscard]] const MeshHandle& GetMesh() const noexcept;

@@ -1,5 +1,7 @@
 #include "core/scene/components/LightComponent.hpp"
 
+#include <imgui.h>
+
 LightComponent::LightComponent()
    :
    m_type(LightType::Point),
@@ -9,4 +11,9 @@ LightComponent::LightComponent()
    m_attenuation(1.0),
    m_castsShadows(false)
 {}
+
+void LightComponent::DrawInspector(Node* node) {
+   ImGui::PushID("light");
+   ImGui::PopID();
+}
 

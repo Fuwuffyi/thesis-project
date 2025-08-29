@@ -9,6 +9,8 @@ public:
    TransformComponent() = default;
    explicit TransformComponent(const Transform& transform) : m_transform(transform) {}
 
+   void DrawInspector(Node* node) override;
+
    [[nodiscard]] const glm::vec3& GetPosition() const noexcept;
    void SetPosition(const glm::vec3& newPos);
    [[nodiscard]] const glm::vec3& GetRotation() const noexcept;

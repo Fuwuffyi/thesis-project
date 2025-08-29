@@ -2,6 +2,8 @@
 
 #include <concepts>
 
+class Node;
+
 class Component {
 public:
    virtual ~Component() = default;
@@ -10,6 +12,8 @@ public:
    Component& operator=(const Component&) = delete;
    Component(Component&&) = default;
    Component& operator=(Component&&) = default;
+
+   virtual void DrawInspector(Node* node) = 0;
 
 protected:
    Component() = default;

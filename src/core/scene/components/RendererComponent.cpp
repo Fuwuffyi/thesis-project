@@ -1,5 +1,6 @@
 #include "core/scene/components/RendererComponent.hpp"
 
+#include <imgui.h>
 #include <utility>
 
 RendererComponent::RendererComponent(MeshHandle mesh)
@@ -19,6 +20,11 @@ RendererComponent::RendererComponent(const std::vector<MeshHandle>& meshes,
       renderer.materialIndex = materialIndices[i];
       m_subMeshRenderers.push_back(std::move(renderer));
    }
+}
+
+void RendererComponent::DrawInspector(Node* node) {
+   ImGui::PushID("renderer");
+   ImGui::PopID();
 }
 
 void RendererComponent::SetMesh(MeshHandle mesh) {

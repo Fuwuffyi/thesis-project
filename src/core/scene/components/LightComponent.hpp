@@ -13,6 +13,9 @@ public:
    };
 
    LightComponent();
+
+   void DrawInspector(Node* node) override;
+
 private:
    // Generic data
    LightType m_type;
