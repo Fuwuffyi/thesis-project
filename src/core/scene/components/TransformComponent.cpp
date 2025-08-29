@@ -24,7 +24,6 @@ void TransformComponent::DrawInspector(Node* node) {
          node->MarkTransformDirty();
       }
    }
-   ImGui::PopStyleColor(3);
 }
 
 [[nodiscard]] const glm::vec3& TransformComponent::GetPosition() const noexcept {
