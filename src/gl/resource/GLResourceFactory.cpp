@@ -1,6 +1,5 @@
 #include "GLResourceFactory.hpp"
 
-#include "../../core/resource/MeshLoader.hpp"
 #include "../resource/GLMesh.hpp"
 #include "../resource/GLTexture.hpp"
 
@@ -22,11 +21,5 @@ std::unique_ptr<ITexture> GLResourceFactory::CreateRenderTarget(const uint32_t w
 
 std::unique_ptr<IMesh> GLResourceFactory::CreateMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
    return std::make_unique<GLMesh>(vertices, indices);
-}
-
-std::unique_ptr<IMesh> GLResourceFactory::CreateMeshFromFile(const std::string_view filepath) {
-   const MeshLoader::MeshData meshData = MeshLoader::LoadMesh(filepath);
-   const auto values = meshData.GetCombinedData();
-   return std::make_unique<GLMesh>(values.first, values.second);
 }
 

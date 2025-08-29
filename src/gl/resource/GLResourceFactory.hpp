@@ -12,6 +12,5 @@ public:
    std::unique_ptr<ITexture> CreateDepthTexture(const uint32_t width, const uint32_t height, const ITexture::Format format) override;
    std::unique_ptr<ITexture> CreateRenderTarget(const uint32_t width, const uint32_t height, const ITexture::Format format, const uint32_t samples) override;
    std::unique_ptr<IMesh> CreateMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) override;
-   std::unique_ptr<IMesh> CreateMeshFromFile(const std::string_view filepath) override;
 };
 

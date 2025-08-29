@@ -3,11 +3,9 @@
 #include "core/Window.hpp"
 #include "core/Camera.hpp"
 
-#include "core/resource/ResourceHandle.hpp"
-
 #include "core/scene/Scene.hpp"
+#include "core/scene/MeshLoaderHelper.hpp"
 #include "core/scene/Node.hpp"
-#include "core/scene/components/RendererComponent.hpp"
 #include "glm/trigonometric.hpp"
 
 #include <GLFW/glfw3.h>
@@ -57,8 +55,6 @@ int main(int argc, char* argv[]) {
 
       // Get renderer resource manager
       ResourceManager* resourceManager = renderer->GetResourceManager();
-      const MeshHandle sponzaMesh = resourceManager->LoadMeshFromFile("dragon_mesh",
-                                                                      "resources/meshes/sponza.fbx");
       // FIXME: Currently vulkan loads texture statically
       if (api == GraphicsAPI::OpenGL) {
          resourceManager->LoadTexture("testing_albedo", "resources/textures/texture_base.jpg", true, true);
@@ -80,8 +76,10 @@ int main(int argc, char* argv[]) {
 
       // Create the scene
       Scene scene("Test scene");
-      Node* sponzaNode = scene.CreateNode("Sponza");
-      sponzaNode->AddComponent<RendererComponent>(sponzaMesh);
+      Node* sponzaNode = MeshLoaderHelper::LoadMeshAsChildNode(scene.GetRootNode(), *resourceManager,
+                                                               "sponza", "resources/meshes/sponza.fbx",
+                                                               { .createSeparateNodes = true });
+      // sponzaNode->AddComponent<RendererComponent>(sponzaMesh);
       sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
       renderer->SetActiveScene(&scene);
 

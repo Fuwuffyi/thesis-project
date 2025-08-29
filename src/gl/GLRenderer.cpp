@@ -360,16 +360,24 @@ void GLRenderer::RenderFrame() {
          if (!node->IsActive()) return;
          if (const auto* renderer = node->GetComponent<RendererComponent>()) {
             // If not visible, do not render
-            if (!renderer->IsVisible()) return;
-            // Get the mesh and check if valid
-            if (IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
-               // If has position, load it in
-               if (const Transform* worldTransform = node->GetWorldTransform()) {
-                  // Set up transformation matrix for rendering
-                  m_geometryPassShader->SetMat4("model", worldTransform->GetTransformMatrix());
+            if (!renderer->IsVisible() || !renderer->HasMesh()) return;
+            // If has position, load it in
+            if (const Transform* worldTransform = node->GetWorldTransform()) {
+               // Set up transformation matrix for rendering
+               m_geometryPassShader->SetMat4("model", worldTransform->GetTransformMatrix());
+            }
+            // Render the mesh
+            if (renderer->IsMultiMesh()) {
+               for (const auto& subMeshRenderer : renderer->GetSubMeshRenderers()) {
+                  if (!subMeshRenderer.visible) continue;
+                  if (const IMesh* mesh = m_resourceManager->GetMesh(subMeshRenderer.mesh)) {
+                     mesh->Draw();
+                  }
                }
-               // Render the mesh
-               mesh->Draw();
+            } else {
+               if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
+                  mesh->Draw();
+               }
             }
          }
       });

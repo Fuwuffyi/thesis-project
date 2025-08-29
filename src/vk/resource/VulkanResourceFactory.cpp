@@ -1,6 +1,5 @@
 #include "VulkanResourceFactory.hpp"
 
-#include "../../core/resource/MeshLoader.hpp"
 #include "../resource/VulkanMesh.hpp"
 #include "../resource/VulkanTexture.hpp"
 
@@ -29,12 +28,5 @@ std::unique_ptr<ITexture> VulkanResourceFactory::CreateRenderTarget(const uint32
 
 std::unique_ptr<IMesh> VulkanResourceFactory::CreateMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
    return std::make_unique<VulkanMesh>(vertices, indices, *m_device);
-}
-
-std::unique_ptr<IMesh> VulkanResourceFactory::CreateMeshFromFile(const std::string_view filepath) {
-   const MeshLoader::MeshData meshData = MeshLoader::LoadMesh(filepath);
-   const auto values = meshData.GetCombinedData();
-   return std::make_unique<VulkanMesh>(values.first, values.second, *m_device);
-
 }
 

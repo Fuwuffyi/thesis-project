@@ -23,6 +23,5 @@ public:
    // Mesh creation methods
    virtual std::unique_ptr<IMesh> CreateMesh(const std::vector<Vertex>& vertices,
                                              const std::vector<uint32_t>& indices) = 0;
-   virtual std::unique_ptr<IMesh> CreateMeshFromFile(const std::string_view filepath) = 0;
 };
 
