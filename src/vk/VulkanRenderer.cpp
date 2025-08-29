@@ -597,6 +597,23 @@ void VulkanRenderer::RenderImgui() {
             comp->DrawInspector(selectedNode);
          if (LightComponent* comp = selectedNode->GetComponent<LightComponent>())
             comp->DrawInspector(selectedNode);
+         if (ImGui::Button("Add component"))
+            ImGui::OpenPopup("add_component_popup");
+         if (ImGui::BeginPopup("add_component_popup")) {
+            if (!selectedNode->HasComponent<TransformComponent>() && ImGui::Button("Transform")) {
+               selectedNode->AddComponent<TransformComponent>();
+               ImGui::CloseCurrentPopup();
+            }
+            if (!selectedNode->HasComponent<RendererComponent>() && ImGui::Button("Renderer")) {
+               selectedNode->AddComponent<RendererComponent>();
+               ImGui::CloseCurrentPopup();
+            }
+            if (!selectedNode->HasComponent<LightComponent>() && ImGui::Button("Light")) {
+               selectedNode->AddComponent<LightComponent>();
+               ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+         }
          ImGui::End();
       }
    }
