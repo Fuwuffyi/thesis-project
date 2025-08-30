@@ -16,13 +16,14 @@ layout(location = 2) out vec2 fragUV;
 uniform mat4 model;
 
 void main() {
+   // Get object world position
    vec4 worldPos = model * vec4(inPosition, 1.0);
-
+   // Use model matrix to transform normals to world space
    mat3 normalMatrix = transpose(inverse(mat3(model)));
    fragNormal = normalize(normalMatrix * inNormal);
-
+   // Interpolate other values to fragment shader
    fragColor = inNormal;
    fragUV = inUV;
-
+   // Move object according to camera as well
    gl_Position = camera.proj * camera.view * worldPos;
 }

@@ -4,6 +4,7 @@ layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec3 fragNormal;
 layout(location = 2) in vec2 fragUV;
 
+// Depth R is used to calculate position
 layout(location = 0) out vec4 gAlbedo; // RGB color + A AO
 layout(location = 1) out vec4 gNormal; // RG encoded normal + B roughness + A metallic
 
@@ -19,6 +20,7 @@ vec2 encodeOctNormal(vec3 n) {
 }
 
 void main() {
+   // Write the g-buffer data
    gAlbedo = vec4(texture(texSampler, fragUV).rgb, 1.0);
    gNormal = vec4(encodeOctNormal(fragNormal), 1.0, 0.0);
 }

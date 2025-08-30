@@ -9,9 +9,9 @@ layout(std140, binding = 0) uniform CameraData {
    mat4 proj;
 } camera;
 
-layout(binding = 1) uniform sampler2D gAlbedoSampler;
-layout(binding = 2) uniform sampler2D gNormalSampler;
-layout(binding = 3) uniform sampler2D gDepthSampler;
+layout(binding = 1) uniform sampler2D gAlbedo; // RGB color + A AO
+layout(binding = 2) uniform sampler2D gNormal; // RG encoded normal + B roughness + A metallic
+layout(binding = 3) uniform sampler2D gDepth; // R depth value
 
 vec3 getWorldPos(vec2 uv, float depth) {
    // Convert UV [0,1] -> NDC [-1,1]
@@ -40,10 +40,10 @@ vec3 decodeOctNormal(vec2 enc) {
 }
 
 void main() {
-   vec3 albedo = texture(gAlbedoSampler, fragUV).rgb;
-   vec3 normal = decodeOctNormal(texture(gNormalSampler, fragUV).xy);
-   float depth = texture(gDepthSampler, fragUV).r;
+   vec3 albedo = texture(gAlbedo, fragUV).rgb;
+   vec3 normal = decodeOctNormal(texture(gNormal, fragUV).xy);
+   float depth = texture(gDepth, fragUV).r;
    vec3 worldPos = getWorldPos(fragUV, depth);
 
-   fragColor = texture(gAlbedoSampler, fragUV) * vec4(normal, 1.0);
+   fragColor = texture(gAlbedo, fragUV) * vec4(normal, 1.0);
 }
