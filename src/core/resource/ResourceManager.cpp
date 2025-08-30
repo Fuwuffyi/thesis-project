@@ -2,10 +2,12 @@
 
 #include "core/resource/MeshLoader.hpp"
 #include "core/resource/MaterialTemplate.hpp"
+#include "core/resource/Material.hpp"
 
 #include <mutex>
 #include <numeric>
 #include <ranges>
+#include <stdexcept>
 
 ResourceManager::ResourceManager(std::unique_ptr<IResourceFactory> factory)
    :
@@ -84,6 +86,13 @@ TextureHandle ResourceManager::CreateRenderTarget(const std::string_view name, c
    return RegisterResource<ITexture>(name, std::move(texture));
 }
 
+MaterialHandle ResourceManager::CreateMaterial(const std::string_view name, const std::string_view typeName) {
+   if (const MaterialTemplate* materialTemplate = m_materialLibrary.GetTemplate(std::string{typeName})) {
+      return RegisterResource<IMaterial>(name, std::move(std::make_unique<Material>(*materialTemplate)));
+   }
+   throw std::runtime_error("Material template " + std::string{name} + " not found.");
+}
+
 MeshHandle ResourceManager::LoadMesh(const std::string_view name, const std::vector<Vertex>& vertices,
                                      const std::vector<uint32_t>& indices) {
    auto mesh = m_factory->CreateMesh(vertices, indices);
@@ -153,6 +162,15 @@ ITexture* ResourceManager::GetTexture(const TextureHandle& handle) const {
    return nullptr;
 }
 
+IMaterial* ResourceManager::GetMaterial(const MaterialHandle& handle) const {
+   if (!handle.IsValid()) return nullptr;
+   std::shared_lock lock(m_mutex);
+   if (auto it = m_resources.find(handle.GetId()); it != m_resources.end()) {
+      return static_cast<IMaterial*>(it->second->resource.get());
+   }
+   return nullptr;
+}
+
 IMesh* ResourceManager::GetMesh(const MeshHandle& handle) const {
    if (!handle.IsValid()) return nullptr;
    std::shared_lock lock(m_mutex);
@@ -182,6 +200,17 @@ ITexture* ResourceManager::GetTexture(const std::string_view name) const {
    return nullptr;
 }
 
+IMaterial* ResourceManager::GetMaterial(const std::string_view name) const {
+   std::shared_lock lock(m_mutex);
+   const std::string nameStr{name};
+   if (auto nameIt = m_nameToId.find(nameStr); nameIt != m_nameToId.end()) {
+      if (auto resourceIt = m_resources.find(nameIt->second); resourceIt != m_resources.end()) {
+         return static_cast<IMaterial*>(resourceIt->second->resource.get());
+      }
+   }
+   return nullptr;
+}
+
 IMesh* ResourceManager::GetMesh(const std::string_view name) const {
    std::shared_lock lock(m_mutex);
    const std::string nameStr{name};
@@ -206,6 +235,12 @@ void ResourceManager::UnloadTexture(const TextureHandle& handle) {
    RemoveResource(handle.GetId());
 }
 
+void ResourceManager::UnloadMaterial(const MaterialHandle& handle) {
+   if (!handle.IsValid()) return;
+   std::unique_lock lock(m_mutex);
+   RemoveResource(handle.GetId());
+}
+
 void ResourceManager::UnloadMesh(const MeshHandle& handle) {
    if (!handle.IsValid()) return;
    std::unique_lock lock(m_mutex);
@@ -213,6 +248,14 @@ void ResourceManager::UnloadMesh(const MeshHandle& handle) {
 }
 
 void ResourceManager::UnloadTexture(const std::string_view name) {
+   std::unique_lock lock(m_mutex);
+   const std::string nameStr{name};
+   if (auto nameIt = m_nameToId.find(nameStr); nameIt != m_nameToId.end()) {
+      RemoveResource(nameIt->second);
+   }
+}
+
+void ResourceManager::UnloadMaterial(const std::string_view name) {
    std::unique_lock lock(m_mutex);
    const std::string nameStr{name};
    if (auto nameIt = m_nameToId.find(nameStr); nameIt != m_nameToId.end()) {
@@ -303,6 +346,8 @@ std::vector<std::pair<IMesh*, std::string>> ResourceManager::GetAllMeshesNamed()
 
 template ResourceHandle<ITexture> ResourceManager::RegisterResource<ITexture>(
    std::string_view, std::unique_ptr<ITexture>, std::string_view);
+template ResourceHandle<IMaterial> ResourceManager::RegisterResource<IMaterial>(
+   std::string_view, std::unique_ptr<IMaterial>, std::string_view);
 template ResourceHandle<IMesh> ResourceManager::RegisterResource<IMesh>(
    std::string_view, std::unique_ptr<IMesh>, std::string_view);
 

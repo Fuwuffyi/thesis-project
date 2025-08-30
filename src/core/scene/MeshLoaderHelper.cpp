@@ -15,7 +15,7 @@ Node* MeshLoaderHelper::LoadMeshIntoScene(Scene& scene, ResourceManager& resourc
    // Create a parent node group to load meshes to
    const std::string parentName = options.nodePrefix.empty() ? meshName : options.nodePrefix + meshName;
    Node* parentNode = scene.CreateNode(parentName);
-   CreateNodesForMeshGroup(parentNode, meshGroup, options);
+   CreateNodesForMeshGroup(parentNode, resourceManager, meshGroup, options);
    return parentNode;
 }
 
@@ -37,15 +37,20 @@ Node* MeshLoaderHelper::LoadMeshAsChildNode(Node* parent, ResourceManager& resou
    childNode->AddComponent<TransformComponent>();
    groupNode = childNode.get();
    parent->AddChild(std::move(childNode));
-   CreateNodesForMeshGroup(groupNode, meshGroup, options);
+   CreateNodesForMeshGroup(groupNode, resourceManager, meshGroup, options);
    return groupNode;
 }
 
-void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode,
+void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager& resourceManager,
                                                const ResourceManager::LoadedMeshGroup& meshGroup,
                                                const MeshLoadOptions& options) {
    if (!parentNode || !meshGroup.IsValid()) {
       return;
+   }
+   // TODO: Cleanup default material
+   static MaterialHandle defMaterialHandle = {};
+   if (!resourceManager.GetMaterial("default_material")) {
+      defMaterialHandle = resourceManager.CreateMaterial("default_material", "PBR");
    }
    if (options.createSeparateNodes) {
       // Create separate nodes for each sub-mesh
@@ -59,7 +64,7 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode,
          // Set material index for reference
          RendererComponent::SubMeshRenderer subMeshRenderer;
          subMeshRenderer.mesh = meshHandle;
-         subMeshRenderer.materialIndex = meshGroup.materialIndices[i];
+         subMeshRenderer.material = defMaterialHandle;
          renderer->AddSubMeshRenderer(subMeshRenderer);
          parentNode->AddChild(std::move(childNode));
       }
@@ -75,7 +80,7 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode,
          const auto& meshHandle = meshGroup.subMeshes[i];
          RendererComponent::SubMeshRenderer subMeshRenderer;
          subMeshRenderer.mesh = meshHandle;
-         subMeshRenderer.materialIndex = meshGroup.materialIndices[i];
+         subMeshRenderer.material = defMaterialHandle;
          renderer->AddSubMeshRenderer(subMeshRenderer);
       }
    }

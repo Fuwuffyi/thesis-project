@@ -53,10 +53,6 @@ public:
    virtual bool HasTexture(const std::string& slotName) const = 0;
    virtual void RemoveTexture(const std::string& slotName) = 0;
 
-   // Shader binding
-   virtual void Bind() const = 0;
-   virtual void Unbind() const = 0;
-
    // Utility
    virtual std::vector<std::string> GetPropertyNames() const = 0;
    virtual std::vector<std::string> GetTextureSlotNames() const = 0;

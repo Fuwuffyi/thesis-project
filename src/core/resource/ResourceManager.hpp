@@ -5,6 +5,8 @@
 
 #include "core/resource/MaterialLibrary.hpp"
 
+#include "core/resource/IMaterial.hpp"
+
 #include <shared_mutex>
 #include <unordered_map>
 
@@ -32,6 +34,8 @@ public:
                                     const ITexture::Format format = ITexture::Format::Depth32F);
    TextureHandle CreateRenderTarget(const std::string_view name, const uint32_t width, const uint32_t height,
                                     const ITexture::Format format = ITexture::Format::RGBA8, const uint32_t samples = 1);
+   // Material management
+   MaterialHandle CreateMaterial(const std::string_view name, const std::string_view typeName);
    // Mesh management
    MeshHandle LoadMesh(const std::string_view name, const std::vector<Vertex>& vertices,
                        const std::vector<uint32_t>& indices);
@@ -39,15 +43,19 @@ public:
    MeshHandle LoadSingleMeshFromFile(const std::string_view name, const std::string_view filepath);
    // Resource access
    ITexture* GetTexture(const TextureHandle& handle) const;
+   IMaterial* GetMaterial(const MaterialHandle& handle) const;
    IMesh* GetMesh(const MeshHandle& handle) const;
    // Resource access by name
    ITexture* GetTexture(const std::string_view name) const;
+   IMaterial* GetMaterial(const std::string_view name) const;
    IMesh* GetMesh(const std::string_view name) const;
    const LoadedMeshGroup* GetMeshGroup(const std::string_view name) const;
    // Resource management
    void UnloadTexture(const TextureHandle& handle);
+   void UnloadMaterial(const MaterialHandle& handle);
    void UnloadMesh(const MeshHandle& handle);
    void UnloadTexture(const std::string_view name);
+   void UnloadMaterial(const std::string_view name);
    void UnloadMesh(const std::string_view name);
    void UnloadMeshGroup(const std::string_view name);
    // Utility methods

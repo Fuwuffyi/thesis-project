@@ -5,21 +5,22 @@
 #include <imgui.h>
 #include <utility>
 
-RendererComponent::RendererComponent(MeshHandle mesh)
+RendererComponent::RendererComponent(const MeshHandle mesh, const MaterialHandle material)
    :
    m_mesh(std::move(mesh)),
+   m_material(std::move(material)),
    m_visible(true),
    m_castsShadows(true),
    m_receivesShadows(true)
 {}
 
 RendererComponent::RendererComponent(const std::vector<MeshHandle>& meshes,
-                                     const std::vector<uint32_t>& materialIndices) {
+                                     const std::vector<MaterialHandle>& materials) {
    m_subMeshRenderers.reserve(meshes.size());
-   for (size_t i = 0; i < meshes.size() && i < materialIndices.size(); ++i) {
+   for (size_t i = 0; i < meshes.size() && i < materials.size(); ++i) {
       SubMeshRenderer renderer;
       renderer.mesh = meshes[i];
-      renderer.materialIndex = materialIndices[i];
+      renderer.material = materials[i];
       m_subMeshRenderers.push_back(std::move(renderer));
    }
 }
@@ -34,13 +35,22 @@ void RendererComponent::DrawInspector(Node* node) {
    }
 }
 
-void RendererComponent::SetMesh(MeshHandle mesh) {
+void RendererComponent::SetMesh(const MeshHandle mesh) {
    m_mesh = std::move(mesh);
+   m_subMeshRenderers.clear();
+}
+
+void RendererComponent::SetMaterial(const MaterialHandle material) {
+   m_material = std::move(material);
    m_subMeshRenderers.clear();
 }
 
 [[nodiscard]] const MeshHandle& RendererComponent::GetMesh() const noexcept {
    return m_mesh;
+}
+
+[[nodiscard]] const MaterialHandle& RendererComponent::GetMaterial() const noexcept {
+   return m_material;
 }
 
 [[nodiscard]] bool RendererComponent::HasMesh() const noexcept {
@@ -77,6 +87,12 @@ size_t RendererComponent::GetSubMeshCount() const noexcept {
 void RendererComponent::SetSubMeshVisible(const size_t index, const bool visible) {
    if (index < m_subMeshRenderers.size()) {
       m_subMeshRenderers[index].visible = visible;
+   }
+}
+
+void RendererComponent::SetSubMeshMaterial(const size_t index, const MaterialHandle material) {
+   if (index < m_subMeshRenderers.size()) {
+      m_subMeshRenderers[index].material = std::move(material);
    }
 }
 

@@ -20,7 +20,7 @@ public:
                                     const MeshLoadOptions& options);
 
 private:
-   static void CreateNodesForMeshGroup(Node* parentNode,
+   static void CreateNodesForMeshGroup(Node* parentNode, ResourceManager& resourceManager,
                                        const ResourceManager::LoadedMeshGroup& meshGroup,
                                        const MeshLoadOptions& options);
    static std::string GenerateNodeName(const std::string& baseName, const size_t index);

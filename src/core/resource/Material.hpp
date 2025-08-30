@@ -2,7 +2,7 @@
 
 #include "core/resource/MaterialTemplate.hpp"
 
-class Material : public IMaterial {
+class Material final : public IMaterial {
 public:
    explicit Material(const MaterialTemplate& materialTemplate);
    Material(const std::string& typeName, const MaterialTemplate& materialTemplate);
@@ -23,9 +23,6 @@ public:
    TextureHandle GetTexture(const std::string& slotName) const override;
    bool HasTexture(const std::string& slotName) const override;
    void RemoveTexture(const std::string& slotName) override;
-
-   virtual void Bind() const override = 0;
-   virtual void Unbind() const override = 0;
 
    std::vector<std::string> GetPropertyNames() const override;
    std::vector<std::string> GetTextureSlotNames() const override;
