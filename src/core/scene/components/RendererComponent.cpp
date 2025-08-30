@@ -29,6 +29,8 @@ void RendererComponent::DrawInspector(Node* node) {
    if (ImGui::CollapsingHeader("Renderer",
                                ImGuiTreeNodeFlags_DefaultOpen |
                                ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
+      ImGui::Text("Material: %zu", m_material.GetId());
+      ImGui::Separator();
       ImGui::Checkbox("Is Visible", &m_visible);
       ImGui::Checkbox("Casts Shadows", &m_castsShadows);
       ImGui::Checkbox("Receives Shadows", &m_receivesShadows);

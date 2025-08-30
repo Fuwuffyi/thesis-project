@@ -48,8 +48,8 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
       return;
    }
    // TODO: Cleanup default material
-   static MaterialHandle defMaterialHandle = {};
-   if (!resourceManager.GetMaterial("default_material")) {
+   static MaterialHandle defMaterialHandle;
+   if (resourceManager.GetMaterial("default_material") == nullptr) {
       defMaterialHandle = resourceManager.CreateMaterial("default_material", "PBR");
    }
    if (options.createSeparateNodes) {
@@ -60,7 +60,7 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
          std::unique_ptr<Node> childNode = std::make_unique<Node>(nodeName);
          childNode->AddComponent<TransformComponent>();
          // Create renderer component with single mesh
-         RendererComponent* renderer = childNode->AddComponent<RendererComponent>(meshHandle);
+         RendererComponent* renderer = childNode->AddComponent<RendererComponent>(meshHandle, defMaterialHandle);
          // Set material index for reference
          RendererComponent::SubMeshRenderer subMeshRenderer;
          subMeshRenderer.mesh = meshHandle;
