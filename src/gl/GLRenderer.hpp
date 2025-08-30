@@ -38,8 +38,8 @@ private:
    MeshHandle m_fullscreenQuad;
    // Geometry pass things
    TextureHandle m_gDepthTexture;
-   TextureHandle m_gAlbedoTexture;
-   TextureHandle m_gNormalTexture;
+   TextureHandle m_gAlbedoTexture; // RGB color + A AO
+   TextureHandle m_gNormalTexture; // RG encoded normal + B roughness + A metallic
    std::unique_ptr<GLFramebuffer> m_gBuffer;
    std::unique_ptr<GLRenderPass> m_geometryPass;
    std::unique_ptr<GLShader> m_geometryPassShader;

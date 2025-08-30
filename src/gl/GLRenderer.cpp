@@ -117,7 +117,7 @@ void GLRenderer::CreateGBuffer() {
    m_gAlbedoTexture = m_resourceManager->CreateRenderTarget("gbuffer_color", m_window->GetWidth(),
                                                             m_window->GetHeight(), ITexture::Format::RGBA8);
    m_gNormalTexture = m_resourceManager->CreateRenderTarget("gbuffer_normals", m_window->GetWidth(),
-                                                            m_window->GetHeight(), ITexture::Format::RGB8);
+                                                            m_window->GetHeight(), ITexture::Format::RGBA16F);
    m_gDepthTexture = m_resourceManager->CreateDepthTexture("gbuffer_depth",
                                                            m_window->GetWidth(), m_window->GetHeight());
    auto* colorTexPtr= reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_gAlbedoTexture));
@@ -148,7 +148,7 @@ void GLRenderer::CreateGeometryPass() {
    geometryPassInfo.framebuffer = m_gBuffer.get();
    geometryPassInfo.colorAttachments = {
       {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
-      {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
+      {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.5f, 0.5f, 1.0f, 0.0f}},
    };
    geometryPassInfo.depthStencilAttachment = {
       GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store,
