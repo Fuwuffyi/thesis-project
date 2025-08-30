@@ -1,6 +1,7 @@
 #include "core/resource/ResourceManager.hpp"
 
 #include "core/resource/MeshLoader.hpp"
+#include "core/resource/MaterialTemplate.hpp"
 
 #include <mutex>
 #include <numeric>
@@ -9,11 +10,13 @@
 ResourceManager::ResourceManager(std::unique_ptr<IResourceFactory> factory)
    :
    m_factory(std::move(factory)),
+   m_materialLibrary(),
    m_nextId(1)
 {
    if (!m_factory) {
       throw std::invalid_argument("ResourceFactory cannot be null.");
    }
+   MaterialLibrary::RegisterStandardTemplates(m_materialLibrary);
 }
 
 ResourceManager::~ResourceManager() {

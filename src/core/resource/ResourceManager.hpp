@@ -3,6 +3,8 @@
 #include "core/resource/IResourceFactory.hpp"
 #include "core/resource/ResourceHandle.hpp"
 
+#include "core/resource/MaterialLibrary.hpp"
+
 #include <shared_mutex>
 #include <unordered_map>
 
@@ -74,6 +76,8 @@ private:
    std::unordered_map<uint64_t, std::unique_ptr<ResourceEntry>> m_resources;
    std::unordered_map<std::string, uint64_t> m_nameToId;
    std::unordered_map<std::string, LoadedMeshGroup> m_meshGroups;
+
+   MaterialLibrary m_materialLibrary;
 
    mutable std::shared_mutex m_mutex;
    uint64_t m_nextId;

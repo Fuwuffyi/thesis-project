@@ -4,7 +4,7 @@
 
 #include <functional>
 
-class MaterialTemplate {
+class MaterialTemplate final {
 public:
    struct TextureSlot {
       std::string name;
