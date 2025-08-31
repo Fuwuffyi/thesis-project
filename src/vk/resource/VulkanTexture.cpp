@@ -21,6 +21,7 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const CreateInfo& info)
    m_mipLevels = info.generateMipmaps ? static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height)))) + 1 : 1;
    CreateImage();
    CreateImageView();
+   CreateSampler();
 }
 
 VulkanTexture::VulkanTexture(const VulkanDevice& device, const std::string& filepath, bool generateMipmaps, bool sRGB)
@@ -80,6 +81,7 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const std::string& file
                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
    CopyFromBuffer(stagingBuffer, 0);
    CreateImageView();
+   CreateSampler();
    if (generateMipmaps) {
       GenerateMipmaps();
    } else {
@@ -251,6 +253,10 @@ void VulkanTexture::CreateImageView() {
    if (vkCreateImageView(m_device->Get(), &viewInfo, nullptr, &m_imageView) != VK_SUCCESS) {
       throw std::runtime_error("Failed to create texture image view!");
    }
+}
+
+VkSampler VulkanTexture::CreateSampler() {
+   // TODO: Create the image sampler
 }
 
 void VulkanTexture::TransitionLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout,

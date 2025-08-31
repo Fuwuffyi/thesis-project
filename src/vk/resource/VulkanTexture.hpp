@@ -11,8 +11,9 @@ class VulkanBuffer;
 class VulkanTexture : public ITexture {
 public:
    VulkanTexture(const VulkanDevice& device, const CreateInfo& info);
-   VulkanTexture(const VulkanDevice& device, const std::string& filepath, bool generateMipmaps, bool sRGB);
-   VulkanTexture(const VulkanDevice& device, uint32_t width, uint32_t height, Format format, bool isDepth = false, uint32_t samples = 1);
+   VulkanTexture(const VulkanDevice& device, const std::string& filepath, const bool generateMipmaps, const bool sRGB);
+   VulkanTexture(const VulkanDevice& device, const uint32_t width, const uint32_t height, const Format format,
+                 const bool isDepth = false, const uint32_t samples = 1);
    ~VulkanTexture();
 
    VulkanTexture(const VulkanTexture&) = delete;
@@ -42,17 +43,12 @@ public:
 private:
    void CopyFromBuffer(const VulkanBuffer& buffer, const uint32_t mipLevel = 0);
    void GenerateMipmaps();
-
-   static uint32_t CalculateMipLevels(const uint32_t width, const uint32_t height);
-
-   static VkImageView CreateImageView(const VulkanDevice& device, const VkImage image,
-                                      const VkFormat format, const VkImageAspectFlags aspectFlags,
-                                      const uint32_t mipLevels = 1, const uint32_t arrayLayers = 1);
-   static VkFormat ConvertFormat(const Format format);
+   VkSampler CreateSampler();
+   VkFormat ConvertFormat(const Format format);
    void CreateImage();
    void AllocateMemory();
    void CreateImageView();
-   uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+   uint32_t FindMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags properties);
    void LoadFromFile(const std::string& filepath, const bool generateMipmaps, const bool sRGB);
    bool FormatSupportsBlitting(const VkFormat format) const;
 
@@ -61,6 +57,7 @@ private:
    VkImage m_image = VK_NULL_HANDLE;
    VkImageView m_imageView = VK_NULL_HANDLE;
    VkDeviceMemory m_imageMemory = VK_NULL_HANDLE;
+   VkSampler m_sampler = VK_NULL_HANDLE;
    VkFormat m_vkFormat;
 
    uint32_t m_width = 0;
