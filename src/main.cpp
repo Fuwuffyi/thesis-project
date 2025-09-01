@@ -79,7 +79,6 @@ int main(int argc, char* argv[]) {
       Node* sponzaNode = MeshLoaderHelper::LoadMeshAsChildNode(scene.GetRootNode(), *resourceManager,
                                                                "sponza", "resources/meshes/sponza.fbx",
                                                                { .createSeparateNodes = true });
-      // sponzaNode->AddComponent<RendererComponent>(sponzaMesh);
       sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
       renderer->SetActiveScene(&scene);
 

@@ -1,11 +1,5 @@
 #include "GLRenderer.hpp"
 
-#include <algorithm>
-#include <glad/gl.h>
-#include <imgui.h>
-#include <print>
-#include <GLFW/glfw3.h>
-
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
@@ -24,20 +18,28 @@
 #include "gl/GLShader.hpp"
 
 #include "gl/resource/GLResourceFactory.hpp"
+#include "gl/resource/GLTexture.hpp"
 
-// Stuff for mesh
+#include <algorithm>
+#include <glad/gl.h>
+#include <imgui.h>
+#include <print>
+#include <GLFW/glfw3.h>
 #include <vector>
-#include "GLBuffer.hpp"
-#include "GLShader.hpp"
-#include "resource/GLTexture.hpp"
 
-// Testing stuff
+// Structs for UBOs
 struct CameraData {
    alignas(16) glm::mat4 view;
    alignas(16) glm::mat4 proj;
 };
 
-GLBuffer* cameraUbo = nullptr;
+struct LightData {
+   uint32_t lightCount;
+};
+
+struct MaterialData {
+   float val = 0.0f;
+};
 
 GLRenderer::GLRenderer(Window* window)
    :
@@ -57,6 +59,8 @@ GLRenderer::GLRenderer(Window* window)
    CreateFullscreenQuad();
    // Load shaders
    LoadShaders();
+   // Create shader ubos
+   CreateUBOs();
    // Set initial viewport (sets up g-buffer too)
    FramebufferCallback(
       static_cast<int32_t>(m_window->GetWidth()),
@@ -70,8 +74,6 @@ GLRenderer::GLRenderer(Window* window)
    );
    // Create lighting pass resources
    CreateLightingPass();
-   // Create some testing resources
-   CreateTestResources();
 }
 
 void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) {
@@ -178,17 +180,26 @@ void GLRenderer::CreateLightingPass() {
    m_lightingPass = std::make_unique<GLRenderPass>(lightingPassInfo);
 }
 
-void GLRenderer::CreateTestResources() {
+void GLRenderer::CreateUBOs() {
    // Create camera UBO
-   cameraUbo = new GLBuffer(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
+   m_cameraUbo = std::make_unique<GLBuffer>(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
    const CameraData camData{};
-   cameraUbo->UploadData(&camData, sizeof(CameraData));
-   cameraUbo->BindBase(0);
+   m_cameraUbo->UploadData(&camData, sizeof(CameraData));
+   m_cameraUbo->BindBase(0);
+   // Create lighting UBO
+   m_lightsUbo = std::make_unique<GLBuffer>(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
+   const LightData lightData{};
+   m_lightsUbo->UploadData(&lightData, sizeof(LightData));
+   m_lightsUbo->BindBase(1);
+   // Create material UBO
+   m_materialUbo = std::make_unique<GLBuffer>(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
+   const MaterialData matData{};
+   m_materialUbo->UploadData(&matData, sizeof(MaterialData));
+   m_materialUbo->BindBase(2);
 }
 
 GLRenderer::~GLRenderer() {
    DestroyImgui();
-   delete cameraUbo;
 }
 
 void GLRenderer::SetupImgui() {
@@ -357,13 +368,12 @@ void GLRenderer::RenderFrame() {
       m_activeCamera->GetViewMatrix(),
       m_activeCamera->GetProjectionMatrix()
    };
-   cameraUbo->UpdateData(&camData, sizeof(CameraData));
+   m_cameraUbo->UpdateData(&camData, sizeof(CameraData));
    m_geometryPass->Begin();
    m_geometryPass->SetShader(m_geometryPassShader.get());
-   m_geometryPassShader->BindUniformBlock("CameraData", 0);
    // Set up shader texture test
    if (const ITexture* tex = m_resourceManager->GetTexture("testing_albedo")) {
-      tex->Bind(1);
+      tex->Bind(3);
    }
    // Draw the scene
    if (m_activeScene) {
@@ -401,13 +411,13 @@ void GLRenderer::RenderFrame() {
    m_lightingPass->SetShader(m_lightingPassShader.get());
    // Bind g buffer textures
    if (const ITexture* tex = m_resourceManager->GetTexture(m_gAlbedoTexture)) {
-      tex->Bind(1);
+      tex->Bind(3);
    }
    if (const ITexture* tex = m_resourceManager->GetTexture(m_gNormalTexture)) {
-      tex->Bind(2);
+      tex->Bind(4);
    }
    if (const ITexture* tex = m_resourceManager->GetTexture(m_gDepthTexture)) {
-      tex->Bind(3);
+      tex->Bind(5);
    }
    // Draw fullscreen mesh
    if (const IMesh* quadMesh = m_resourceManager->GetMesh(m_fullscreenQuad)) {

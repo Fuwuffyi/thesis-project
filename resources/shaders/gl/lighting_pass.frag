@@ -9,9 +9,9 @@ layout(std140, binding = 0) uniform CameraData {
    mat4 proj;
 } camera;
 
-layout(binding = 1) uniform sampler2D gAlbedo; // RGB color + A AO
-layout(binding = 2) uniform sampler2D gNormal; // RG encoded normal + B roughness + A metallic
-layout(binding = 3) uniform sampler2D gDepth; // R depth value
+layout(binding = 3) uniform sampler2D gAlbedo; // RGB color + A AO
+layout(binding = 4) uniform sampler2D gNormal; // RG encoded normal + B roughness + A metallic
+layout(binding = 5) uniform sampler2D gDepth; // R depth value
 
 vec3 getWorldPos(vec2 uv, float depth) {
    // Convert UV [0,1] -> NDC [-1,1]

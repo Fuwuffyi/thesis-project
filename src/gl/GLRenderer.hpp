@@ -3,8 +3,8 @@
 #include <cstdint>
 
 #include "core/IRenderer.hpp"
-
-#include "core/resource/ResourceHandle.hpp"
+#include "gl/GLBuffer.hpp"
+#include "core/resource/ITexture.hpp"
 
 class GLFramebuffer;
 class GLShader;
@@ -27,15 +27,18 @@ private:
 
    void LoadShaders();
 
+   void CreateUBOs();
+
    void CreateGBuffer();
    void CreateGeometryPass();
    void CreateLightingPass();
 
-   // TODO: Remove once scene impl complete
-   void CreateTestResources();
-
 private:
    MeshHandle m_fullscreenQuad;
+   // Create UBOs for shader data
+   std::unique_ptr<GLBuffer> m_cameraUbo = nullptr;
+   std::unique_ptr<GLBuffer> m_lightsUbo = nullptr;
+   std::unique_ptr<GLBuffer> m_materialUbo = nullptr;
    // Geometry pass things
    TextureHandle m_gDepthTexture;
    TextureHandle m_gAlbedoTexture; // RGB color + A AO

@@ -4,6 +4,7 @@
 #include "core/scene/Scene.hpp"
 #include "core/scene/components/RendererComponent.hpp"
 
+// TODO: Load materials and such
 Node* MeshLoaderHelper::LoadMeshIntoScene(Scene& scene, ResourceManager& resourceManager,
                                           const std::string& meshName, const std::string& filepath,
                                           const MeshLoadOptions& options) {
@@ -47,11 +48,6 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
    if (!parentNode || !meshGroup.IsValid()) {
       return;
    }
-   // TODO: Cleanup default material
-   static MaterialHandle defMaterialHandle;
-   if (resourceManager.GetMaterial("default_material") == nullptr) {
-      defMaterialHandle = resourceManager.CreateMaterial("default_material", "PBR");
-   }
    if (options.createSeparateNodes) {
       // Create separate nodes for each sub-mesh
       for (size_t i = 0; i < meshGroup.subMeshes.size(); ++i) {
@@ -60,11 +56,10 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
          std::unique_ptr<Node> childNode = std::make_unique<Node>(nodeName);
          childNode->AddComponent<TransformComponent>();
          // Create renderer component with single mesh
-         RendererComponent* renderer = childNode->AddComponent<RendererComponent>(meshHandle, defMaterialHandle);
+         RendererComponent* renderer = childNode->AddComponent<RendererComponent>(meshHandle);
          // Set material index for reference
          RendererComponent::SubMeshRenderer subMeshRenderer;
          subMeshRenderer.mesh = meshHandle;
-         subMeshRenderer.material = defMaterialHandle;
          renderer->AddSubMeshRenderer(subMeshRenderer);
          parentNode->AddChild(std::move(childNode));
       }
@@ -80,7 +75,6 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
          const auto& meshHandle = meshGroup.subMeshes[i];
          RendererComponent::SubMeshRenderer subMeshRenderer;
          subMeshRenderer.mesh = meshHandle;
-         subMeshRenderer.material = defMaterialHandle;
          renderer->AddSubMeshRenderer(subMeshRenderer);
       }
    }

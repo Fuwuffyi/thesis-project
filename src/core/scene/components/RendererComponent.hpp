@@ -3,31 +3,28 @@
 #include "core/scene/components/Component.hpp"
 
 #include "core/resource/IMesh.hpp"
-#include "core/resource/IMaterial.hpp"
 
 #include <vector>
 
+// TODO: Handle material/texture information
 class RendererComponent final : public Component {
 public:
    struct SubMeshRenderer {
       MeshHandle mesh;
-      MaterialHandle material;
       bool visible = true;
       bool castsShadows = true;
       bool receivesShadows = true;
    };
 
    RendererComponent() = default;
-   explicit RendererComponent(const MeshHandle mesh, const MaterialHandle material = MaterialHandle{});
-   explicit RendererComponent(const std::vector<MeshHandle>& meshes, const std::vector<MaterialHandle>& materials);
+   explicit RendererComponent(const MeshHandle mesh);
+   explicit RendererComponent(const std::vector<MeshHandle>& meshes);
 
    void DrawInspector(Node* node) override;
 
    // Mesh management
    void SetMesh(const MeshHandle mesh);
-   void SetMaterial(const MaterialHandle material);
    [[nodiscard]] const MeshHandle& GetMesh() const noexcept;
-   [[nodiscard]] const MaterialHandle& GetMaterial() const noexcept;
    [[nodiscard]] bool HasMesh() const noexcept;
 
    // Submesh management
@@ -40,7 +37,6 @@ public:
 
    // Individual sub-mesh control
    void SetSubMeshVisible(const size_t index, const bool visible);
-   void SetSubMeshMaterial(const size_t index, const MaterialHandle material);
    [[nodiscard]] bool IsSubMeshVisible(const size_t index) const;
 
    // Rendering properties
@@ -59,7 +55,6 @@ public:
 
 private:
    MeshHandle m_mesh;
-   MaterialHandle m_material;
    std::vector<SubMeshRenderer> m_subMeshRenderers;
 
    bool m_visible;

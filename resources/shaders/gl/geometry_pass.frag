@@ -8,7 +8,7 @@ layout(location = 2) in vec2 fragUV;
 layout(location = 0) out vec4 gAlbedo; // RGB color + A AO
 layout(location = 1) out vec4 gNormal; // RG encoded normal + B roughness + A metallic
 
-layout(binding = 1) uniform sampler2D texSampler;
+layout(binding = 3) uniform sampler2D texSampler;
 
 vec2 encodeOctNormal(vec3 n) {
    n /= (abs(n.x) + abs(n.y) + abs(n.z));

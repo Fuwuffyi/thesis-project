@@ -3,10 +3,6 @@
 #include "core/resource/IResourceFactory.hpp"
 #include "core/resource/ResourceHandle.hpp"
 
-#include "core/resource/MaterialLibrary.hpp"
-
-#include "core/resource/IMaterial.hpp"
-
 #include <shared_mutex>
 #include <unordered_map>
 
@@ -35,7 +31,6 @@ public:
    TextureHandle CreateRenderTarget(const std::string_view name, const uint32_t width, const uint32_t height,
                                     const ITexture::Format format = ITexture::Format::RGBA8, const uint32_t samples = 1);
    // Material management
-   MaterialHandle CreateMaterial(const std::string_view name, const std::string_view typeName);
    // Mesh management
    MeshHandle LoadMesh(const std::string_view name, const std::vector<Vertex>& vertices,
                        const std::vector<uint32_t>& indices);
@@ -43,16 +38,13 @@ public:
    MeshHandle LoadSingleMeshFromFile(const std::string_view name, const std::string_view filepath);
    // Resource access
    ITexture* GetTexture(const TextureHandle& handle) const;
-   IMaterial* GetMaterial(const MaterialHandle& handle) const;
    IMesh* GetMesh(const MeshHandle& handle) const;
    // Resource access by name
    ITexture* GetTexture(const std::string_view name) const;
-   IMaterial* GetMaterial(const std::string_view name) const;
    IMesh* GetMesh(const std::string_view name) const;
    const LoadedMeshGroup* GetMeshGroup(const std::string_view name) const;
    // Resource management
    void UnloadTexture(const TextureHandle& handle);
-   void UnloadMaterial(const MaterialHandle& handle);
    void UnloadMesh(const MeshHandle& handle);
    void UnloadTexture(const std::string_view name);
    void UnloadMaterial(const std::string_view name);
@@ -84,8 +76,6 @@ private:
    std::unordered_map<uint64_t, std::unique_ptr<ResourceEntry>> m_resources;
    std::unordered_map<std::string, uint64_t> m_nameToId;
    std::unordered_map<std::string, LoadedMeshGroup> m_meshGroups;
-
-   MaterialLibrary m_materialLibrary;
 
    mutable std::shared_mutex m_mutex;
    uint64_t m_nextId;
