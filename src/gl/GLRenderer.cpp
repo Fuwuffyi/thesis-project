@@ -34,7 +34,20 @@ struct CameraData {
 };
 
 struct LightData {
-   uint32_t lightCount;
+   alignas(4) uint32_t lightType;
+   alignas(16) glm::vec3 position;
+   alignas(16) glm::vec3 direction;
+   alignas(16) glm::vec3 color;
+   alignas(4) float innerCone;
+   alignas(4) float outerCone;
+   alignas(4) float attenuation;
+   alignas(4) float padding;
+};
+
+constexpr size_t MAX_LIGHTS = 256;
+struct LightsData {
+   alignas(4) uint32_t lightCount;
+   LightData lights[MAX_LIGHTS];
 };
 
 struct MaterialData {
@@ -189,7 +202,7 @@ void GLRenderer::CreateUBOs() {
    // Create lighting UBO
    m_lightsUbo = std::make_unique<GLBuffer>(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
    const LightData lightData{};
-   m_lightsUbo->UploadData(&lightData, sizeof(LightData));
+   m_lightsUbo->UploadData(&lightData, sizeof(LightsData));
    m_lightsUbo->BindBase(1);
    // Create material UBO
    m_materialUbo = std::make_unique<GLBuffer>(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
@@ -409,6 +422,29 @@ void GLRenderer::RenderFrame() {
    // Lighting pass
    m_lightingPass->Begin();
    m_lightingPass->SetShader(m_lightingPassShader.get());
+   LightsData lightsData{};
+   lightsData.lightCount = 0;
+   if (m_activeScene) {
+      m_activeScene->ForEachNode([&](Node* node) {
+         if (const LightComponent* lightComp = node->GetComponent<LightComponent>();
+            lightComp && lightsData.lightCount < MAX_LIGHTS) {
+            if (const TransformComponent* transformComp = node->GetComponent<TransformComponent>()) {
+               LightData& light = lightsData.lights[lightsData.lightCount];
+               light.lightType = static_cast<uint32_t>(lightComp->GetType());
+               light.color = lightComp->GetColor();
+               light.attenuation = lightComp->GetAttenuation();
+               const Transform transform = transformComp->GetTransform();
+               light.position = transform.GetPosition();
+               light.direction = transform.GetForward();
+               // Spot light cone angles
+               light.innerCone = lightComp->GetInnerCone();
+               light.outerCone = lightComp->GetOuterCone();
+               ++lightsData.lightCount;
+            }
+         }
+      });
+   }
+   m_lightsUbo->UpdateData(&lightsData, sizeof(LightsData));
    // Bind g buffer textures
    if (const ITexture* tex = m_resourceManager->GetTexture(m_gAlbedoTexture)) {
       tex->Bind(3);
