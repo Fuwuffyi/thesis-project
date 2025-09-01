@@ -31,6 +31,8 @@
 struct CameraData {
    alignas(16) glm::mat4 view;
    alignas(16) glm::mat4 proj;
+   alignas(16) glm::vec3 viewPos;
+   alignas(16) glm::vec3 viewDir;
 };
 
 struct LightData {
@@ -38,10 +40,12 @@ struct LightData {
    alignas(16) glm::vec3 position;
    alignas(16) glm::vec3 direction;
    alignas(16) glm::vec3 color;
+   alignas(4) float intensity;
+   alignas(4) float constant;
+   alignas(4) float linear;
+   alignas(4) float quadratic;
    alignas(4) float innerCone;
    alignas(4) float outerCone;
-   alignas(4) float attenuation;
-   alignas(4) float padding;
 };
 
 constexpr size_t MAX_LIGHTS = 256;
@@ -379,7 +383,9 @@ void GLRenderer::RenderFrame() {
    // Update the camera
    const CameraData camData = {
       m_activeCamera->GetViewMatrix(),
-      m_activeCamera->GetProjectionMatrix()
+      m_activeCamera->GetProjectionMatrix(),
+      m_activeCamera->GetTransform().GetPosition(),
+      m_activeCamera->GetTransform().GetForward()
    };
    m_cameraUbo->UpdateData(&camData, sizeof(CameraData));
    m_geometryPass->Begin();
@@ -432,7 +438,10 @@ void GLRenderer::RenderFrame() {
                LightData& light = lightsData.lights[lightsData.lightCount];
                light.lightType = static_cast<uint32_t>(lightComp->GetType());
                light.color = lightComp->GetColor();
-               light.attenuation = lightComp->GetAttenuation();
+               light.intensity = lightComp->GetIntensity();
+               light.constant = lightComp->GetConstant();
+               light.linear = lightComp->GetLinear();
+               light.quadratic = lightComp->GetQuadratic();
                const Transform transform = transformComp->GetTransform();
                light.position = transform.GetPosition();
                light.direction = transform.GetForward();

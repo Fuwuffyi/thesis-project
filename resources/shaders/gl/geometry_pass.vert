@@ -7,6 +7,8 @@ layout(location = 2) in vec2 inUV;
 layout(std140, binding = 0) uniform CameraData {
    mat4 view;
    mat4 proj;
+   vec3 viewPos;
+   vec3 viewDir;
 } camera;
 
 layout(location = 0) out vec3 fragColor;
