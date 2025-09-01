@@ -16,6 +16,8 @@ public:
    Scene& operator=(const Scene&) = delete;
    Scene(Scene&&) = default;
    Scene& operator=(Scene&&) = default;
+   
+   void DrawInspector();
 
    [[nodiscard]] Node* GetRootNode() const noexcept;
 

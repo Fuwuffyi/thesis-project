@@ -241,6 +241,7 @@ void GLRenderer::RenderImgui() {
    ImGui_ImplGlfw_NewFrame();
    ImGui::NewFrame();
    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+   m_activeScene->DrawInspector();
    // FPS Overlay
    {
       ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
@@ -256,89 +257,6 @@ void GLRenderer::RenderImgui() {
       ImGui::Text("Resource MEM: %.3f MB", static_cast<float>(m_resourceManager->GetTotalMemoryUsage()) /
                   (1024.0f * 1024.0f));
       ImGui::End();
-   }
-   // Scene graph
-   {
-      static Node* selectedNode = nullptr;
-      ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + viewport->WorkSize.x - 300, viewport->WorkPos.y)); // 300 px width
-      ImGui::SetNextWindowSize(ImVec2(300, viewport->WorkSize.y));
-      ImGui::SetNextWindowBgAlpha(0.35f);
-      ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
-         ImGuiWindowFlags_NoMove |
-         ImGuiWindowFlags_NoCollapse |
-         ImGuiWindowFlags_NoResize |
-         ImGuiWindowFlags_NoSavedSettings |
-         ImGuiWindowFlags_NoFocusOnAppearing |
-         ImGuiWindowFlags_NoNav;
-      ImGui::Begin("Scene Graph", nullptr, flags);
-      if (m_activeScene) {
-         // Recursive function to display hierarchy
-         std::function<void(Node*)> displayNodeHierarchy = [&](Node* node) {
-            if (!node) return;
-            ImGui::PushID(node);
-            // Tree node display
-            bool hasChildren = node->GetChildCount() > 0;
-            ImGuiTreeNodeFlags nodeFlags =
-               ImGuiTreeNodeFlags_OpenOnArrow |
-               ImGuiTreeNodeFlags_OpenOnDoubleClick |
-               ImGuiTreeNodeFlags_SpanAvailWidth |
-               (hasChildren ? 0 : ImGuiTreeNodeFlags_Leaf);
-            if (selectedNode == node) nodeFlags |= ImGuiTreeNodeFlags_Selected;
-            bool open = ImGui::TreeNodeEx("##treenode", nodeFlags, node->GetName().c_str());
-            // Select object
-            if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen()) {
-               selectedNode = node;
-            }
-            // Show active checkbox on right side
-            ImGui::SameLine(ImGui::GetContentRegionAvail().x - 25);
-            bool active = node->IsActive();
-            if (ImGui::Checkbox("##active", &active)) {
-               node->SetActive(active);
-            }
-            // Children
-            if (open) {
-               node->ForEachChild([&](Node* child) {
-                  displayNodeHierarchy(child);
-               }, false);
-               ImGui::TreePop();
-            }
-            ImGui::PopID();
-         };
-         // Start from root
-         Node* root = m_activeScene->GetRootNode();
-         if (root) {
-            displayNodeHierarchy(root);
-         }
-      }
-      ImGui::End();
-      if (selectedNode) {
-         ImGui::SetNextWindowBgAlpha(0.35f);
-         ImGui::Begin("Inspector");
-         if (TransformComponent* comp = selectedNode->GetComponent<TransformComponent>())
-            comp->DrawInspector(selectedNode);
-         if (RendererComponent* comp = selectedNode->GetComponent<RendererComponent>())
-            comp->DrawInspector(selectedNode);
-         if (LightComponent* comp = selectedNode->GetComponent<LightComponent>())
-            comp->DrawInspector(selectedNode);
-         if (ImGui::Button("Add component"))
-            ImGui::OpenPopup("add_component_popup");
-         if (ImGui::BeginPopup("add_component_popup")) {
-            if (!selectedNode->HasComponent<TransformComponent>() && ImGui::Button("Transform")) {
-               selectedNode->AddComponent<TransformComponent>();
-               ImGui::CloseCurrentPopup();
-            }
-            if (!selectedNode->HasComponent<RendererComponent>() && ImGui::Button("Renderer")) {
-               selectedNode->AddComponent<RendererComponent>();
-               ImGui::CloseCurrentPopup();
-            }
-            if (!selectedNode->HasComponent<LightComponent>() && ImGui::Button("Light")) {
-               selectedNode->AddComponent<LightComponent>();
-               ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-         }
-         ImGui::End();
-      }
    }
    // Show textures
    {

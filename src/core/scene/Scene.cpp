@@ -2,13 +2,17 @@
 
 #include "core/scene/Node.hpp"
 
+#include "core/scene/components/LightComponent.hpp"
+#include "core/scene/components/RendererComponent.hpp"
 #include "core/scene/components/TransformComponent.hpp"
+
+#include <imgui.h>
 
 #include <algorithm>
 #include <queue>
 
 Scene::Scene(std::string name)
-:
+   :
    m_name(std::move(name)),
    m_nodeCounter(0)
 {
@@ -19,6 +23,101 @@ Scene::Scene(std::string name)
 
 Scene::~Scene() {
    Clear();
+}
+
+void Scene::DrawInspector() {
+   const ImGuiViewport* viewport = ImGui::GetMainViewport();
+   static Node* selectedNode = nullptr;
+   ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + viewport->WorkSize.x - 300, viewport->WorkPos.y)); // 300 px width
+   ImGui::SetNextWindowSize(ImVec2(300, viewport->WorkSize.y));
+   ImGui::SetNextWindowBgAlpha(0.35f);
+   ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
+      ImGuiWindowFlags_NoMove |
+      ImGuiWindowFlags_NoCollapse |
+      ImGuiWindowFlags_NoResize |
+      ImGuiWindowFlags_NoSavedSettings |
+      ImGuiWindowFlags_NoFocusOnAppearing |
+      ImGuiWindowFlags_NoNav;
+   ImGui::Begin("Scene Graph", nullptr, flags);
+   // Recursive function to display hierarchy
+   std::function<void(Node*)> displayNodeHierarchy = [&](Node* node) {
+      if (!node) return;
+      ImGui::PushID(node);
+      // Tree node display
+      bool hasChildren = node->GetChildCount() > 0;
+      ImGuiTreeNodeFlags nodeFlags =
+         ImGuiTreeNodeFlags_OpenOnArrow |
+         ImGuiTreeNodeFlags_OpenOnDoubleClick |
+         ImGuiTreeNodeFlags_SpanAvailWidth |
+         (hasChildren ? 0 : ImGuiTreeNodeFlags_Leaf);
+      if (selectedNode == node) nodeFlags |= ImGuiTreeNodeFlags_Selected;
+      bool open = ImGui::TreeNodeEx("##treenode", nodeFlags, node->GetName().c_str());
+      // Select object
+      if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen()) {
+         selectedNode = node;
+      }
+      // Show active checkbox on right side
+      ImGui::SameLine(ImGui::GetContentRegionAvail().x - 25);
+      bool active = node->IsActive();
+      if (ImGui::Checkbox("##active", &active)) {
+         node->SetActive(active);
+      }
+      // Children
+      if (open) {
+         node->ForEachChild([&](Node* child) {
+            displayNodeHierarchy(child);
+         }, false);
+         ImGui::TreePop();
+      }
+      ImGui::PopID();
+   };
+   // Start from root
+   if (m_rootNode) {
+      displayNodeHierarchy(m_rootNode.get());
+   }
+   ImGui::End();
+   if (selectedNode) {
+      ImGui::SetNextWindowBgAlpha(0.35f);
+      ImGui::Begin("Inspector");
+      if (TransformComponent* comp = selectedNode->GetComponent<TransformComponent>())
+         comp->DrawInspector(selectedNode);
+      if (RendererComponent* comp = selectedNode->GetComponent<RendererComponent>())
+         comp->DrawInspector(selectedNode);
+      if (LightComponent* comp = selectedNode->GetComponent<LightComponent>())
+         comp->DrawInspector(selectedNode);
+      if (ImGui::Button("Add component"))
+         ImGui::OpenPopup("add_component_popup");
+      if (ImGui::BeginPopup("add_component_popup")) {
+         if (!selectedNode->HasComponent<TransformComponent>() && ImGui::Button("Transform")) {
+            selectedNode->AddComponent<TransformComponent>();
+            ImGui::CloseCurrentPopup();
+         }
+         if (!selectedNode->HasComponent<RendererComponent>() && ImGui::Button("Renderer")) {
+            selectedNode->AddComponent<RendererComponent>();
+            ImGui::CloseCurrentPopup();
+         }
+         if (!selectedNode->HasComponent<LightComponent>() && ImGui::Button("Light")) {
+            selectedNode->AddComponent<LightComponent>();
+            ImGui::CloseCurrentPopup();
+         }
+         ImGui::EndPopup();
+      }
+      static char childName[60] = {};
+      if (ImGui::Button("Add child"))
+         ImGui::OpenPopup("add_child_popup");
+      if (ImGui::BeginPopup("add_child_popup")) {
+         ImGui::InputText("Child Name", childName, IM_ARRAYSIZE(childName));
+         if (ImGui::Button("Add")) {
+            if (strlen(childName) > 0) {
+               this->CreateChildNode(selectedNode, std::string_view{childName});
+               childName[0] = '\0';
+               ImGui::CloseCurrentPopup();
+            }
+         }
+         ImGui::EndPopup();
+      }
+      ImGui::End();
+   }
 }
 
 [[nodiscard]] Node* Scene::GetRootNode() const noexcept {
