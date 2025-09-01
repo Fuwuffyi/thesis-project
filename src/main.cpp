@@ -6,6 +6,7 @@
 #include "core/scene/Scene.hpp"
 #include "core/scene/MeshLoaderHelper.hpp"
 #include "core/scene/Node.hpp"
+#include "core/scene/components/LightComponent.hpp"
 #include "glm/trigonometric.hpp"
 
 #include <GLFW/glfw3.h>
@@ -81,6 +82,12 @@ int main(int argc, char* argv[]) {
                                                                { .createSeparateNodes = true });
       sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
       renderer->SetActiveScene(&scene);
+
+      // Create a testing light
+      Node* lightNode = scene.CreateNode("Light node");
+      lightNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 1.0f, 0.0f));
+      LightComponent* light = lightNode->AddComponent<LightComponent>();
+      light->SetType(LightComponent::LightType::Spot);
 
       // Setup events
       EventSystem* events = window.GetEventSystem();
