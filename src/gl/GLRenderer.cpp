@@ -319,6 +319,9 @@ void GLRenderer::RenderFrame() {
    if (const ITexture* tex = m_resourceManager->GetTexture("testing_roughness")) {
       tex->Bind(6);
    }
+   if (const ITexture* tex = m_resourceManager->GetTexture("testing_ao")) {
+      tex->Bind(7);
+   }
    // Draw the scene
    if (m_activeScene) {
       m_activeScene->UpdateTransforms();

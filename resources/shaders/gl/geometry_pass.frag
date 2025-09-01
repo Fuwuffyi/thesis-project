@@ -18,6 +18,7 @@ layout(binding = 3) uniform sampler2D texAlbedo;
 layout(binding = 4) uniform sampler2D texDisplacement;
 layout(binding = 5) uniform sampler2D texNormal;
 layout(binding = 6) uniform sampler2D texRoughness;
+layout(binding = 7) uniform sampler2D texAO;
 
 mat3 computeTBN(vec3 N, vec2 uv, vec3 pos) {
    vec3 dp1 = dFdx(pos);
@@ -52,7 +53,7 @@ void main() {
    vec3 normalTS = texture(texNormal, parallaxUV).rgb * 2.0 - 1.0;
    vec3 normalWS = normalize(TBN * normalTS);
    // Write g-buffer
-   gAlbedo = vec4(texture(texAlbedo, parallaxUV).rgb, 1.0);
+   gAlbedo = vec4(texture(texAlbedo, parallaxUV).rgb, texture(texAO, parallaxUV).r);
    gNormal = vec4(encodeOctNormal(normalWS), texture(texRoughness, parallaxUV).r, 0.0);
 }
 

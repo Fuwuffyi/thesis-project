@@ -58,11 +58,12 @@ int main(int argc, char* argv[]) {
       ResourceManager* resourceManager = renderer->GetResourceManager();
       // FIXME: Currently vulkan loads texture statically
       if (api == GraphicsAPI::OpenGL) {
-         resourceManager->LoadTexture("testing_albedo", "resources/textures/texture_base.jpg", true, true);
+         resourceManager->LoadTexture("testing_albedo", "resources/textures/bricks_color.jpg", true, true);
       }
-      resourceManager->LoadTexture("testing_displacement", "resources/textures/texture_displ.jpg", true, false);
-      resourceManager->LoadTexture("testing_normal", "resources/textures/texture_normal.jpg", true, false);
-      resourceManager->LoadTexture("testing_roughness", "resources/textures/texture_roughness.jpg", true, false);
+      resourceManager->LoadTexture("testing_displacement", "resources/textures/bricks_displacement.jpg", true, false);
+      resourceManager->LoadTexture("testing_normal", "resources/textures/bricks_normal.jpg", true, false);
+      resourceManager->LoadTexture("testing_roughness", "resources/textures/bricks_roughness.jpg", true, false);
+      resourceManager->LoadTexture("testing_ao", "resources/textures/bricks_ao.jpg", true, false);
 
       // Create the camera
       const glm::vec3 startPos = glm::vec3(2.0f);

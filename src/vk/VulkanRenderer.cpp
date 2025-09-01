@@ -348,7 +348,7 @@ void VulkanRenderer::CreateDepthResources() {
 }
 
 void VulkanRenderer::CreateTestResources() {
-   m_texture = m_resourceManager->LoadTexture("test_texture", "resources/textures/texture_base.jpg");
+   m_texture = m_resourceManager->LoadTexture("test_texture", "resources/textures/bricks_color.jpg");
    m_textureSampler = std::make_unique<VulkanSampler>(
       VulkanSampler::CreateAnisotropic(m_device, 16.0f)
    );
