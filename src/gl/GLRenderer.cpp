@@ -32,7 +32,6 @@ struct CameraData {
    alignas(16) glm::mat4 view;
    alignas(16) glm::mat4 proj;
    alignas(16) glm::vec3 viewPos;
-   alignas(16) glm::vec3 viewDir;
 };
 
 struct LightData {
@@ -303,7 +302,6 @@ void GLRenderer::RenderFrame() {
       m_activeCamera->GetViewMatrix(),
       m_activeCamera->GetProjectionMatrix(),
       m_activeCamera->GetTransform().GetPosition(),
-      m_activeCamera->GetTransform().GetForward()
    };
    m_cameraUbo->UpdateData(&camData, sizeof(CameraData));
    m_geometryPass->Begin();
@@ -311,6 +309,15 @@ void GLRenderer::RenderFrame() {
    // Set up shader texture test
    if (const ITexture* tex = m_resourceManager->GetTexture("testing_albedo")) {
       tex->Bind(3);
+   }
+   if (const ITexture* tex = m_resourceManager->GetTexture("testing_displacement")) {
+      tex->Bind(4);
+   }
+   if (const ITexture* tex = m_resourceManager->GetTexture("testing_normal")) {
+      tex->Bind(5);
+   }
+   if (const ITexture* tex = m_resourceManager->GetTexture("testing_roughness")) {
+      tex->Bind(6);
    }
    // Draw the scene
    if (m_activeScene) {

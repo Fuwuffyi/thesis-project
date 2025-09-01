@@ -8,10 +8,9 @@ layout(std140, binding = 0) uniform CameraData {
    mat4 view;
    mat4 proj;
    vec3 viewPos;
-   vec3 viewDir;
 } camera;
 
-layout(location = 0) out vec3 fragColor;
+layout(location = 0) out vec3 fragPos;
 layout(location = 1) out vec3 fragNormal;
 layout(location = 2) out vec2 fragUV;
 
@@ -24,7 +23,7 @@ void main() {
    mat3 normalMatrix = transpose(inverse(mat3(model)));
    fragNormal = normalize(normalMatrix * inNormal);
    // Interpolate other values to fragment shader
-   fragColor = inNormal;
+   fragPos = worldPos.xyz;
    fragUV = inUV;
    // Move object according to camera as well
    gl_Position = camera.proj * camera.view * worldPos;
