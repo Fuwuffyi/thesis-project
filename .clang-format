@@ -1,0 +1,29 @@
+# .clang-format - Google base style, with 3-space indentation
+BasedOnStyle: Google
+
+# Indentation
+IndentWidth: 3
+TabWidth: 3
+UseTab: Never
+ContinuationIndentWidth: 3
+
+# Line length & braces
+ColumnLimit: 100
+BreakBeforeBraces: Attach
+
+# Code layout behavior
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# Includes / pointers
+SortIncludes: false
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+# Alignments (reduce noisy diffs)
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+
+# Comments/other
+SpacesBeforeTrailingComments: 1
+Standard: Auto

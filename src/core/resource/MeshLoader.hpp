@@ -10,7 +10,8 @@ struct aiScene;
 struct aiNode;
 struct aiMesh;
 
-namespace MeshLoader {
+class MeshLoader final {
+  public:
    // Structure to hold data for a single sub-mesh
    struct SubMesh {
       std::vector<Vertex> vertices;
@@ -32,13 +33,12 @@ namespace MeshLoader {
       std::pair<std::vector<Vertex>, std::vector<uint32_t>> GetCombinedData() const;
    };
 
-   MeshData LoadMesh(std::string_view filepath);
+   static MeshData LoadMesh(std::string_view filepath);
 
-   namespace Internal {
-      void ProcessNode(const aiScene* scene, const aiNode* node, std::vector<SubMesh>& subMeshes);
-      SubMesh ProcessMesh(const aiScene* scene, const aiMesh* mesh);
-      void ExtractVertexData(const aiMesh* mesh, std::vector<Vertex>& vertices);
-      void ExtractIndexData(const aiMesh* mesh, std::vector<uint32_t>& indices);
-   };
+  private:
+   static void ProcessNode(const aiScene* scene, const aiNode* node,
+                           std::vector<SubMesh>& subMeshes);
+   static SubMesh ProcessMesh(const aiScene* scene, const aiMesh* mesh);
+   static void ExtractVertexData(const aiMesh* mesh, std::vector<Vertex>& vertices);
+   static void ExtractIndexData(const aiMesh* mesh, std::vector<uint32_t>& indices);
 };
-

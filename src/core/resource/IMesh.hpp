@@ -4,7 +4,7 @@
 #include "core/resource/ResourceHandle.hpp"
 
 class IMesh : public IResource {
-public:
+  public:
    virtual ~IMesh() = default;
    virtual void Draw() const = 0;
    virtual size_t GetVertexCount() const = 0;
@@ -13,4 +13,3 @@ public:
 };
 
 using MeshHandle = ResourceHandle<IMesh>;
-

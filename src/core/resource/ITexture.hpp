@@ -6,32 +6,12 @@
 #include <cstdint>
 
 class ITexture : public IResource {
-public:
-   enum class Format {
-      RGBA8,
-      RGBA16F,
-      RGBA32F,
-      SRGB8_ALPHA8,
-      Depth24,
-      Depth32F,
-      R8,
-      RG8,
-      RGB8
-   };
+  public:
+   enum class Format { RGBA8, RGBA16F, RGBA32F, SRGB8_ALPHA8, Depth24, Depth32F, R8, RG8, RGB8 };
 
-   enum class FilterMode {
-      Nearest,
-      Linear,
-      LinearMipmapLinear,
-      NearestMipmapNearest
-   };
+   enum class FilterMode { Nearest, Linear, LinearMipmapLinear, NearestMipmapNearest };
 
-   enum class WrapMode {
-      Repeat,
-      ClampToEdge,
-      ClampToBorder,
-      MirroredRepeat
-   };
+   enum class WrapMode { Repeat, ClampToEdge, ClampToBorder, MirroredRepeat };
 
    struct CreateInfo {
       uint32_t width = 0;
@@ -58,4 +38,3 @@ public:
 };
 
 using TextureHandle = ResourceHandle<ITexture>;
-

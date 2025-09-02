@@ -8,30 +8,22 @@
 #include <stdexcept>
 
 ResourceManager::ResourceManager(std::unique_ptr<IResourceFactory> factory)
-   :
-   m_factory(std::move(factory)),
-   m_nextId(1)
-{
+    : m_factory(std::move(factory)), m_nextId(1) {
    if (!m_factory) {
       throw std::invalid_argument("ResourceFactory cannot be null.");
    }
 }
 
-ResourceManager::~ResourceManager() {
-   UnloadAll();
-}
+ResourceManager::~ResourceManager() { UnloadAll(); }
 
-bool ResourceManager::LoadedMeshGroup::IsValid() const noexcept {
-   return !subMeshes.empty();
-}
+bool ResourceManager::LoadedMeshGroup::IsValid() const noexcept { return !subMeshes.empty(); }
 
-uint64_t ResourceManager::GetNextId() {
-   return m_nextId++;
-}
+uint64_t ResourceManager::GetNextId() { return m_nextId++; }
 
-template<typename T>
+template <typename T>
 ResourceHandle<T> ResourceManager::RegisterResource(const std::string_view name,
-                                                    std::unique_ptr<T> resource, std::string_view filepath) {
+                                                    std::unique_ptr<T> resource,
+                                                    std::string_view filepath) {
    if (!resource || !resource->IsValid()) {
       return ResourceHandle<T>{};
    }
@@ -59,36 +51,43 @@ ResourceHandle<T> ResourceManager::RegisterResource(const std::string_view name,
    return ResourceHandle<T>(id);
 }
 
-TextureHandle ResourceManager::LoadTexture(const std::string_view name, const std::string_view filepath,
+TextureHandle ResourceManager::LoadTexture(const std::string_view name,
+                                           const std::string_view filepath,
                                            const bool generateMipmaps, const bool sRGB) {
    auto texture = m_factory->CreateTextureFromFile(filepath, generateMipmaps, sRGB);
    return RegisterResource<ITexture>(name, std::move(texture), filepath);
 }
 
-TextureHandle ResourceManager::CreateTexture(const std::string_view name, const ITexture::CreateInfo& info) {
+TextureHandle ResourceManager::CreateTexture(const std::string_view name,
+                                             const ITexture::CreateInfo& info) {
    auto texture = m_factory->CreateTexture(info);
    return RegisterResource<ITexture>(name, std::move(texture));
 }
 
-TextureHandle ResourceManager::CreateDepthTexture(const std::string_view name, const uint32_t width, const uint32_t height,
+TextureHandle ResourceManager::CreateDepthTexture(const std::string_view name, const uint32_t width,
+                                                  const uint32_t height,
                                                   const ITexture::Format format) {
    auto texture = m_factory->CreateDepthTexture(width, height, format);
    return RegisterResource<ITexture>(name, std::move(texture));
 }
 
-TextureHandle ResourceManager::CreateRenderTarget(const std::string_view name, const uint32_t width, const uint32_t height,
-                                                  const ITexture::Format format, const uint32_t samples) {
+TextureHandle ResourceManager::CreateRenderTarget(const std::string_view name, const uint32_t width,
+                                                  const uint32_t height,
+                                                  const ITexture::Format format,
+                                                  const uint32_t samples) {
    auto texture = m_factory->CreateRenderTarget(width, height, format, samples);
    return RegisterResource<ITexture>(name, std::move(texture));
 }
 
-MeshHandle ResourceManager::LoadMesh(const std::string_view name, const std::vector<Vertex>& vertices,
+MeshHandle ResourceManager::LoadMesh(const std::string_view name,
+                                     const std::vector<Vertex>& vertices,
                                      const std::vector<uint32_t>& indices) {
    auto mesh = m_factory->CreateMesh(vertices, indices);
    return RegisterResource<IMesh>(name, std::move(mesh));
 }
 
-ResourceManager::LoadedMeshGroup ResourceManager::LoadMeshFromFile(const std::string_view name, const std::string_view filepath) {
+ResourceManager::LoadedMeshGroup ResourceManager::LoadMeshFromFile(
+   const std::string_view name, const std::string_view filepath) {
    std::unique_lock lock(m_mutex);
    const std::string nameStr{name};
    // Check if mesh group already exists
@@ -131,7 +130,8 @@ ResourceManager::LoadedMeshGroup ResourceManager::LoadMeshFromFile(const std::st
    return meshGroup;
 }
 
-MeshHandle ResourceManager::LoadSingleMeshFromFile(const std::string_view name, const std::string_view filepath) {
+MeshHandle ResourceManager::LoadSingleMeshFromFile(const std::string_view name,
+                                                   const std::string_view filepath) {
    const MeshLoader::MeshData meshData = MeshLoader::LoadMesh(filepath);
    if (meshData.IsEmpty()) {
       return MeshHandle{};
@@ -141,9 +141,9 @@ MeshHandle ResourceManager::LoadSingleMeshFromFile(const std::string_view name, 
    return RegisterResource<IMesh>(name, std::move(mesh), filepath);
 }
 
-
 ITexture* ResourceManager::GetTexture(const TextureHandle& handle) const {
-   if (!handle.IsValid()) return nullptr;
+   if (!handle.IsValid())
+      return nullptr;
    std::shared_lock lock(m_mutex);
    if (auto it = m_resources.find(handle.GetId()); it != m_resources.end()) {
       return static_cast<ITexture*>(it->second->resource.get());
@@ -152,7 +152,8 @@ ITexture* ResourceManager::GetTexture(const TextureHandle& handle) const {
 }
 
 IMesh* ResourceManager::GetMesh(const MeshHandle& handle) const {
-   if (!handle.IsValid()) return nullptr;
+   if (!handle.IsValid())
+      return nullptr;
    std::shared_lock lock(m_mutex);
    if (auto it = m_resources.find(handle.GetId()); it != m_resources.end()) {
       return static_cast<IMesh*>(it->second->resource.get());
@@ -160,7 +161,8 @@ IMesh* ResourceManager::GetMesh(const MeshHandle& handle) const {
    return nullptr;
 }
 
-const ResourceManager::LoadedMeshGroup* ResourceManager::GetMeshGroup(const std::string_view name) const {
+const ResourceManager::LoadedMeshGroup* ResourceManager::GetMeshGroup(
+   const std::string_view name) const {
    std::shared_lock lock(m_mutex);
    const std::string nameStr{name};
    if (auto it = m_meshGroups.find(nameStr); it != m_meshGroups.end()) {
@@ -199,13 +201,15 @@ void ResourceManager::RemoveResource(const uint64_t id) {
 }
 
 void ResourceManager::UnloadTexture(const TextureHandle& handle) {
-   if (!handle.IsValid()) return;
+   if (!handle.IsValid())
+      return;
    std::unique_lock lock(m_mutex);
    RemoveResource(handle.GetId());
 }
 
 void ResourceManager::UnloadMesh(const MeshHandle& handle) {
-   if (!handle.IsValid()) return;
+   if (!handle.IsValid())
+      return;
    std::unique_lock lock(m_mutex);
    RemoveResource(handle.GetId());
 }
@@ -255,33 +259,27 @@ void ResourceManager::UnloadAll() {
 
 size_t ResourceManager::GetTotalMemoryUsage() const {
    std::shared_lock lock(m_mutex);
-   auto memoryUsages = m_resources
-      | std::ranges::views::values
-      | std::ranges::views::transform([](const auto& entry) {
-         return entry->resource->GetMemoryUsage();
-      });
+   auto memoryUsages = m_resources | std::ranges::views::values |
+                       std::ranges::views::transform(
+                          [](const auto& entry) { return entry->resource->GetMemoryUsage(); });
    return std::accumulate(memoryUsages.begin(), memoryUsages.end(), size_t{0});
 }
 
 size_t ResourceManager::GetResourceCount() const {
    std::shared_lock lock(m_mutex);
-   return m_resources.size();;
+   return m_resources.size();
+   ;
 }
 
 std::vector<std::pair<ITexture*, std::string>> ResourceManager::GetAllTexturesNamed() {
    std::shared_lock lock(m_mutex);
    std::vector<std::pair<ITexture*, std::string>> textures;
-   auto textureEntries = m_resources 
-      | std::views::values
-      | std::views::filter([](const auto& entry) {
-         return entry && entry->resource && 
-         entry->resource->GetType() == ResourceType::Texture;
-      })
-      | std::views::transform([](const auto& entry) {
-         return std::make_pair(
-            static_cast<ITexture*>(entry->resource.get()),
-            entry->name
-         );
+   auto textureEntries =
+      m_resources | std::views::values | std::views::filter([](const auto& entry) {
+         return entry && entry->resource && entry->resource->GetType() == ResourceType::Texture;
+      }) |
+      std::views::transform([](const auto& entry) {
+         return std::make_pair(static_cast<ITexture*>(entry->resource.get()), entry->name);
       });
    std::ranges::copy(textureEntries, std::back_inserter(textures));
    return textures;
@@ -290,25 +288,19 @@ std::vector<std::pair<ITexture*, std::string>> ResourceManager::GetAllTexturesNa
 std::vector<std::pair<IMesh*, std::string>> ResourceManager::GetAllMeshesNamed() {
    std::shared_lock lock(m_mutex);
    std::vector<std::pair<IMesh*, std::string>> meshes;
-   auto meshEntries = m_resources 
-      | std::views::values
-      | std::views::filter([](const auto& entry) {
-         return entry && entry->resource && 
-         entry->resource->GetType() == ResourceType::Mesh;
-      })
-      | std::views::transform([](const auto& entry) {
-         return std::make_pair(
-            static_cast<IMesh*>(entry->resource.get()),
-            entry->name
-         );
+   auto meshEntries =
+      m_resources | std::views::values | std::views::filter([](const auto& entry) {
+         return entry && entry->resource && entry->resource->GetType() == ResourceType::Mesh;
+      }) |
+      std::views::transform([](const auto& entry) {
+         return std::make_pair(static_cast<IMesh*>(entry->resource.get()), entry->name);
       });
    std::ranges::copy(meshEntries, std::back_inserter(meshes));
    return meshes;
 }
 
-
 template ResourceHandle<ITexture> ResourceManager::RegisterResource<ITexture>(
    std::string_view, std::unique_ptr<ITexture>, std::string_view);
-template ResourceHandle<IMesh> ResourceManager::RegisterResource<IMesh>(
-   std::string_view, std::unique_ptr<IMesh>, std::string_view);
-
+template ResourceHandle<IMesh> ResourceManager::RegisterResource<IMesh>(std::string_view,
+                                                                        std::unique_ptr<IMesh>,
+                                                                        std::string_view);
