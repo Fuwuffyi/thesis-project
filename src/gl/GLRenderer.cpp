@@ -57,18 +57,13 @@ struct MaterialData {
    float val = 0.0f;
 };
 
-GLRenderer::GLRenderer(Window* window)
-   :
-   IRenderer(window)
-{
+GLRenderer::GLRenderer(Window* window) : IRenderer(window) {
    // Load OpenGL function pointers
    if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
       throw std::runtime_error("GLAD init failed.");
    }
    // Setup resource manager
-   m_resourceManager = std::make_unique<ResourceManager>(
-      std::make_unique<GLResourceFactory>()
-   );
+   m_resourceManager = std::make_unique<ResourceManager>(std::make_unique<GLResourceFactory>());
    // Setup imgui
    SetupImgui();
    // Create the fullscreen quad for lighting pass
@@ -78,16 +73,11 @@ GLRenderer::GLRenderer(Window* window)
    // Create shader ubos
    CreateUBOs();
    // Set initial viewport (sets up g-buffer too)
-   FramebufferCallback(
-      static_cast<int32_t>(m_window->GetWidth()),
-      static_cast<int32_t>(m_window->GetHeight())
-   );
+   FramebufferCallback(static_cast<int32_t>(m_window->GetWidth()),
+                       static_cast<int32_t>(m_window->GetHeight()));
    // Setup framebuffer callback
    window->SetResizeCallback(
-      [this](int32_t width, int32_t height) {
-         FramebufferCallback(width, height);
-      }
-   );
+      [this](int32_t width, int32_t height) { FramebufferCallback(width, height); });
    // Create lighting pass resources
    CreateLightingPass();
 }
@@ -95,8 +85,7 @@ GLRenderer::GLRenderer(Window* window)
 void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) {
    glViewport(0, 0, width, height);
    if (m_activeCamera) {
-      m_activeCamera->SetAspectRatio(static_cast<float>(width) /
-                                     static_cast<float>(height));
+      m_activeCamera->SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
    }
    CreateGBuffer();
    CreateGeometryPass();
@@ -104,27 +93,29 @@ void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) 
 
 void GLRenderer::CreateFullscreenQuad() {
    const std::vector<Vertex> quadVerts = {
-      { glm::vec3(-1.0f, -1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(0.0f, 0.0f) },
-      { glm::vec3(1.0f, -1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(1.0f, 0.0f) },
-      { glm::vec3(1.0f, 1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(1.0f, 1.0f) },
-      { glm::vec3(-1.0f, 1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(0.0f, 1.0f) },
+      {glm::vec3(-1.0f, -1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(0.0f, 0.0f)},
+      {glm::vec3(1.0f, -1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(1.0f, 0.0f)},
+      {glm::vec3(1.0f, 1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(1.0f, 1.0f)},
+      {glm::vec3(-1.0f, 1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(0.0f, 1.0f)},
    };
-   const std::vector<uint32_t> quadInds ={
-      0, 1, 2, 2, 3, 0
-   };
+   const std::vector<uint32_t> quadInds = {0, 1, 2, 2, 3, 0};
    m_fullscreenQuad = m_resourceManager->LoadMesh("quad", quadVerts, quadInds);
 }
 
 void GLRenderer::LoadShaders() {
    // Setup geometry pass shader
    m_geometryPassShader = std::make_unique<GLShader>();
-   m_geometryPassShader->AttachShaderFromFile(GLShader::Type::Vertex, "resources/shaders/gl/geometry_pass.vert");
-   m_geometryPassShader->AttachShaderFromFile(GLShader::Type::Fragment, "resources/shaders/gl/geometry_pass.frag");
+   m_geometryPassShader->AttachShaderFromFile(GLShader::Type::Vertex,
+                                              "resources/shaders/gl/geometry_pass.vert");
+   m_geometryPassShader->AttachShaderFromFile(GLShader::Type::Fragment,
+                                              "resources/shaders/gl/geometry_pass.frag");
    m_geometryPassShader->Link();
    // Setup lighting pass shader
    m_lightingPassShader = std::make_unique<GLShader>();
-   m_lightingPassShader->AttachShaderFromFile(GLShader::Type::Vertex, "resources/shaders/gl/lighting_pass.vert");
-   m_lightingPassShader->AttachShaderFromFile(GLShader::Type::Fragment, "resources/shaders/gl/lighting_pass.frag");
+   m_lightingPassShader->AttachShaderFromFile(GLShader::Type::Vertex,
+                                              "resources/shaders/gl/lighting_pass.vert");
+   m_lightingPassShader->AttachShaderFromFile(GLShader::Type::Fragment,
+                                              "resources/shaders/gl/lighting_pass.frag");
    m_lightingPassShader->Link();
 }
 
@@ -132,29 +123,25 @@ void GLRenderer::CreateGBuffer() {
    if (m_gBuffer) {
       m_gBuffer.reset();
    }
-   m_gAlbedoTexture = m_resourceManager->CreateRenderTarget("gbuffer_color", m_window->GetWidth(),
-                                                            m_window->GetHeight(), ITexture::Format::RGBA8);
-   m_gNormalTexture = m_resourceManager->CreateRenderTarget("gbuffer_normals", m_window->GetWidth(),
-                                                            m_window->GetHeight(), ITexture::Format::RGBA16F);
-   m_gDepthTexture = m_resourceManager->CreateDepthTexture("gbuffer_depth",
-                                                           m_window->GetWidth(), m_window->GetHeight());
-   auto* colorTexPtr= reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_gAlbedoTexture));
-   auto* normalTexPtr= reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_gNormalTexture));
-   auto* depthTexPtr= reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_gDepthTexture));
+   m_gAlbedoTexture = m_resourceManager->CreateRenderTarget(
+      "gbuffer_color", m_window->GetWidth(), m_window->GetHeight(), ITexture::Format::RGBA8);
+   m_gNormalTexture = m_resourceManager->CreateRenderTarget(
+      "gbuffer_normals", m_window->GetWidth(), m_window->GetHeight(), ITexture::Format::RGBA16F);
+   m_gDepthTexture = m_resourceManager->CreateDepthTexture("gbuffer_depth", m_window->GetWidth(),
+                                                           m_window->GetHeight());
+   auto* colorTexPtr =
+      reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_gAlbedoTexture));
+   auto* normalTexPtr =
+      reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_gNormalTexture));
+   auto* depthTexPtr = reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_gDepthTexture));
    GLFramebuffer::CreateInfo gbufferInfo;
    gbufferInfo.width = m_window->GetWidth();
    gbufferInfo.height = m_window->GetHeight();
    gbufferInfo.colorAttachments = {
-      {
-         colorTexPtr, 0, 0
-      },
-      {
-         normalTexPtr, 0, 0
-      },
+      {colorTexPtr, 0, 0},
+      {normalTexPtr, 0, 0},
    };
-   gbufferInfo.depthAttachment = {
-      depthTexPtr
-   };
+   gbufferInfo.depthAttachment = {depthTexPtr};
    m_gBuffer = std::make_unique<GLFramebuffer>(gbufferInfo);
    if (!m_gBuffer->IsComplete()) {
       throw std::runtime_error("G-Buffer creation incomplete:\n" + m_gBuffer->GetStatusString());
@@ -168,11 +155,12 @@ void GLRenderer::CreateGeometryPass() {
       {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
       {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.5f, 0.5f, 1.0f, 0.0f}},
    };
-   geometryPassInfo.depthStencilAttachment = {
-      GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store,
-      GLRenderPass::LoadOp::DontCare, GLRenderPass::StoreOp::DontCare,
-      1.0f, 0
-   };
+   geometryPassInfo.depthStencilAttachment = {GLRenderPass::LoadOp::Clear,
+                                              GLRenderPass::StoreOp::Store,
+                                              GLRenderPass::LoadOp::DontCare,
+                                              GLRenderPass::StoreOp::DontCare,
+                                              1.0f,
+                                              0};
    geometryPassInfo.renderState.depthTest = GLRenderPass::DepthTest::Less;
    geometryPassInfo.renderState.cullMode = GLRenderPass::CullMode::Back;
    geometryPassInfo.renderState.primitiveType = GLRenderPass::PrimitiveType::Triangles;
@@ -185,11 +173,12 @@ void GLRenderer::CreateLightingPass() {
    lightingPassInfo.colorAttachments = {
       {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
    };
-   lightingPassInfo.depthStencilAttachment = {
-      GLRenderPass::LoadOp::DontCare, GLRenderPass::StoreOp::DontCare,
-      GLRenderPass::LoadOp::DontCare, GLRenderPass::StoreOp::DontCare,
-      1.0f, 0
-   };
+   lightingPassInfo.depthStencilAttachment = {GLRenderPass::LoadOp::DontCare,
+                                              GLRenderPass::StoreOp::DontCare,
+                                              GLRenderPass::LoadOp::DontCare,
+                                              GLRenderPass::StoreOp::DontCare,
+                                              1.0f,
+                                              0};
    lightingPassInfo.renderState.depthTest = GLRenderPass::DepthTest::Always;
    lightingPassInfo.renderState.cullMode = GLRenderPass::CullMode::Back;
    lightingPassInfo.renderState.primitiveType = GLRenderPass::PrimitiveType::Triangles;
@@ -208,15 +197,14 @@ void GLRenderer::CreateUBOs() {
    m_lightsUbo->UploadData(&lightData, sizeof(LightsData));
    m_lightsUbo->BindBase(1);
    // Create material UBO
-   m_materialUbo = std::make_unique<GLBuffer>(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
+   m_materialUbo =
+      std::make_unique<GLBuffer>(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
    const MaterialData matData{};
    m_materialUbo->UploadData(&matData, sizeof(MaterialData));
    m_materialUbo->BindBase(2);
 }
 
-GLRenderer::~GLRenderer() {
-   DestroyImgui();
-}
+GLRenderer::~GLRenderer() { DestroyImgui(); }
 
 void GLRenderer::SetupImgui() {
    IMGUI_CHECKVERSION();
@@ -245,44 +233,38 @@ void GLRenderer::RenderImgui() {
    {
       ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
       ImGui::SetNextWindowBgAlpha(0.35f);
-      ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
-         ImGuiWindowFlags_AlwaysAutoResize |
-         ImGuiWindowFlags_NoSavedSettings |
-         ImGuiWindowFlags_NoFocusOnAppearing |
-         ImGuiWindowFlags_NoNav;
+      ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+                               ImGuiWindowFlags_NoSavedSettings |
+                               ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
       ImGui::Begin("FPS Overlay", nullptr, flags);
       ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
       ImGui::Text("Frame: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
-      ImGui::Text("Resource MEM: %.3f MB", static_cast<float>(m_resourceManager->GetTotalMemoryUsage()) /
-                  (1024.0f * 1024.0f));
+      ImGui::Text(
+         "Resource MEM: %.3f MB",
+         static_cast<float>(m_resourceManager->GetTotalMemoryUsage()) / (1024.0f * 1024.0f));
       ImGui::End();
    }
    // Show textures
    {
       const uint32_t columns = 4;
       const uint32_t imgSize = 128;
-      ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + viewport->WorkSize.y - 600));
+      ImGui::SetNextWindowPos(
+         ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + viewport->WorkSize.y - 600));
       ImGui::SetNextWindowSize(ImVec2(columns * imgSize, 600));
       ImGui::SetNextWindowBgAlpha(0.35f);
-      ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove |
-         ImGuiWindowFlags_NoResize |
-         ImGuiWindowFlags_NoSavedSettings |
-         ImGuiWindowFlags_NoFocusOnAppearing |
-         ImGuiWindowFlags_NoNav;
+      ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                               ImGuiWindowFlags_NoSavedSettings |
+                               ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
       if (ImGui::Begin("Texture Browser", nullptr, flags)) {
-         ImGui::BeginChild("TextureScrollRegion", ImVec2(0, 0),
-                           false, ImGuiWindowFlags_HorizontalScrollbar);
+         ImGui::BeginChild("TextureScrollRegion", ImVec2(0, 0), false,
+                           ImGuiWindowFlags_HorizontalScrollbar);
          ImGui::Columns(columns, nullptr, false);
          const auto namedTextures = m_resourceManager->GetAllTexturesNamed();
          for (const auto& tex : namedTextures) {
             if (tex.first) {
                const GLuint texId = static_cast<GLTexture*>(tex.first)->GetId();
-               ImGui::Image(
-                  (ImTextureID)(intptr_t)texId,
-                  ImVec2(imgSize, imgSize),
-                  ImVec2(0, 1),
-                  ImVec2(1, 0)
-               );
+               ImGui::Image((ImTextureID)(intptr_t)texId, ImVec2(imgSize, imgSize), ImVec2(0, 1),
+                            ImVec2(1, 0));
                ImGui::TextWrapped(tex.second.c_str());
             }
             ImGui::NextColumn();
@@ -327,10 +309,12 @@ void GLRenderer::RenderFrame() {
       m_activeScene->UpdateTransforms();
       m_activeScene->ForEachNode([&](const Node* node) {
          // Skip inactive nodes
-         if (!node->IsActive()) return;
+         if (!node->IsActive())
+            return;
          if (const auto* renderer = node->GetComponent<RendererComponent>()) {
             // If not visible, do not render
-            if (!renderer->IsVisible() || !renderer->HasMesh()) return;
+            if (!renderer->IsVisible() || !renderer->HasMesh())
+               return;
             // If has position, load it in
             if (const Transform* worldTransform = node->GetWorldTransform()) {
                // Set up transformation matrix for rendering
@@ -339,7 +323,8 @@ void GLRenderer::RenderFrame() {
             // Render the mesh
             if (renderer->IsMultiMesh()) {
                for (const auto& subMeshRenderer : renderer->GetSubMeshRenderers()) {
-                  if (!subMeshRenderer.visible) continue;
+                  if (!subMeshRenderer.visible)
+                     continue;
                   if (const IMesh* mesh = m_resourceManager->GetMesh(subMeshRenderer.mesh)) {
                      mesh->Draw();
                   }
@@ -361,8 +346,9 @@ void GLRenderer::RenderFrame() {
    if (m_activeScene) {
       m_activeScene->ForEachNode([&](Node* node) {
          if (const LightComponent* lightComp = node->GetComponent<LightComponent>();
-            lightComp && lightsData.lightCount < MAX_LIGHTS) {
-            if (const TransformComponent* transformComp = node->GetComponent<TransformComponent>()) {
+             lightComp && lightsData.lightCount < MAX_LIGHTS) {
+            if (const TransformComponent* transformComp =
+                   node->GetComponent<TransformComponent>()) {
                LightData& light = lightsData.lights[lightsData.lightCount];
                light.lightType = static_cast<uint32_t>(lightComp->GetType());
                light.color = lightComp->GetColor();
@@ -402,4 +388,3 @@ void GLRenderer::RenderFrame() {
    // Swap buffers
    glfwSwapBuffers(m_window->GetNativeWindow());
 }
-

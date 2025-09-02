@@ -5,7 +5,7 @@
 #include "core/scene/components/Component.hpp"
 
 class TransformComponent final : public Component {
-public:
+  public:
    TransformComponent() = default;
    explicit TransformComponent(const Transform& transform) : m_transform(transform) {}
 
@@ -21,7 +21,6 @@ public:
    [[nodiscard]] const Transform& GetTransform() const noexcept;
    [[nodiscard]] Transform& GetMutableTransform() noexcept;
 
-private:
+  private:
    Transform m_transform;
 };
-

@@ -5,12 +5,8 @@
 #include <glm/glm.hpp>
 
 class LightComponent final : public Component {
-public:
-   enum class LightType : uint32_t {
-      Directional = 0,
-      Point = 1,
-      Spot = 2
-   };
+  public:
+   enum class LightType : uint32_t { Directional = 0, Point = 1, Spot = 2 };
 
    LightComponent();
 
@@ -40,7 +36,7 @@ public:
    void SetOuterCone(const float outerCone) noexcept;
    [[nodiscard]] float GetOuterCone() const noexcept;
 
-private:
+  private:
    // Generic data
    LightType m_type;
    glm::vec3 m_color;
@@ -58,4 +54,3 @@ private:
    // Shadow mapping
    bool m_castsShadows;
 };
-

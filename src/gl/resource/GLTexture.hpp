@@ -6,10 +6,11 @@
 #include <string>
 
 class GLTexture : public ITexture {
-public:
+  public:
    GLTexture(const CreateInfo& info);
    GLTexture(const std::string& filepath, const bool generateMipmaps, const bool sRGB);
-   GLTexture(const uint32_t width, const uint32_t height, const Format format, const bool isDepth = false, const uint32_t samples = 1);
+   GLTexture(const uint32_t width, const uint32_t height, const Format format,
+             const bool isDepth = false, const uint32_t samples = 1);
    ~GLTexture();
 
    GLTexture(const GLTexture&) = delete;
@@ -30,12 +31,12 @@ public:
 
    GLuint GetId() const;
 
-private:
+  private:
    void CreateStorage();
    GLenum ConvertFormat(const Format format) const;
    GLenum ConvertTarget() const;
 
-private:
+  private:
    GLuint m_id;
    uint32_t m_width;
    uint32_t m_height;
@@ -44,4 +45,3 @@ private:
    bool m_isDepth;
    uint32_t m_samples;
 };
-

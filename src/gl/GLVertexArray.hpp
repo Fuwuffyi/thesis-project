@@ -8,7 +8,7 @@ class GLBuffer;
 struct Vertex;
 
 class GLVertexArray {
-public:
+  public:
    GLVertexArray();
    ~GLVertexArray();
 
@@ -39,14 +39,14 @@ public:
 
    // Drawing functions
    void DrawArrays(const GLenum mode, const GLint first, const GLsizei count) const;
-   void DrawElements(const GLenum mode, const GLsizei count, const GLenum type, const void* indices = nullptr) const;
+   void DrawElements(const GLenum mode, const GLsizei count, const GLenum type,
+                     const void* indices = nullptr) const;
    void DrawElementsInstanced(const GLenum mode, const GLsizei count, const GLenum type,
                               const void* indices, const GLsizei instanceCount) const;
 
    GLuint Get() const;
    bool IsValid() const;
 
-private:
+  private:
    GLuint m_vao = 0;
 };
-

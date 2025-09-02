@@ -12,7 +12,7 @@ class Transform;
 class Component;
 
 class Node final {
-public:
+  public:
    explicit Node(std::string name = "");
    ~Node();
 
@@ -43,10 +43,11 @@ public:
 
    // Tree iteration
    void ForEachChild(const std::function<void(Node*)>& func, const bool recursive = false);
-   void ForEachChild(const std::function<void(const Node*)>& func, const bool recursive = false) const;
+   void ForEachChild(const std::function<void(const Node*)>& func,
+                     const bool recursive = false) const;
 
    // Component management
-   template<ComponentType T, typename... Args>
+   template <ComponentType T, typename... Args>
    T* AddComponent(Args&&... args) {
       auto component = std::make_unique<T>(std::forward<Args>(args)...);
       T* ptr = component.get();
@@ -62,7 +63,7 @@ public:
 
    bool RemoveComponent(const Component* component);
 
-   template<ComponentType T>
+   template <ComponentType T>
    [[nodiscard]] T* GetComponent() const noexcept {
       const auto typeIndex = std::type_index(typeid(T));
       if (auto it = m_componentLookup.find(typeIndex); it != m_componentLookup.end()) {
@@ -71,18 +72,19 @@ public:
       return nullptr;
    }
 
-   template<ComponentType T>
+   template <ComponentType T>
    [[nodiscard]] std::vector<T*> GetComponents() const {
       std::vector<T*> result;
-      auto componentView = m_components 
-         | std::ranges::views::transform([](const auto& comp) { return comp.get(); })
-         | std::ranges::views::filter([](Component* comp) { return dynamic_cast<T*>(comp) != nullptr; })
-         | std::views::transform([](Component* comp) { return static_cast<T*>(comp); });
+      auto componentView =
+         m_components | std::ranges::views::transform([](const auto& comp) { return comp.get(); }) |
+         std::ranges::views::filter(
+            [](Component* comp) { return dynamic_cast<T*>(comp) != nullptr; }) |
+         std::views::transform([](Component* comp) { return static_cast<T*>(comp); });
       std::ranges::copy(componentView, std::back_inserter(result));
       return result;
    }
 
-   template<ComponentType T>
+   template <ComponentType T>
    [[nodiscard]] bool HasComponent() const noexcept {
       return GetComponent<T>() != nullptr;
    }
@@ -99,13 +101,14 @@ public:
 
    [[nodiscard]] bool IsActive() const noexcept;
    void SetActive(const bool active) noexcept;
-private:
+
+  private:
    void SetParent(Node* parent);
    void UpdateComponentLookup();
    void InvalidateWorldTransform();
    void UpdateChildrenWorldTransforms();
 
-private:
+  private:
    // Identity and state
    std::string m_name;
    bool m_active;
@@ -120,4 +123,3 @@ private:
    mutable std::unique_ptr<Transform> m_worldTransform;
    mutable bool m_worldTransformDirty;
 };
-

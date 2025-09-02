@@ -1,7 +1,3 @@
 #pragma once
 
-enum class GraphicsAPI {
-   OpenGL,
-   Vulkan
-};
-
+enum class GraphicsAPI { OpenGL, Vulkan };

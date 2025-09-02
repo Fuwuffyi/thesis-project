@@ -32,9 +32,10 @@ struct RenderPassDescription {
 };
 
 class VulkanRenderPass {
-public:
+  public:
    VulkanRenderPass(const VulkanDevice& device, const RenderPassDescription& desc);
-   VulkanRenderPass(const VulkanDevice& device, const VkFormat colorFormat, const VkFormat depthFormat = VK_FORMAT_UNDEFINED);
+   VulkanRenderPass(const VulkanDevice& device, const VkFormat colorFormat,
+                    const VkFormat depthFormat = VK_FORMAT_UNDEFINED);
    ~VulkanRenderPass();
 
    VulkanRenderPass(const VulkanRenderPass&) = delete;
@@ -45,12 +46,12 @@ public:
    VkRenderPass Get() const;
    const std::vector<VkClearValue>& GetClearValues() const;
 
-private:
+  private:
    void CreateRenderPass(const RenderPassDescription& desc);
-   RenderPassDescription CreateDefaultDescription(const VkFormat colorFormat, const VkFormat depthFormat);
+   RenderPassDescription CreateDefaultDescription(const VkFormat colorFormat,
+                                                  const VkFormat depthFormat);
 
    const VulkanDevice* m_device = nullptr;
    VkRenderPass m_renderPass = VK_NULL_HANDLE;
    std::vector<VkClearValue> m_clearValues;
 };
-

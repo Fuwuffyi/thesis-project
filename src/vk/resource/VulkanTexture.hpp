@@ -9,11 +9,12 @@ class VulkanDevice;
 class VulkanBuffer;
 
 class VulkanTexture : public ITexture {
-public:
+  public:
    VulkanTexture(const VulkanDevice& device, const CreateInfo& info);
-   VulkanTexture(const VulkanDevice& device, const std::string& filepath, const bool generateMipmaps, const bool sRGB);
-   VulkanTexture(const VulkanDevice& device, const uint32_t width, const uint32_t height, const Format format,
-                 const bool isDepth = false, const uint32_t samples = 1);
+   VulkanTexture(const VulkanDevice& device, const std::string& filepath,
+                 const bool generateMipmaps, const bool sRGB);
+   VulkanTexture(const VulkanDevice& device, const uint32_t width, const uint32_t height,
+                 const Format format, const bool isDepth = false, const uint32_t samples = 1);
    ~VulkanTexture();
 
    VulkanTexture(const VulkanTexture&) = delete;
@@ -38,9 +39,10 @@ public:
 
    void TransitionLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout,
                          const VkPipelineStageFlags srcStage, const VkPipelineStageFlags dstStage,
-                         const uint32_t baseMipLevel = 0, const uint32_t levelCount = VK_REMAINING_MIP_LEVELS);
+                         const uint32_t baseMipLevel = 0,
+                         const uint32_t levelCount = VK_REMAINING_MIP_LEVELS);
 
-private:
+  private:
    void CopyFromBuffer(const VulkanBuffer& buffer, const uint32_t mipLevel = 0);
    void GenerateMipmaps();
    VkSampler CreateSampler();
@@ -52,7 +54,7 @@ private:
    void LoadFromFile(const std::string& filepath, const bool generateMipmaps, const bool sRGB);
    bool FormatSupportsBlitting(const VkFormat format) const;
 
-private:
+  private:
    const VulkanDevice* m_device = nullptr;
    VkImage m_image = VK_NULL_HANDLE;
    VkImageView m_imageView = VK_NULL_HANDLE;
@@ -68,4 +70,3 @@ private:
    uint32_t m_samples = 1;
    uint32_t m_mipLevels = 1;
 };
-

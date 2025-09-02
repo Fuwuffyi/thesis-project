@@ -5,9 +5,8 @@
 #include <imgui.h>
 
 void TransformComponent::DrawInspector(Node* node) {
-   if (ImGui::CollapsingHeader("Transform",
-                               ImGuiTreeNodeFlags_DefaultOpen |
-                               ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
+   if (ImGui::CollapsingHeader(
+          "Transform", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
       glm::vec3 posInput = this->m_transform.GetPosition();
       if (ImGui::DragFloat3("Position", &posInput.x, 0.01f)) {
          this->m_transform.SetPosition(posInput);
@@ -30,9 +29,7 @@ void TransformComponent::DrawInspector(Node* node) {
    return m_transform.GetPosition();
 }
 
-void TransformComponent::SetPosition(const glm::vec3& newPos) {
-   m_transform.SetPosition(newPos);
-}
+void TransformComponent::SetPosition(const glm::vec3& newPos) { m_transform.SetPosition(newPos); }
 
 [[nodiscard]] const glm::vec3& TransformComponent::GetRotation() const noexcept {
    return m_transform.GetEulerAngles();
@@ -46,14 +43,10 @@ void TransformComponent::SetRotation(const glm::vec3& newRotation) {
    return m_transform.GetScale();
 }
 
-void TransformComponent::SetScale(const glm::vec3& newScale) {
-   m_transform.SetScale(newScale);
-}
+void TransformComponent::SetScale(const glm::vec3& newScale) { m_transform.SetScale(newScale); }
 
 [[nodiscard]] const Transform& TransformComponent::GetTransform() const noexcept {
    return m_transform;
 }
 
-[[nodiscard]] Transform& TransformComponent::GetMutableTransform() noexcept {
-   return m_transform;
-}
+[[nodiscard]] Transform& TransformComponent::GetMutableTransform() noexcept { return m_transform; }

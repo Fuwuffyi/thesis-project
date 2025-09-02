@@ -6,11 +6,10 @@
 #include <glm/gtx/quaternion.hpp>
 
 class Transform {
-public:
+  public:
    Transform(const glm::vec3& position = glm::vec3(0.0f),
              const glm::quat& rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
-             const glm::vec3& scale = glm::vec3(1.0f)
-             );
+             const glm::vec3& scale = glm::vec3(1.0f));
    explicit Transform(const glm::mat4& transformMatrix);
 
    Transform(const Transform& other);
@@ -51,12 +50,14 @@ public:
    glm::vec3 GetRight() const;
    glm::vec3 GetUp() const;
    glm::vec3 GetEulerAngles() const;
-private:
+
+  private:
    void MarkDirty() { m_dirty = true; }
    void RecalculateMatrix() const;
-   bool DecomposeMatrix(const glm::mat4& matrix, glm::vec3& position,
-                        glm::quat& rotation, glm::vec3& scale) const;
-private:
+   bool DecomposeMatrix(const glm::mat4& matrix, glm::vec3& position, glm::quat& rotation,
+                        glm::vec3& scale) const;
+
+  private:
    // Transform components
    glm::vec3 m_pos;
    glm::quat m_rot;
@@ -66,4 +67,3 @@ private:
    mutable glm::mat4 m_matrix;
    mutable bool m_dirty;
 };
-

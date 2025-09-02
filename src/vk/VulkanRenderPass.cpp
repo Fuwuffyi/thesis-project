@@ -6,16 +6,13 @@
 #include <vulkan/vulkan_core.h>
 
 VulkanRenderPass::VulkanRenderPass(const VulkanDevice& device, const RenderPassDescription& desc)
-   :
-   m_device(&device)
-{
+    : m_device(&device) {
    CreateRenderPass(desc);
 }
 
-VulkanRenderPass::VulkanRenderPass(const VulkanDevice& device, const VkFormat colorFormat, const VkFormat depthFormat)
-   :
-   m_device(&device)
-{
+VulkanRenderPass::VulkanRenderPass(const VulkanDevice& device, const VkFormat colorFormat,
+                                   const VkFormat depthFormat)
+    : m_device(&device) {
    RenderPassDescription desc = CreateDefaultDescription(colorFormat, depthFormat);
    CreateRenderPass(desc);
 }
@@ -27,11 +24,9 @@ VulkanRenderPass::~VulkanRenderPass() {
 }
 
 VulkanRenderPass::VulkanRenderPass(VulkanRenderPass&& other) noexcept
-   :
-   m_device(other.m_device),
-   m_renderPass(other.m_renderPass),
-   m_clearValues(std::move(other.m_clearValues))
-{
+    : m_device(other.m_device),
+      m_renderPass(other.m_renderPass),
+      m_clearValues(std::move(other.m_clearValues)) {
    other.m_device = nullptr;
    other.m_renderPass = VK_NULL_HANDLE;
 }
@@ -47,13 +42,9 @@ VulkanRenderPass& VulkanRenderPass::operator=(VulkanRenderPass&& other) noexcept
    return *this;
 }
 
-VkRenderPass VulkanRenderPass::Get() const {
-   return m_renderPass;
-}
+VkRenderPass VulkanRenderPass::Get() const { return m_renderPass; }
 
-const std::vector<VkClearValue>& VulkanRenderPass::GetClearValues() const {
-   return m_clearValues;
-}
+const std::vector<VkClearValue>& VulkanRenderPass::GetClearValues() const { return m_clearValues; }
 
 void VulkanRenderPass::CreateRenderPass(const RenderPassDescription& desc) {
    // Convert attachment descriptions
@@ -72,8 +63,8 @@ void VulkanRenderPass::CreateRenderPass(const RenderPassDescription& desc) {
       attachments.push_back(vkAtt);
       // Add clear value
       VkClearValue clearValue{};
-      if (att.format == VK_FORMAT_D32_SFLOAT || att.format == VK_FORMAT_D24_UNORM_S8_UINT || 
-         att.format == VK_FORMAT_D16_UNORM) {
+      if (att.format == VK_FORMAT_D32_SFLOAT || att.format == VK_FORMAT_D24_UNORM_S8_UINT ||
+          att.format == VK_FORMAT_D16_UNORM) {
          clearValue.depthStencil = {1.0f, 0};
       } else {
          clearValue.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
@@ -87,13 +78,17 @@ void VulkanRenderPass::CreateRenderPass(const RenderPassDescription& desc) {
       VkSubpassDescription vkSub{};
       vkSub.pipelineBindPoint = sub.bindPoint;
       vkSub.colorAttachmentCount = static_cast<uint32_t>(sub.colorAttachments.size());
-      vkSub.pColorAttachments = sub.colorAttachments.empty() ? nullptr : sub.colorAttachments.data();
+      vkSub.pColorAttachments =
+         sub.colorAttachments.empty() ? nullptr : sub.colorAttachments.data();
       vkSub.inputAttachmentCount = static_cast<uint32_t>(sub.inputAttachments.size());
-      vkSub.pInputAttachments = sub.inputAttachments.empty() ? nullptr : sub.inputAttachments.data();
+      vkSub.pInputAttachments =
+         sub.inputAttachments.empty() ? nullptr : sub.inputAttachments.data();
       vkSub.pDepthStencilAttachment = sub.depthStencilAttachment;
-      vkSub.pResolveAttachments = sub.resolveAttachments.empty() ? nullptr : sub.resolveAttachments.data();
+      vkSub.pResolveAttachments =
+         sub.resolveAttachments.empty() ? nullptr : sub.resolveAttachments.data();
       vkSub.preserveAttachmentCount = static_cast<uint32_t>(sub.preserveAttachments.size());
-      vkSub.pPreserveAttachments = sub.preserveAttachments.empty() ? nullptr : sub.preserveAttachments.data();
+      vkSub.pPreserveAttachments =
+         sub.preserveAttachments.empty() ? nullptr : sub.preserveAttachments.data();
       subpasses.push_back(vkSub);
    }
    // Create render pass
@@ -105,13 +100,13 @@ void VulkanRenderPass::CreateRenderPass(const RenderPassDescription& desc) {
    renderPassInfo.pSubpasses = subpasses.data();
    renderPassInfo.dependencyCount = static_cast<uint32_t>(desc.dependencies.size());
    renderPassInfo.pDependencies = desc.dependencies.empty() ? nullptr : desc.dependencies.data();
-   if (vkCreateRenderPass(m_device->Get(), &renderPassInfo,
-                          nullptr, &m_renderPass) != VK_SUCCESS) {
+   if (vkCreateRenderPass(m_device->Get(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
       throw std::runtime_error("Failed to create render pass.");
    }
 }
 
-RenderPassDescription VulkanRenderPass::CreateDefaultDescription(const VkFormat colorFormat, const VkFormat depthFormat) {
+RenderPassDescription VulkanRenderPass::CreateDefaultDescription(const VkFormat colorFormat,
+                                                                 const VkFormat depthFormat) {
    RenderPassDescription desc;
    // Color attachment
    AttachmentDescription colorAtt{};
@@ -143,10 +138,8 @@ RenderPassDescription VulkanRenderPass::CreateDefaultDescription(const VkFormat 
    colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
    subpass.colorAttachments.push_back(colorRef);
    if (depthFormat != VK_FORMAT_UNDEFINED) {
-      subpass.depthStencilAttachment = new VkAttachmentReference{
-         1,
-         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-      };
+      subpass.depthStencilAttachment =
+         new VkAttachmentReference{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
    }
    desc.subpasses.push_back(subpass);
    // Dependencies
@@ -158,12 +151,14 @@ RenderPassDescription VulkanRenderPass::CreateDefaultDescription(const VkFormat 
    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
    if (depthFormat != VK_FORMAT_UNDEFINED) {
-      dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+      dependency.srcStageMask =
+         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
       dependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-      dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-      dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+      dependency.dstStageMask =
+         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+      dependency.dstAccessMask =
+         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
    }
    desc.dependencies.push_back(dependency);
    return desc;
 }
-

@@ -6,14 +6,12 @@
 #include <algorithm>
 
 Node::Node(std::string name)
-   :
-   m_name(std::move(name)),
-   m_active(true),
-   m_parent(nullptr),
-   m_localTransform(nullptr),
-   m_worldTransform(nullptr),
-   m_worldTransformDirty(true)
-{}
+    : m_name(std::move(name)),
+      m_active(true),
+      m_parent(nullptr),
+      m_localTransform(nullptr),
+      m_worldTransform(nullptr),
+      m_worldTransformDirty(true) {}
 
 Node::~Node() {
    RemoveAllChildren();
@@ -23,7 +21,8 @@ Node::~Node() {
 }
 
 void Node::AddChild(std::unique_ptr<Node> child) {
-   if (!child) return;
+   if (!child)
+      return;
    // Remove from previous parent if any
    if (child->m_parent) {
       child->m_parent->RemoveChild(child.get());
@@ -33,11 +32,10 @@ void Node::AddChild(std::unique_ptr<Node> child) {
 }
 
 bool Node::RemoveChild(const Node* child) {
-   if (!child) return false;
-   const auto it = std::ranges::find_if(m_children,
-                                        [child](const auto& ptr) {
-                                        return ptr.get() == child;
-                                        });
+   if (!child)
+      return false;
+   const auto it =
+      std::ranges::find_if(m_children, [child](const auto& ptr) { return ptr.get() == child; });
    if (it != m_children.end()) {
       (*it)->SetParent(nullptr);
       m_children.erase(it);
@@ -55,9 +53,7 @@ void Node::RemoveAllChildren() {
    m_children.clear();
 }
 
-[[nodiscard]] Node* Node::GetParent() const noexcept {
-   return m_parent;
-}
+[[nodiscard]] Node* Node::GetParent() const noexcept { return m_parent; }
 
 [[nodiscard]] const std::vector<std::unique_ptr<Node>>& Node::GetChildren() const noexcept {
    return m_children;
@@ -93,9 +89,7 @@ void Node::RemoveAllChildren() {
    return index < m_children.size() ? m_children[index].get() : nullptr;
 }
 
-[[nodiscard]] size_t Node::GetChildCount() const noexcept {
-   return m_children.size();
-}
+[[nodiscard]] size_t Node::GetChildCount() const noexcept { return m_children.size(); }
 
 [[nodiscard]] size_t Node::GetDepth() const noexcept {
    size_t depth = 0;
@@ -143,11 +137,10 @@ void Node::ForEachChild(const std::function<void(const Node*)>& func, const bool
 }
 
 bool Node::RemoveComponent(const Component* component) {
-   if (!component) return false;
+   if (!component)
+      return false;
    auto it = std::ranges::find_if(m_components,
-                                  [component](const auto& ptr) {
-                                  return ptr.get() == component;
-                                  });
+                                  [component](const auto& ptr) { return ptr.get() == component; });
    if (it != m_components.end()) {
       // Clear transform cache if removing transform component
       if (m_localTransform && dynamic_cast<const TransformComponent*>(it->get())) {
@@ -178,7 +171,8 @@ bool Node::RemoveComponent(const Component* component) {
 }
 
 void Node::UpdateWorldTransform(const bool force) {
-   if (!m_worldTransformDirty && !force) return;
+   if (!m_worldTransformDirty && !force)
+      return;
    Transform* localTransform = GetTransform();
    if (!localTransform) {
       m_worldTransformDirty = false;
@@ -204,21 +198,13 @@ void Node::UpdateWorldTransform(const bool force) {
    UpdateChildrenWorldTransforms();
 }
 
-void Node::MarkTransformDirty() {
-   InvalidateWorldTransform();
-}
+void Node::MarkTransformDirty() { InvalidateWorldTransform(); }
 
-[[nodiscard]] const std::string& Node::GetName() const noexcept {
-   return m_name;
-}
+[[nodiscard]] const std::string& Node::GetName() const noexcept { return m_name; }
 
-void Node::SetName(std::string name) {
-   m_name = std::move(name);
-}
+void Node::SetName(std::string name) { m_name = std::move(name); }
 
-[[nodiscard]] bool Node::IsActive() const noexcept {
-   return m_active;
-}
+[[nodiscard]] bool Node::IsActive() const noexcept { return m_active; }
 
 void Node::SetActive(const bool active) noexcept {
    if (m_active != active) {
@@ -242,7 +228,8 @@ void Node::UpdateComponentLookup() {
 }
 
 void Node::InvalidateWorldTransform() {
-   if (m_worldTransformDirty) return;
+   if (m_worldTransformDirty)
+      return;
    m_worldTransformDirty = true;
    // Propagate to children
    for (const auto& child : m_children) {
@@ -257,4 +244,3 @@ void Node::UpdateChildrenWorldTransforms() {
       }
    }
 }
-

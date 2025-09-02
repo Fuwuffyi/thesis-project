@@ -8,7 +8,7 @@
 class Node;
 
 class Scene final {
-public:
+  public:
    Scene(std::string name = "Scene");
    ~Scene();
 
@@ -16,7 +16,7 @@ public:
    Scene& operator=(const Scene&) = delete;
    Scene(Scene&&) = default;
    Scene& operator=(Scene&&) = default;
-   
+
    void DrawInspector();
 
    [[nodiscard]] Node* GetRootNode() const noexcept;
@@ -49,15 +49,14 @@ public:
    [[nodiscard]] const std::string& GetName() const noexcept;
    void SetName(std::string name);
 
-private:
+  private:
    void RegisterNode(Node* node);
    void UnregisterNode(Node* node);
    [[nodiscard]] size_t CalculateMaxDepth(const Node* node, const size_t currentDepth = 0) const;
 
-private:
+  private:
    std::string m_name;
    std::unique_ptr<Node> m_rootNode;
    std::unordered_multimap<std::string, Node*> m_nodeRegistry;
    size_t m_nodeCounter;
 };
-

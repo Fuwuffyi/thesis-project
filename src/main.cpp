@@ -41,13 +41,11 @@ int main(int argc, char* argv[]) {
    // Main program
    try {
       // Create the window
-      WindowDesc windowDesc{
-         .title = "Deferred Rendering Engine",
-         .width = 900,
-         .height = 900,
-         .vsync = false,
-         .resizable = true
-      };
+      WindowDesc windowDesc{.title = "Deferred Rendering Engine",
+                            .width = 900,
+                            .height = 900,
+                            .vsync = false,
+                            .resizable = true};
       Window window(api, windowDesc);
 
       // Create the renderer
@@ -58,11 +56,15 @@ int main(int argc, char* argv[]) {
       ResourceManager* resourceManager = renderer->GetResourceManager();
       // FIXME: Currently vulkan loads texture statically
       if (api == GraphicsAPI::OpenGL) {
-         resourceManager->LoadTexture("testing_albedo", "resources/textures/bricks_color.jpg", true, true);
+         resourceManager->LoadTexture("testing_albedo", "resources/textures/bricks_color.jpg", true,
+                                      true);
       }
-      resourceManager->LoadTexture("testing_displacement", "resources/textures/bricks_displacement.jpg", true, false);
-      resourceManager->LoadTexture("testing_normal", "resources/textures/bricks_normal.jpg", true, false);
-      resourceManager->LoadTexture("testing_roughness", "resources/textures/bricks_roughness.jpg", true, false);
+      resourceManager->LoadTexture("testing_displacement",
+                                   "resources/textures/bricks_displacement.jpg", true, false);
+      resourceManager->LoadTexture("testing_normal", "resources/textures/bricks_normal.jpg", true,
+                                   false);
+      resourceManager->LoadTexture("testing_roughness", "resources/textures/bricks_roughness.jpg",
+                                   true, false);
       resourceManager->LoadTexture("testing_ao", "resources/textures/bricks_ao.jpg", true, false);
 
       // Create the camera
@@ -70,17 +72,16 @@ int main(int argc, char* argv[]) {
       const glm::vec3 forward = glm::normalize(glm::vec3(0.0f) - startPos);
       const glm::quat orientation = glm::quatLookAt(forward, glm::vec3(0.0f, 1.0f, 0.0f));
       const Transform camTransform(startPos, orientation);
-      Camera cam(api, camTransform, glm::vec3(0.0f, 1.0f, 0.0f), 90.0f,
-                 1.0f, 0.01f, 100.0f);
+      Camera cam(api, camTransform, glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 1.0f, 0.01f, 100.0f);
       const float camSpeed = 3.0f;
       const float camRotateSpeed = glm::radians(60.0f);
       renderer->SetActiveCamera(&cam);
 
       // Create the scene
       Scene scene("Test scene");
-      Node* sponzaNode = MeshLoaderHelper::LoadMeshAsChildNode(scene.GetRootNode(), *resourceManager,
-                                                               "sponza", "resources/meshes/sponza.fbx",
-                                                               { .createSeparateNodes = true });
+      Node* sponzaNode = MeshLoaderHelper::LoadMeshAsChildNode(
+         scene.GetRootNode(), *resourceManager, "sponza", "resources/meshes/sponza.fbx",
+         {.createSeparateNodes = true});
       sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
       renderer->SetActiveScene(&scene);
 
@@ -139,7 +140,8 @@ int main(int argc, char* argv[]) {
       }
       window.SetCursorVisible(false);
       events->OnCursorPos([&](float xpos, float ypos) {
-         if (!mouseState.shouldUpdate) return;
+         if (!mouseState.shouldUpdate)
+            return;
          if (mouseState.firstMouse) {
             mouseState.lastX = xpos;
             mouseState.lastY = ypos;
@@ -147,18 +149,20 @@ int main(int argc, char* argv[]) {
             return;
          }
          const float xoffset = (xpos - mouseState.lastX) * mouseState.sensitivity;
-         const float yoffset = (mouseState.lastY - ypos) * mouseState.sensitivity; 
+         const float yoffset = (mouseState.lastY - ypos) * mouseState.sensitivity;
          mouseState.lastX = xpos;
          mouseState.lastY = ypos;
          mouseState.yaw -= xoffset;
          mouseState.pitch += yoffset;
-         if (mouseState.pitch > 89.0f) mouseState.pitch = 89.0f;
-         if (mouseState.pitch < -89.0f) mouseState.pitch = -89.0f;
-         const glm::quat qYaw = glm::angleAxis(glm::radians(mouseState.yaw), glm::vec3(0,1,0));
-         const glm::quat qPitch = glm::angleAxis(glm::radians(mouseState.pitch), glm::vec3(1,0,0));
+         if (mouseState.pitch > 89.0f)
+            mouseState.pitch = 89.0f;
+         if (mouseState.pitch < -89.0f)
+            mouseState.pitch = -89.0f;
+         const glm::quat qYaw = glm::angleAxis(glm::radians(mouseState.yaw), glm::vec3(0, 1, 0));
+         const glm::quat qPitch =
+            glm::angleAxis(glm::radians(mouseState.pitch), glm::vec3(1, 0, 0));
          const glm::quat rotation = qYaw * qPitch;
          cam.GetMutableTransform().SetRotation(rotation);
-
       });
       events->OnKeyDown(GLFW_KEY_LEFT_ALT, [&](const uint32_t, const uint32_t, const uint32_t) {
          window.SetCursorVisible(true);
@@ -190,4 +194,3 @@ int main(int argc, char* argv[]) {
    }
    return EXIT_SUCCESS;
 }
-

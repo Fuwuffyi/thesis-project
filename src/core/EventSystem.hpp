@@ -5,8 +5,9 @@
 #include <functional>
 
 class EventSystem {
-public:
-   using KeyCallback = std::function<void(const uint32_t key, const uint32_t scancode, const uint32_t mods)>;
+  public:
+   using KeyCallback =
+      std::function<void(const uint32_t key, const uint32_t scancode, const uint32_t mods)>;
    using MouseCallback = std::function<void(const uint32_t button, const uint32_t mods)>;
    using CursorPosCallback = std::function<void(const float xpos, const float ypos)>;
    using ResizeCallback = std::function<void(const uint32_t width, const uint32_t height)>;
@@ -24,14 +25,15 @@ public:
    void OnCursorPos(const CursorPosCallback cb);
    void OnResize(const ResizeCallback cb);
 
-   void HandleKeyEvent(const uint32_t key, const uint32_t scancode, const uint32_t action, const uint32_t mods);
+   void HandleKeyEvent(const uint32_t key, const uint32_t scancode, const uint32_t action,
+                       const uint32_t mods);
    void HandleMouseEvent(const uint32_t button, const uint32_t action, const uint32_t mods);
 
    void HandleCursorPos(const float xpos, const float ypos);
    void HandleResize(const uint32_t width, const uint32_t height);
    void ProcessHeldEvents();
 
-private:
+  private:
    std::unordered_map<uint32_t, std::vector<KeyCallback>> m_keyDownListeners;
    std::unordered_map<uint32_t, std::vector<KeyCallback>> m_keyUpListeners;
    std::unordered_map<uint32_t, std::vector<KeyCallback>> m_keyHeldListeners;

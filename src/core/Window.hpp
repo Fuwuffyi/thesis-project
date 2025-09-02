@@ -19,7 +19,7 @@ struct WindowDesc {
 };
 
 class Window {
-public:
+  public:
    Window(const GraphicsAPI api, const WindowDesc& desc);
    ~Window();
 
@@ -40,14 +40,16 @@ public:
    uint32_t GetWidth() const;
    uint32_t GetHeight() const;
    GraphicsAPI GetAPI() const;
-private:
+
+  private:
    static void ErrorCallback(int error, const char* description);
    static void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
    static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
    static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
    static void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
    static void ResizeCallback(GLFWwindow* window, int width, int height);
-private:
+
+  private:
    GraphicsAPI m_api;
    GLFWwindow* m_window = nullptr;
    uint32_t m_width = 0;
@@ -55,4 +57,3 @@ private:
    std::function<void(int, int)> m_resizeCallback;
    EventSystem m_eventSystem;
 };
-

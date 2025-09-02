@@ -6,33 +6,25 @@
 #include <iostream>
 
 Transform::Transform(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale)
-   :
-   m_pos(position),
-   m_rot(glm::normalize(rotation)),
-   m_scl(scale),
-   m_matrix(1.0f),
-   m_dirty(true)
-{}
+    : m_pos(position),
+      m_rot(glm::normalize(rotation)),
+      m_scl(scale),
+      m_matrix(1.0f),
+      m_dirty(true) {}
 
-Transform::Transform(const glm::mat4& transformMatrix)
-   : m_matrix(transformMatrix),
-   m_dirty(false)
-{
+Transform::Transform(const glm::mat4& transformMatrix) : m_matrix(transformMatrix), m_dirty(false) {
    glm::vec3 skew;
    glm::vec4 perspective;
-   glm::decompose(transformMatrix, m_scl, m_rot, m_pos,
-                  skew, perspective);
+   glm::decompose(transformMatrix, m_scl, m_rot, m_pos, skew, perspective);
    m_rot = glm::normalize(m_rot);
 }
 
 Transform::Transform(const Transform& other)
-   :
-   m_pos(other.m_pos),
-   m_rot(other.m_rot),
-   m_scl(other.m_scl),
-   m_matrix(other.m_matrix),
-   m_dirty(other.m_dirty)
-{}
+    : m_pos(other.m_pos),
+      m_rot(other.m_rot),
+      m_scl(other.m_scl),
+      m_matrix(other.m_matrix),
+      m_dirty(other.m_dirty) {}
 
 Transform& Transform::operator=(const Transform& other) {
    if (this != &other) {
@@ -46,13 +38,11 @@ Transform& Transform::operator=(const Transform& other) {
 }
 
 Transform::Transform(Transform&& other) noexcept
-   :
-   m_pos(std::move(other.m_pos)),
-   m_rot(std::move(other.m_rot)),
-   m_scl(std::move(other.m_scl)),
-   m_matrix(std::move(other.m_matrix)),
-   m_dirty(other.m_dirty)
-{}
+    : m_pos(std::move(other.m_pos)),
+      m_rot(std::move(other.m_rot)),
+      m_scl(std::move(other.m_scl)),
+      m_matrix(std::move(other.m_matrix)),
+      m_dirty(other.m_dirty) {}
 
 Transform& Transform::operator=(Transform&& other) noexcept {
    if (this != &other) {
@@ -87,17 +77,13 @@ void Transform::SetRotation(const glm::quat& rot) {
    }
 }
 
-void Transform::SetRotation(const glm::vec3& eulerAngles) {
-   SetRotation(glm::quat(eulerAngles));
-}
+void Transform::SetRotation(const glm::vec3& eulerAngles) { SetRotation(glm::quat(eulerAngles)); }
 
 void Transform::SetRotation(float pitch, float yaw, float roll) {
    SetRotation(glm::vec3(pitch, yaw, roll));
 }
 
-void Transform::Rotate(const glm::quat& deltaRot) {
-   SetRotation(m_rot * glm::normalize(deltaRot));
-}
+void Transform::Rotate(const glm::quat& deltaRot) { SetRotation(m_rot * glm::normalize(deltaRot)); }
 
 void Transform::Rotate(const glm::vec3& axis, float angle) {
    if (angle != 0.0f) {
@@ -146,21 +132,13 @@ const glm::mat4& Transform::GetTransformMatrix() const {
    return m_matrix;
 }
 
-glm::vec3 Transform::GetForward() const {
-   return glm::rotate(m_rot, glm::vec3(0.0f, 0.0f, -1.0f));
-}
+glm::vec3 Transform::GetForward() const { return glm::rotate(m_rot, glm::vec3(0.0f, 0.0f, -1.0f)); }
 
-glm::vec3 Transform::GetRight() const {
-   return glm::rotate(m_rot, glm::vec3(1.0f, 0.0f, 0.0f));
-}
+glm::vec3 Transform::GetRight() const { return glm::rotate(m_rot, glm::vec3(1.0f, 0.0f, 0.0f)); }
 
-glm::vec3 Transform::GetUp() const {
-   return glm::rotate(m_rot, glm::vec3(0.0f, 1.0f, 0.0f));
-}
+glm::vec3 Transform::GetUp() const { return glm::rotate(m_rot, glm::vec3(0.0f, 1.0f, 0.0f)); }
 
-glm::vec3 Transform::GetEulerAngles() const {
-   return glm::eulerAngles(m_rot);
-}
+glm::vec3 Transform::GetEulerAngles() const { return glm::eulerAngles(m_rot); }
 
 void Transform::RecalculateMatrix() const {
    const glm::mat4 translation = glm::translate(glm::mat4(1.0f), m_pos);
@@ -169,7 +147,8 @@ void Transform::RecalculateMatrix() const {
    m_matrix = translation * rotation * scaling;
 }
 
-bool Transform::DecomposeMatrix(const glm::mat4& matrix, glm::vec3& position, glm::quat& rotation, glm::vec3& scale) const {
+bool Transform::DecomposeMatrix(const glm::mat4& matrix, glm::vec3& position, glm::quat& rotation,
+                                glm::vec3& scale) const {
    // Extract position (translation)
    position = glm::vec3(matrix[3]);
    // Extract upper-left 3x3 matrix for rotation and scale
@@ -183,12 +162,14 @@ bool Transform::DecomposeMatrix(const glm::mat4& matrix, glm::vec3& position, gl
       scale.x = -scale.x;
    }
    // Remove scale to get pure rotation matrix
-   if (scale.x != 0.0f) rotScale[0] /= scale.x;
-   if (scale.y != 0.0f) rotScale[1] /= scale.y;
-   if (scale.z != 0.0f) rotScale[2] /= scale.z;
+   if (scale.x != 0.0f)
+      rotScale[0] /= scale.x;
+   if (scale.y != 0.0f)
+      rotScale[1] /= scale.y;
+   if (scale.z != 0.0f)
+      rotScale[2] /= scale.z;
    // Extract rotation
    rotation = glm::quat_cast(rotScale);
    rotation = glm::normalize(rotation);
    return true;
 }
-

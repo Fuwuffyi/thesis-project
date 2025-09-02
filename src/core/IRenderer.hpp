@@ -11,7 +11,7 @@ class Scene;
 class ResourceManager;
 
 class IRenderer {
-public:
+  public:
    virtual ~IRenderer() = default;
 
    IRenderer(const IRenderer&) = delete;
@@ -22,15 +22,16 @@ public:
    void SetActiveScene(Scene* scene);
 
    ResourceManager* GetResourceManager();
-protected:
+
+  protected:
    IRenderer(Window* window);
    virtual void SetupImgui() = 0;
    virtual void RenderImgui() = 0;
    virtual void DestroyImgui() = 0;
-protected:
+
+  protected:
    Window* m_window;
    Camera* m_activeCamera;
    Scene* m_activeScene;
    std::unique_ptr<ResourceManager> m_resourceManager;
 };
-

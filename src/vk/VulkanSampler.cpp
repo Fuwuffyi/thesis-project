@@ -4,9 +4,7 @@
 #include <stdexcept>
 
 VulkanSampler::VulkanSampler(const VulkanDevice& device, const SamplerCreateInfo& createInfo)
-:
-   m_device(&device)
-{
+    : m_device(&device) {
    VkPhysicalDeviceProperties properties{};
    vkGetPhysicalDeviceProperties(device.GetPhysicalDevice(), &properties);
    VkSamplerCreateInfo samplerInfo{};
@@ -17,8 +15,10 @@ VulkanSampler::VulkanSampler(const VulkanDevice& device, const SamplerCreateInfo
    samplerInfo.addressModeV = createInfo.addressModeV;
    samplerInfo.addressModeW = createInfo.addressModeW;
    samplerInfo.anisotropyEnable = createInfo.anisotropyEnable;
-   samplerInfo.maxAnisotropy = createInfo.anisotropyEnable ? 
-      std::min(createInfo.maxAnisotropy, properties.limits.maxSamplerAnisotropy) : 1.0f;
+   samplerInfo.maxAnisotropy =
+      createInfo.anisotropyEnable
+         ? std::min(createInfo.maxAnisotropy, properties.limits.maxSamplerAnisotropy)
+         : 1.0f;
    samplerInfo.borderColor = createInfo.borderColor;
    samplerInfo.unnormalizedCoordinates = createInfo.unnormalizedCoordinates;
    samplerInfo.compareEnable = createInfo.compareEnable;
@@ -27,8 +27,7 @@ VulkanSampler::VulkanSampler(const VulkanDevice& device, const SamplerCreateInfo
    samplerInfo.mipLodBias = createInfo.mipLodBias;
    samplerInfo.minLod = createInfo.minLod;
    samplerInfo.maxLod = createInfo.maxLod;
-   if (vkCreateSampler(device.Get(), &samplerInfo,
-                       nullptr, &m_sampler) != VK_SUCCESS) {
+   if (vkCreateSampler(device.Get(), &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS) {
       throw std::runtime_error("Failed to create texture sampler.");
    }
 }
@@ -40,10 +39,7 @@ VulkanSampler::~VulkanSampler() {
 }
 
 VulkanSampler::VulkanSampler(VulkanSampler&& other) noexcept
-:
-   m_device(other.m_device),
-   m_sampler(other.m_sampler)
-{
+    : m_device(other.m_device), m_sampler(other.m_sampler) {
    other.m_device = nullptr;
    other.m_sampler = VK_NULL_HANDLE;
 }
@@ -87,7 +83,8 @@ VulkanSampler VulkanSampler::CreateNearest(const VulkanDevice& device, const flo
    return VulkanSampler(device, createInfo);
 }
 
-VulkanSampler VulkanSampler::CreateAnisotropic(const VulkanDevice& device, const float maxAnisotropy, const float maxLod) {
+VulkanSampler VulkanSampler::CreateAnisotropic(const VulkanDevice& device,
+                                               const float maxAnisotropy, const float maxLod) {
    SamplerCreateInfo createInfo{};
    createInfo.magFilter = VK_FILTER_LINEAR;
    createInfo.minFilter = VK_FILTER_LINEAR;
@@ -100,4 +97,3 @@ VulkanSampler VulkanSampler::CreateAnisotropic(const VulkanDevice& device, const
    createInfo.maxLod = maxLod;
    return VulkanSampler(device, createInfo);
 }
-

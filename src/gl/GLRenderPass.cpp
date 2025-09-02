@@ -5,16 +5,16 @@
 #include <stdexcept>
 
 GLRenderPass::GLRenderPass(const CreateInfo& info)
-   : m_framebuffer(info.framebuffer)
-   , m_colorAttachments(info.colorAttachments)
-   , m_depthStencilAttachment(info.depthStencilAttachment)
-   , m_renderState(info.renderState)
-   , m_shader(info.shader)
-{
+    : m_framebuffer(info.framebuffer),
+      m_colorAttachments(info.colorAttachments),
+      m_depthStencilAttachment(info.depthStencilAttachment),
+      m_renderState(info.renderState),
+      m_shader(info.shader) {
    // Validate color attachments match framebuffer
    if (m_framebuffer) {
       if (m_colorAttachments.size() != m_framebuffer->GetColorAttachmentCount()) {
-         throw std::runtime_error("Color attachment count mismatch between render pass and framebuffer");
+         throw std::runtime_error(
+            "Color attachment count mismatch between render pass and framebuffer");
       }
    }
 }
@@ -69,8 +69,8 @@ void GLRenderPass::End() {
    }
 
    // Restore previous OpenGL state
-   glViewport(m_previousState.viewport[0], m_previousState.viewport[1], 
-              m_previousState.viewport[2], m_previousState.viewport[3]);
+   glViewport(m_previousState.viewport[0], m_previousState.viewport[1], m_previousState.viewport[2],
+              m_previousState.viewport[3]);
 
    if (m_previousState.depthTest) {
       glEnable(GL_DEPTH_TEST);
@@ -177,9 +177,9 @@ void GLRenderPass::ApplyRenderState() {
       }
       // For screen rendering, viewport is set by framebuffer bind/unbind
    } else {
-      glViewport(static_cast<GLint>(m_renderState.viewportX), 
+      glViewport(static_cast<GLint>(m_renderState.viewportX),
                  static_cast<GLint>(m_renderState.viewportY),
-                 static_cast<GLint>(m_renderState.viewportWidth), 
+                 static_cast<GLint>(m_renderState.viewportWidth),
                  static_cast<GLint>(m_renderState.viewportHeight));
    }
 
@@ -221,15 +221,13 @@ void GLRenderPass::ClearAttachments() {
       const auto& attachment = m_colorAttachments[i];
       if (attachment.loadOp == LoadOp::Clear) {
          if (m_framebuffer) {
-            m_framebuffer->ClearColor(static_cast<uint32_t>(i), 
-                                      attachment.clearValue.r, 
-                                      attachment.clearValue.g, 
-                                      attachment.clearValue.b, 
+            m_framebuffer->ClearColor(static_cast<uint32_t>(i), attachment.clearValue.r,
+                                      attachment.clearValue.g, attachment.clearValue.b,
                                       attachment.clearValue.a);
          } else {
             // Clear screen
-            glClearColor(attachment.clearValue.r, attachment.clearValue.g, 
-                         attachment.clearValue.b, attachment.clearValue.a);
+            glClearColor(attachment.clearValue.r, attachment.clearValue.g, attachment.clearValue.b,
+                         attachment.clearValue.a);
             glClear(GL_COLOR_BUFFER_BIT);
          }
       }
@@ -271,15 +269,33 @@ void GLRenderPass::SetDepthTest(DepthTest test) {
 
    GLenum depthFunc;
    switch (test) {
-      case DepthTest::Less:         depthFunc = GL_LESS; break;
-      case DepthTest::LessEqual:    depthFunc = GL_LEQUAL; break;
-      case DepthTest::Greater:      depthFunc = GL_GREATER; break;
-      case DepthTest::GreaterEqual: depthFunc = GL_GEQUAL; break;
-      case DepthTest::Equal:        depthFunc = GL_EQUAL; break;
-      case DepthTest::NotEqual:     depthFunc = GL_NOTEQUAL; break;
-      case DepthTest::Always:       depthFunc = GL_ALWAYS; break;
-      case DepthTest::Never:        depthFunc = GL_NEVER; break;
-      default:                      depthFunc = GL_LESS; break;
+      case DepthTest::Less:
+         depthFunc = GL_LESS;
+         break;
+      case DepthTest::LessEqual:
+         depthFunc = GL_LEQUAL;
+         break;
+      case DepthTest::Greater:
+         depthFunc = GL_GREATER;
+         break;
+      case DepthTest::GreaterEqual:
+         depthFunc = GL_GEQUAL;
+         break;
+      case DepthTest::Equal:
+         depthFunc = GL_EQUAL;
+         break;
+      case DepthTest::NotEqual:
+         depthFunc = GL_NOTEQUAL;
+         break;
+      case DepthTest::Always:
+         depthFunc = GL_ALWAYS;
+         break;
+      case DepthTest::Never:
+         depthFunc = GL_NEVER;
+         break;
+      default:
+         depthFunc = GL_LESS;
+         break;
    }
 
    glDepthFunc(depthFunc);
@@ -295,10 +311,18 @@ void GLRenderPass::SetCullMode(CullMode mode) {
 
    GLenum cullFace;
    switch (mode) {
-      case CullMode::Front:       cullFace = GL_FRONT; break;
-      case CullMode::Back:        cullFace = GL_BACK; break;
-      case CullMode::FrontAndBack: cullFace = GL_FRONT_AND_BACK; break;
-      default:                    cullFace = GL_BACK; break;
+      case CullMode::Front:
+         cullFace = GL_FRONT;
+         break;
+      case CullMode::Back:
+         cullFace = GL_BACK;
+         break;
+      case CullMode::FrontAndBack:
+         cullFace = GL_FRONT_AND_BACK;
+         break;
+      default:
+         cullFace = GL_BACK;
+         break;
    }
 
    glCullFace(cullFace);

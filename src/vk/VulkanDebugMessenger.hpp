@@ -6,7 +6,7 @@
 class VulkanInstance;
 
 class VulkanDebugMessenger {
-public:
+  public:
    VulkanDebugMessenger(const VulkanInstance& instance);
    ~VulkanDebugMessenger();
 
@@ -17,15 +17,13 @@ public:
 
    VkDebugUtilsMessengerEXT Get() const;
 
-private:
+  private:
    const VulkanInstance* m_instance = nullptr;
    VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
 
    // Debug function to print message
-   static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
-      VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-      VkDebugUtilsMessageTypeFlagsEXT messageType,
-      const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-      void* pUserData);
+   static VKAPI_ATTR VkBool32 VKAPI_CALL
+   DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                 VkDebugUtilsMessageTypeFlagsEXT messageType,
+                 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
 };
-

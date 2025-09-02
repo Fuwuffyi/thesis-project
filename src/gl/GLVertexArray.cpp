@@ -20,9 +20,7 @@ GLVertexArray::~GLVertexArray() {
 }
 
 GLVertexArray::GLVertexArray(GLVertexArray&& other) noexcept
-   :
-   m_vao(std::exchange(other.m_vao, 0))
-{}
+    : m_vao(std::exchange(other.m_vao, 0)) {}
 
 GLVertexArray& GLVertexArray::operator=(GLVertexArray&& other) noexcept {
    if (this != &other) {
@@ -40,9 +38,7 @@ void GLVertexArray::Bind() const {
    }
 }
 
-void GLVertexArray::Unbind() const {
-   glBindVertexArray(0);
-}
+void GLVertexArray::Unbind() const { glBindVertexArray(0); }
 
 void GLVertexArray::AttachVertexBuffer(const GLBuffer& buffer, const GLuint bindingIndex,
                                        const GLintptr offset, const GLsizei stride) {
@@ -72,18 +68,15 @@ void GLVertexArray::SetupVertexAttributes() {
    constexpr GLuint bindingIndex = 0;
    // Position
    EnableAttribute(0);
-   SetAttributeFormat(0, 3, GL_FLOAT, GL_FALSE,
-                      offsetof(Vertex, position));
+   SetAttributeFormat(0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, position));
    SetAttributeBinding(0, bindingIndex);
    // Normal
    EnableAttribute(1);
-   SetAttributeFormat(1, 3, GL_FLOAT, GL_FALSE,
-                      offsetof(Vertex, normal));
+   SetAttributeFormat(1, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, normal));
    SetAttributeBinding(1, bindingIndex);
    // UV
    EnableAttribute(2);
-   SetAttributeFormat(2, 2, GL_FLOAT, GL_FALSE,
-                      offsetof(Vertex, uv));
+   SetAttributeFormat(2, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, uv));
    SetAttributeBinding(2, bindingIndex);
 }
 
@@ -119,7 +112,8 @@ void GLVertexArray::DrawArrays(const GLenum mode, const GLint first, const GLsiz
    }
 }
 
-void GLVertexArray::DrawElements(const GLenum mode, const GLsizei count, const GLenum type, const void* indices) const {
+void GLVertexArray::DrawElements(const GLenum mode, const GLsizei count, const GLenum type,
+                                 const void* indices) const {
    if (m_vao != 0) {
       Bind();
       glDrawElements(mode, count, type, indices);
@@ -134,11 +128,6 @@ void GLVertexArray::DrawElementsInstanced(const GLenum mode, const GLsizei count
    }
 }
 
-GLuint GLVertexArray::Get() const {
-   return m_vao;
-}
+GLuint GLVertexArray::Get() const { return m_vao; }
 
-bool GLVertexArray::IsValid() const {
-   return m_vao != 0;
-}
-
+bool GLVertexArray::IsValid() const { return m_vao != 0; }

@@ -23,7 +23,7 @@ struct SamplerCreateInfo {
 };
 
 class VulkanSampler {
-public:
+  public:
    VulkanSampler(const VulkanDevice& device, const SamplerCreateInfo& createInfo = {});
    ~VulkanSampler();
 
@@ -34,13 +34,14 @@ public:
 
    VkSampler Get() const { return m_sampler; }
 
-   static VulkanSampler CreateLinear(const VulkanDevice& device, const float maxLod = VK_LOD_CLAMP_NONE);
-   static VulkanSampler CreateNearest(const VulkanDevice& device, const float maxLod = VK_LOD_CLAMP_NONE);
+   static VulkanSampler CreateLinear(const VulkanDevice& device,
+                                     const float maxLod = VK_LOD_CLAMP_NONE);
+   static VulkanSampler CreateNearest(const VulkanDevice& device,
+                                      const float maxLod = VK_LOD_CLAMP_NONE);
    static VulkanSampler CreateAnisotropic(const VulkanDevice& device, const float maxAnisotropy,
                                           const float maxLod = VK_LOD_CLAMP_NONE);
 
-private:
+  private:
    const VulkanDevice* m_device = nullptr;
    VkSampler m_sampler = VK_NULL_HANDLE;
 };
-

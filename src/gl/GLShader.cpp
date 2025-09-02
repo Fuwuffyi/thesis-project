@@ -21,11 +21,9 @@ GLShader::~GLShader() {
 }
 
 GLShader::GLShader(GLShader&& other) noexcept
-   :
-   m_program(std::exchange(other.m_program, 0)),
-   m_isLinked(std::exchange(other.m_isLinked, false)),
-   m_uniformLocations(std::move(other.m_uniformLocations))
-{}
+    : m_program(std::exchange(other.m_program, 0)),
+      m_isLinked(std::exchange(other.m_isLinked, false)),
+      m_uniformLocations(std::move(other.m_uniformLocations)) {}
 
 GLShader& GLShader::operator=(GLShader&& other) noexcept {
    if (this != &other) {
@@ -76,9 +74,7 @@ void GLShader::Use() const {
    }
 }
 
-void GLShader::Unbind() const {
-   glUseProgram(0);
-}
+void GLShader::Unbind() const { glUseProgram(0); }
 
 void GLShader::SetBool(const std::string& name, const bool value) {
    glUniform1i(GetUniformLocation(name), static_cast<int>(value));
@@ -149,9 +145,15 @@ GLuint GLShader::CompileShader(const Type type, const std::string& source) {
       glDeleteShader(shader);
       std::string shaderTypeName;
       switch (type) {
-         case Type::Vertex: shaderTypeName = "vertex"; break;
-         case Type::Fragment: shaderTypeName = "fragment"; break;
-         case Type::Compute: shaderTypeName = "compute"; break;
+         case Type::Vertex:
+            shaderTypeName = "vertex";
+            break;
+         case Type::Fragment:
+            shaderTypeName = "fragment";
+            break;
+         case Type::Compute:
+            shaderTypeName = "compute";
+            break;
       }
       throw std::runtime_error("Shader compilation failed (" + shaderTypeName + "): " + infoLog);
    }
@@ -178,15 +180,8 @@ GLint GLShader::GetUniformLocation(const std::string& name) {
    return location;
 }
 
-GLuint GLShader::Get() const {
-   return m_program;
-}
+GLuint GLShader::Get() const { return m_program; }
 
-bool GLShader::IsValid() const {
-   return m_program != 0;
-}
+bool GLShader::IsValid() const { return m_program != 0; }
 
-bool GLShader::IsLinked() const {
-   return m_isLinked;
-}
-
+bool GLShader::IsLinked() const { return m_isLinked; }

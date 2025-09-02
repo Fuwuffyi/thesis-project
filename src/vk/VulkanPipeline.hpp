@@ -7,7 +7,7 @@
 class VulkanDevice;
 
 class VulkanShaderModule {
-public:
+  public:
    VulkanShaderModule(const VulkanDevice& device, const std::vector<char>& code);
    VulkanShaderModule(const VulkanDevice& device, const std::string& filepath);
    ~VulkanShaderModule();
@@ -19,16 +19,16 @@ public:
 
    VkShaderModule Get() const;
 
-private:
+  private:
    static std::vector<char> ReadFile(const std::string& filename);
 
-private:
+  private:
    const VulkanDevice* m_device = nullptr;
    VkShaderModule m_shaderModule = VK_NULL_HANDLE;
 };
 
 class VulkanPipelineLayout {
-public:
+  public:
    VulkanPipelineLayout(const VulkanDevice& device,
                         const std::vector<VkDescriptorSetLayout>& descriptorSetLayouts,
                         const std::vector<VkPushConstantRange>& pushConstantRanges = {});
@@ -41,14 +41,15 @@ public:
 
    VkPipelineLayout Get() const { return m_pipelineLayout; }
 
-private:
+  private:
    const VulkanDevice* m_device = nullptr;
    VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 };
 
 class VulkanGraphicsPipeline {
-public:
-   VulkanGraphicsPipeline(const VulkanDevice& device, const VkPipeline& pipeline, const VkPipelineLayout& layout);
+  public:
+   VulkanGraphicsPipeline(const VulkanDevice& device, const VkPipeline& pipeline,
+                          const VkPipelineLayout& layout);
    ~VulkanGraphicsPipeline();
 
    VulkanGraphicsPipeline(const VulkanGraphicsPipeline&) = delete;
@@ -59,14 +60,14 @@ public:
    VkPipeline GetPipeline() const;
    VkPipelineLayout GetLayout() const;
 
-private:
+  private:
    const VulkanDevice* m_device = nullptr;
    VkPipeline m_pipeline = VK_NULL_HANDLE;
    VkPipelineLayout m_layout = VK_NULL_HANDLE;
 };
 
 class VulkanGraphicsPipelineBuilder {
-public:
+  public:
    struct ShaderStage {
       VkShaderStageFlagBits stage;
       VkShaderModule module;
@@ -131,7 +132,7 @@ public:
       VkBlendFactor dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
       VkBlendOp alphaBlendOp = VK_BLEND_OP_ADD;
       VkColorComponentFlags colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-      VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+                                             VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
    };
 
    struct ColorBlendState {
@@ -141,19 +142,23 @@ public:
       float blendConstants[4] = {0.0f, 0.0f, 0.0f, 0.0f};
    };
 
-public:
+  public:
    VulkanGraphicsPipelineBuilder(const VulkanDevice& device);
    // Shader stages
-   VulkanGraphicsPipelineBuilder& AddShaderStage(const VkShaderStageFlagBits stage, const VkShaderModule& module,
+   VulkanGraphicsPipelineBuilder& AddShaderStage(const VkShaderStageFlagBits stage,
+                                                 const VkShaderModule& module,
                                                  const std::string& entryPoint = "main");
-   VulkanGraphicsPipelineBuilder& SetVertexShader(const VkShaderModule& module, const std::string& entryPoint = "main");
-   VulkanGraphicsPipelineBuilder& SetFragmentShader(const VkShaderModule& module, const std::string& entryPoint = "main");
+   VulkanGraphicsPipelineBuilder& SetVertexShader(const VkShaderModule& module,
+                                                  const std::string& entryPoint = "main");
+   VulkanGraphicsPipelineBuilder& SetFragmentShader(const VkShaderModule& module,
+                                                    const std::string& entryPoint = "main");
    // Vertex input
    VulkanGraphicsPipelineBuilder& SetVertexInput(const VertexInputState& vertexInput);
    VulkanGraphicsPipelineBuilder& AddVertexBinding(const uint32_t binding, const uint32_t stride,
                                                    const VkVertexInputRate& inputRate);
-   VulkanGraphicsPipelineBuilder& AddVertexAttribute(const uint32_t location, const uint32_t binding,
-                                                     const VkFormat format, const uint32_t offset);
+   VulkanGraphicsPipelineBuilder& AddVertexAttribute(const uint32_t location,
+                                                     const uint32_t binding, const VkFormat format,
+                                                     const uint32_t offset);
    // Input assembly
    VulkanGraphicsPipelineBuilder& SetInputAssembly(const InputAssemblyState& inputAssembly);
    VulkanGraphicsPipelineBuilder& SetTopology(const VkPrimitiveTopology& topology);
@@ -175,18 +180,20 @@ public:
    VulkanGraphicsPipelineBuilder& DisableDepthTest();
    // Color blending
    VulkanGraphicsPipelineBuilder& SetColorBlendState(const ColorBlendState& colorBlend);
-   VulkanGraphicsPipelineBuilder& AddColorBlendAttachment(const ColorBlendAttachmentState& attachment);
+   VulkanGraphicsPipelineBuilder& AddColorBlendAttachment(
+      const ColorBlendAttachmentState& attachment);
    VulkanGraphicsPipelineBuilder& SetDefaultColorBlending();
    // Dynamic state
    VulkanGraphicsPipelineBuilder& AddDynamicState(const VkDynamicState state);
    VulkanGraphicsPipelineBuilder& SetDynamicViewportAndScissor();
    // Pipeline layout and render pass
    VulkanGraphicsPipelineBuilder& SetPipelineLayout(const VkPipelineLayout& layout);
-   VulkanGraphicsPipelineBuilder& SetRenderPass(const VkRenderPass& renderPass, const uint32_t subpass = 0);
+   VulkanGraphicsPipelineBuilder& SetRenderPass(const VkRenderPass& renderPass,
+                                                const uint32_t subpass = 0);
    // Build the pipeline
    VulkanGraphicsPipeline Build();
 
-private:
+  private:
    void ValidateState() const;
    VkPipelineVertexInputStateCreateInfo GetVertexInputStateCreateInfo() const;
    VkPipelineInputAssemblyStateCreateInfo GetInputAssemblyStateCreateInfo() const;
@@ -197,7 +204,7 @@ private:
    VkPipelineColorBlendStateCreateInfo GetColorBlendStateCreateInfo() const;
    VkPipelineDynamicStateCreateInfo GetDynamicStateCreateInfo() const;
 
-private:
+  private:
    const VulkanDevice* m_device = nullptr;
    // Pipeline state
    std::vector<ShaderStage> m_shaderStages;
@@ -220,4 +227,3 @@ private:
    mutable std::vector<VkPipelineShaderStageCreateInfo> m_shaderStageCreateInfos;
    mutable std::vector<VkPipelineColorBlendAttachmentState> m_colorBlendAttachments;
 };
-

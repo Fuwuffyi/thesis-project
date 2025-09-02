@@ -8,7 +8,7 @@
 
 // TODO: Handle material/texture information
 class RendererComponent final : public Component {
-public:
+  public:
    struct SubMeshRenderer {
       MeshHandle mesh;
       bool visible = true;
@@ -53,7 +53,7 @@ public:
    [[nodiscard]] bool IsMultiMesh() const noexcept;
    void ClearSubMeshes();
 
-private:
+  private:
    MeshHandle m_mesh;
    std::vector<SubMeshRenderer> m_subMeshRenderers;
 
@@ -61,4 +61,3 @@ private:
    bool m_castsShadows;
    bool m_receivesShadows;
 };
-

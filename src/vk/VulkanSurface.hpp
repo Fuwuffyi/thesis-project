@@ -7,7 +7,7 @@ class VulkanInstance;
 struct GLFWwindow;
 
 class VulkanSurface {
-public:
+  public:
    VulkanSurface(const VulkanInstance& instance, GLFWwindow* window);
    ~VulkanSurface();
 
@@ -18,8 +18,7 @@ public:
 
    VkSurfaceKHR Get() const;
 
-private:
+  private:
    const VulkanInstance* m_instance = nullptr;
    VkSurfaceKHR m_surface = VK_NULL_HANDLE;
 };
-

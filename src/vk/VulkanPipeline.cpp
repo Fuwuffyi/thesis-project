@@ -20,22 +20,18 @@ std::vector<char> VulkanShaderModule::ReadFile(const std::string& filename) {
 }
 
 VulkanShaderModule::VulkanShaderModule(const VulkanDevice& device, const std::vector<char>& code)
-   :
-   m_device(&device)
-{
+    : m_device(&device) {
    VkShaderModuleCreateInfo createInfo{};
    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
    createInfo.codeSize = code.size();
    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-   if (vkCreateShaderModule(m_device->Get(), &createInfo,
-                            nullptr, &m_shaderModule) != VK_SUCCESS) {
+   if (vkCreateShaderModule(m_device->Get(), &createInfo, nullptr, &m_shaderModule) != VK_SUCCESS) {
       throw std::runtime_error("Failed to create shader module");
    }
 }
 
 VulkanShaderModule::VulkanShaderModule(const VulkanDevice& device, const std::string& filepath)
-   :
-   VulkanShaderModule(device, ReadFile(filepath)) {}
+    : VulkanShaderModule(device, ReadFile(filepath)) {}
 
 VulkanShaderModule::~VulkanShaderModule() {
    if (m_shaderModule != VK_NULL_HANDLE) {
@@ -57,18 +53,13 @@ VulkanShaderModule& VulkanShaderModule::operator=(VulkanShaderModule&& other) no
    return *this;
 }
 
-VkShaderModule VulkanShaderModule::Get() const {
-   return m_shaderModule;
-}
+VkShaderModule VulkanShaderModule::Get() const { return m_shaderModule; }
 
 // VulkanPipelineLayout
 VulkanPipelineLayout::VulkanPipelineLayout(
-   const VulkanDevice& device,
-   const std::vector<VkDescriptorSetLayout>& descriptorSetLayouts,
+   const VulkanDevice& device, const std::vector<VkDescriptorSetLayout>& descriptorSetLayouts,
    const std::vector<VkPushConstantRange>& pushConstantRanges)
-   :
-   m_device(&device)
-{
+    : m_device(&device) {
    VkPipelineLayoutCreateInfo info{};
    info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
    info.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
@@ -101,12 +92,10 @@ VulkanPipelineLayout& VulkanPipelineLayout::operator=(VulkanPipelineLayout&& oth
 }
 
 // VulkanGraphicsPipeline
-VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanDevice& device, const VkPipeline& pipeline, const VkPipelineLayout& layout)
-   :
-   m_device(&device),
-   m_pipeline(pipeline),
-   m_layout(layout)
-{}
+VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanDevice& device,
+                                               const VkPipeline& pipeline,
+                                               const VkPipelineLayout& layout)
+    : m_device(&device), m_pipeline(pipeline), m_layout(layout) {}
 
 VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
    if (m_pipeline != VK_NULL_HANDLE) {
@@ -135,13 +124,11 @@ VkPipelineLayout VulkanGraphicsPipeline::GetLayout() const { return m_layout; }
 
 // VulkanGraphicsPipelineBuilder
 VulkanGraphicsPipelineBuilder::VulkanGraphicsPipelineBuilder(const VulkanDevice& device)
-   :
-   m_device(&device)
-{}
+    : m_device(&device) {}
 
 VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::AddShaderStage(
    const VkShaderStageFlagBits stage, const VkShaderModule& module, const std::string& entryPoint) {
-   m_shaderStages.push_back({ stage, module, entryPoint });
+   m_shaderStages.push_back({stage, module, entryPoint});
    return *this;
 }
 
@@ -155,39 +142,44 @@ VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetFragmentShader(
    return AddShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, module, entryPoint);
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetVertexInput(const VertexInputState& vertexInput) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetVertexInput(
+   const VertexInputState& vertexInput) {
    m_vertexInput = vertexInput;
    return *this;
 }
 
 VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::AddVertexBinding(
    const uint32_t binding, const uint32_t stride, const VkVertexInputRate& inputRate) {
-   m_vertexInput.bindings.push_back({ binding, stride, inputRate });
+   m_vertexInput.bindings.push_back({binding, stride, inputRate});
    return *this;
 }
 
 VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::AddVertexAttribute(
    const uint32_t location, const uint32_t binding, const VkFormat format, const uint32_t offset) {
-   m_vertexInput.attributes.push_back({ location, binding, format, offset });
+   m_vertexInput.attributes.push_back({location, binding, format, offset});
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetInputAssembly(const InputAssemblyState& inputAssembly) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetInputAssembly(
+   const InputAssemblyState& inputAssembly) {
    m_inputAssembly = inputAssembly;
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetTopology(const VkPrimitiveTopology& topology) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetTopology(
+   const VkPrimitiveTopology& topology) {
    m_inputAssembly.topology = topology;
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetViewportState(const ViewportState& viewportState) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetViewportState(
+   const ViewportState& viewportState) {
    m_viewport = viewportState;
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::AddViewport(const VkViewport& viewport) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::AddViewport(
+   const VkViewport& viewport) {
    m_viewport.viewports.push_back(viewport);
    return *this;
 }
@@ -197,42 +189,50 @@ VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::AddScissor(const V
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetRasterizationState(const RasterizationState& rasterization) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetRasterizationState(
+   const RasterizationState& rasterization) {
    m_rasterization = rasterization;
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetPolygonMode(const VkPolygonMode mode) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetPolygonMode(
+   const VkPolygonMode mode) {
    m_rasterization.polygonMode = mode;
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetCullMode(const VkCullModeFlags cullMode) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetCullMode(
+   const VkCullModeFlags cullMode) {
    m_rasterization.cullMode = cullMode;
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetFrontFace(const VkFrontFace frontFace) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetFrontFace(
+   const VkFrontFace frontFace) {
    m_rasterization.frontFace = frontFace;
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetMultisampleState(const MultisampleState& multisample) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetMultisampleState(
+   const MultisampleState& multisample) {
    m_multisample = multisample;
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetSampleCount(const VkSampleCountFlagBits samples) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetSampleCount(
+   const VkSampleCountFlagBits samples) {
    m_multisample.rasterizationSamples = samples;
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetDepthStencilState(const DepthStencilState& depthStencil) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetDepthStencilState(
+   const DepthStencilState& depthStencil) {
    m_depthStencil = depthStencil;
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::EnableDepthTest(const VkCompareOp compareOp) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::EnableDepthTest(
+   const VkCompareOp compareOp) {
    m_depthStencil.depthTestEnable = VK_TRUE;
    m_depthStencil.depthCompareOp = compareOp;
    return *this;
@@ -243,12 +243,14 @@ VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::DisableDepthTest()
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetColorBlendState(const ColorBlendState& colorBlend) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetColorBlendState(
+   const ColorBlendState& colorBlend) {
    m_colorBlend = colorBlend;
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::AddColorBlendAttachment(const ColorBlendAttachmentState& attachment) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::AddColorBlendAttachment(
+   const ColorBlendAttachmentState& attachment) {
    m_colorBlend.attachments.push_back(attachment);
    return *this;
 }
@@ -262,11 +264,12 @@ VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetDefaultColorBle
    attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
    attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
    attachment.alphaBlendOp = VK_BLEND_OP_ADD;
-   m_colorBlend.attachments = { attachment };
+   m_colorBlend.attachments = {attachment};
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::AddDynamicState(const VkDynamicState state) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::AddDynamicState(
+   const VkDynamicState state) {
    m_dynamicStates.push_back(state);
    return *this;
 }
@@ -277,12 +280,14 @@ VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetDynamicViewport
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetPipelineLayout(const VkPipelineLayout& layout) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetPipelineLayout(
+   const VkPipelineLayout& layout) {
    m_pipelineLayout = layout;
    return *this;
 }
 
-VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetRenderPass(const VkRenderPass& renderPass, const uint32_t subpass) {
+VulkanGraphicsPipelineBuilder& VulkanGraphicsPipelineBuilder::SetRenderPass(
+   const VkRenderPass& renderPass, const uint32_t subpass) {
    m_renderPass = renderPass;
    m_subpass = subpass;
    return *this;
@@ -306,7 +311,8 @@ VulkanGraphicsPipeline VulkanGraphicsPipelineBuilder::Build() {
    vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
    vertexInput.vertexBindingDescriptionCount = static_cast<uint32_t>(m_vertexInput.bindings.size());
    vertexInput.pVertexBindingDescriptions = m_vertexInput.bindings.data();
-   vertexInput.vertexAttributeDescriptionCount = static_cast<uint32_t>(m_vertexInput.attributes.size());
+   vertexInput.vertexAttributeDescriptionCount =
+      static_cast<uint32_t>(m_vertexInput.attributes.size());
    vertexInput.pVertexAttributeDescriptions = m_vertexInput.attributes.data();
    // Input assembly
    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -375,8 +381,8 @@ VulkanGraphicsPipeline VulkanGraphicsPipelineBuilder::Build() {
    cb.logicOp = m_colorBlend.logicOp;
    cb.attachmentCount = static_cast<uint32_t>(blendAttachments.size());
    cb.pAttachments = blendAttachments.data();
-   std::copy(std::begin(m_colorBlend.blendConstants),
-             std::end(m_colorBlend.blendConstants), cb.blendConstants);
+   std::copy(std::begin(m_colorBlend.blendConstants), std::end(m_colorBlend.blendConstants),
+             cb.blendConstants);
    // Dynamic state
    VkPipelineDynamicStateCreateInfo dyn{};
    dyn.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -401,7 +407,8 @@ VulkanGraphicsPipeline VulkanGraphicsPipelineBuilder::Build() {
    pipelineInfo.basePipelineHandle = m_basePipeline;
    pipelineInfo.basePipelineIndex = m_basePipelineIndex;
    VkPipeline pipeline;
-   if (vkCreateGraphicsPipelines(m_device->Get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
+   if (vkCreateGraphicsPipelines(m_device->Get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+                                 &pipeline) != VK_SUCCESS) {
       throw std::runtime_error("Failed to create graphics pipeline");
    }
    return VulkanGraphicsPipeline(*m_device, pipeline, m_pipelineLayout);
@@ -418,4 +425,3 @@ void VulkanGraphicsPipelineBuilder::ValidateState() const {
       throw std::runtime_error("Render pass not set");
    }
 }
-

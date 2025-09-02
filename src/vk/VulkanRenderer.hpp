@@ -13,7 +13,6 @@
 
 #include "VulkanSampler.hpp"
 
-#include "../core/resource/ResourceHandle.hpp"
 #include "resource/VulkanTexture.hpp"
 
 #include <vulkan/vulkan.h>
@@ -35,11 +34,12 @@ struct ObjectData {
 };
 
 class VulkanRenderer : public IRenderer {
-public:
+  public:
    VulkanRenderer(Window* window);
    ~VulkanRenderer();
    void RenderFrame() override;
-private:
+
+  private:
    void SetupImgui() override;
    void RenderImgui() override;
    void DestroyImgui() override;
@@ -61,7 +61,8 @@ private:
    void CleanupSwapchain();
    // Setup for depth texture
    void CreateDepthResources();
-   VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, const VkImageTiling& tiling,
+   VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates,
+                                const VkImageTiling& tiling,
                                 const VkFormatFeatureFlags features) const;
    VkFormat FindDepthFormat() const;
    bool HasStencilComponent(const VkFormat& format) const;
@@ -71,7 +72,8 @@ private:
    void CreateTestResources();
    void CreateUniformBuffer();
    void UpdateUniformBuffer(const uint32_t currentImage);
-private:
+
+  private:
    constexpr static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
    uint32_t m_currentFrame = 0;
    VulkanInstance m_instance;
@@ -99,4 +101,3 @@ private:
    VkDescriptorPool m_descriptorPool;
    std::vector<VkDescriptorSet> m_descriptorSets;
 };
-

@@ -5,7 +5,7 @@
 #include <vector>
 
 class GLBuffer {
-public:
+  public:
    enum class Type : GLenum {
       Array = GL_ARRAY_BUFFER,
       Element = GL_ELEMENT_ARRAY_BUFFER,
@@ -42,9 +42,9 @@ public:
    void* Map(const GLenum access = GL_READ_WRITE);
    void Unmap();
 
-   template<typename T>
+   template <typename T>
    void UploadData(const std::vector<T>& data);
-   template<typename T>
+   template <typename T>
    void UpdateData(const std::vector<T>& data, const size_t offset = 0);
 
    GLuint Get() const;
@@ -53,20 +53,19 @@ public:
    size_t GetSize() const;
    bool IsValid() const;
 
-private:
+  private:
    GLuint m_buffer = 0;
    Type m_type;
    Usage m_usage;
    size_t m_size = 0;
 };
 
-template<typename T>
+template <typename T>
 void GLBuffer::UploadData(const std::vector<T>& data) {
    UploadData(data.data(), data.size() * sizeof(T));
 }
 
-template<typename T>
+template <typename T>
 void GLBuffer::UpdateData(const std::vector<T>& data, const size_t offset) {
    UpdateData(data.data(), data.size() * sizeof(T), offset);
 }
-

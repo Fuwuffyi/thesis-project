@@ -10,17 +10,10 @@ class GLFramebuffer;
 class GLShader;
 
 class GLRenderPass {
-public:
-   enum class LoadOp {
-      Load,
-      Clear,
-      DontCare
-   };
+  public:
+   enum class LoadOp { Load, Clear, DontCare };
 
-   enum class StoreOp {
-      Store,
-      DontCare
-   };
+   enum class StoreOp { Store, DontCare };
 
    enum class DepthTest {
       Disabled,
@@ -34,20 +27,9 @@ public:
       Never
    };
 
-   enum class CullMode {
-      None,
-      Front,
-      Back,
-      FrontAndBack
-   };
+   enum class CullMode { None, Front, Back, FrontAndBack };
 
-   enum class BlendMode {
-      None,
-      Alpha,
-      Additive,
-      Multiply,
-      Custom
-   };
+   enum class BlendMode { None, Alpha, Additive, Multiply, Custom };
 
    enum class PrimitiveType {
       Points = GL_POINTS,
@@ -142,14 +124,14 @@ public:
    uint32_t GetViewportWidth() const;
    uint32_t GetViewportHeight() const;
 
-private:
+  private:
    void ApplyRenderState();
    void ClearAttachments();
    void SetDepthTest(const DepthTest test);
    void SetCullMode(const CullMode mode);
    void SetBlendMode(const BlendMode mode);
 
-private:
+  private:
    GLFramebuffer* m_framebuffer;
    std::vector<ColorAttachmentDesc> m_colorAttachments;
    DepthStencilAttachmentDesc m_depthStencilAttachment;
@@ -176,4 +158,3 @@ private:
       GLint scissorBox[4];
    } m_previousState;
 };
-

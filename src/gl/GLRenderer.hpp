@@ -11,12 +11,12 @@ class GLShader;
 class GLRenderPass;
 
 class GLRenderer : public IRenderer {
-public:
-   GLRenderer(Window *window);
+  public:
+   GLRenderer(Window* window);
    ~GLRenderer() override;
    void RenderFrame() override;
 
-private:
+  private:
    void SetupImgui() override;
    void RenderImgui() override;
    void DestroyImgui() override;
@@ -33,7 +33,7 @@ private:
    void CreateGeometryPass();
    void CreateLightingPass();
 
-private:
+  private:
    MeshHandle m_fullscreenQuad;
    // Create UBOs for shader data
    std::unique_ptr<GLBuffer> m_cameraUbo = nullptr;
@@ -50,4 +50,3 @@ private:
    std::unique_ptr<GLRenderPass> m_lightingPass;
    std::unique_ptr<GLShader> m_lightingPassShader;
 };
-

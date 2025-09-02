@@ -8,7 +8,7 @@ class VulkanSurface;
 class Window;
 
 class VulkanSwapchain {
-public:
+  public:
    VulkanSwapchain(const VulkanDevice& device, const VulkanSurface& surface, const Window& window);
    ~VulkanSwapchain();
 
@@ -24,8 +24,10 @@ public:
    VkExtent2D GetExtent() const;
 
    void Recreate();
-   VkResult AcquireNextImage(const uint64_t timeout, const VkSemaphore& semaphore, uint32_t* imageIndex) const;
-private:
+   VkResult AcquireNextImage(const uint64_t timeout, const VkSemaphore& semaphore,
+                             uint32_t* imageIndex) const;
+
+  private:
    void CreateSwapchain();
    void CreateImageViews();
    void Cleanup();

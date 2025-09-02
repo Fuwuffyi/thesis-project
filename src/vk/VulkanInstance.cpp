@@ -20,7 +20,7 @@ VulkanInstance::VulkanInstance(const std::vector<const char*>& extensions,
    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
    appInfo.apiVersion = VK_API_VERSION_1_4;
    // Get required extensions for GLFW and others
-   const std::vector<const char *> requiredExtensions = GetRequiredExtensions(enableValidation);
+   const std::vector<const char*> requiredExtensions = GetRequiredExtensions(enableValidation);
    // Create instance information
    VkInstanceCreateInfo createInfo{};
    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -46,10 +46,7 @@ VulkanInstance::~VulkanInstance() {
    }
 }
 
-VulkanInstance::VulkanInstance(VulkanInstance&& other) noexcept 
-:
-   m_instance(other.m_instance)
-{
+VulkanInstance::VulkanInstance(VulkanInstance&& other) noexcept : m_instance(other.m_instance) {
    other.m_instance = VK_NULL_HANDLE;
 }
 
@@ -74,7 +71,8 @@ std::vector<const char*> VulkanInstance::GetRequiredExtensions(const bool enable
    return extensions;
 }
 
-bool VulkanInstance::CheckValidationLayerSupport(const std::vector<const char*>& validationLayers) const {
+bool VulkanInstance::CheckValidationLayerSupport(
+   const std::vector<const char*>& validationLayers) const {
    // Get available validation layers
    uint32_t layerCount;
    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -96,7 +94,4 @@ bool VulkanInstance::CheckValidationLayerSupport(const std::vector<const char*>&
    return true;
 }
 
-VkInstance VulkanInstance::Get() const {
-   return m_instance;
-}
-
+VkInstance VulkanInstance::Get() const { return m_instance; }

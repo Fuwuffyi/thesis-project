@@ -11,46 +11,38 @@
 #include <algorithm>
 #include <queue>
 
-Scene::Scene(std::string name)
-   :
-   m_name(std::move(name)),
-   m_nodeCounter(0)
-{
+Scene::Scene(std::string name) : m_name(std::move(name)), m_nodeCounter(0) {
    m_rootNode = std::make_unique<Node>("Root");
    m_rootNode->AddComponent<TransformComponent>();
    RegisterNode(m_rootNode.get());
 }
 
-Scene::~Scene() {
-   Clear();
-}
+Scene::~Scene() { Clear(); }
 
 void Scene::DrawInspector() {
    const ImGuiViewport* viewport = ImGui::GetMainViewport();
    static Node* selectedNode = nullptr;
-   ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + viewport->WorkSize.x - 300, viewport->WorkPos.y)); // 300 px width
+   ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + viewport->WorkSize.x - 300,
+                                  viewport->WorkPos.y)); // 300 px width
    ImGui::SetNextWindowSize(ImVec2(300, viewport->WorkSize.y));
    ImGui::SetNextWindowBgAlpha(0.35f);
-   ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
-      ImGuiWindowFlags_NoMove |
-      ImGuiWindowFlags_NoCollapse |
-      ImGuiWindowFlags_NoResize |
-      ImGuiWindowFlags_NoSavedSettings |
-      ImGuiWindowFlags_NoFocusOnAppearing |
-      ImGuiWindowFlags_NoNav;
+   ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
+                            ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+                            ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
+                            ImGuiWindowFlags_NoNav;
    ImGui::Begin("Scene Graph", nullptr, flags);
    // Recursive function to display hierarchy
    std::function<void(Node*)> displayNodeHierarchy = [&](Node* node) {
-      if (!node) return;
+      if (!node)
+         return;
       ImGui::PushID(node);
       // Tree node display
       bool hasChildren = node->GetChildCount() > 0;
       ImGuiTreeNodeFlags nodeFlags =
-         ImGuiTreeNodeFlags_OpenOnArrow |
-         ImGuiTreeNodeFlags_OpenOnDoubleClick |
-         ImGuiTreeNodeFlags_SpanAvailWidth |
-         (hasChildren ? 0 : ImGuiTreeNodeFlags_Leaf);
-      if (selectedNode == node) nodeFlags |= ImGuiTreeNodeFlags_Selected;
+         ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick |
+         ImGuiTreeNodeFlags_SpanAvailWidth | (hasChildren ? 0 : ImGuiTreeNodeFlags_Leaf);
+      if (selectedNode == node)
+         nodeFlags |= ImGuiTreeNodeFlags_Selected;
       bool open = ImGui::TreeNodeEx("##treenode", nodeFlags, node->GetName().c_str());
       // Select object
       if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen()) {
@@ -64,9 +56,7 @@ void Scene::DrawInspector() {
       }
       // Children
       if (open) {
-         node->ForEachChild([&](Node* child) {
-            displayNodeHierarchy(child);
-         }, false);
+         node->ForEachChild([&](Node* child) { displayNodeHierarchy(child); }, false);
          ImGui::TreePop();
       }
       ImGui::PopID();
@@ -120,9 +110,7 @@ void Scene::DrawInspector() {
    }
 }
 
-[[nodiscard]] Node* Scene::GetRootNode() const noexcept {
-   return m_rootNode.get();
-}
+[[nodiscard]] Node* Scene::GetRootNode() const noexcept { return m_rootNode.get(); }
 
 Node* Scene::CreateNode(std::string_view name) {
    std::string nodeName{name};
@@ -159,7 +147,8 @@ Node* Scene::CreateChildNode(std::string_view parentName, std::string_view child
 }
 
 bool Scene::AddNode(std::unique_ptr<Node> node, Node* parent) {
-   if (!node) return false;
+   if (!node)
+      return false;
    Node* nodePtr = node.get();
    if (parent) {
       parent->AddChild(std::move(node));
@@ -197,16 +186,14 @@ bool Scene::RemoveNode(std::string_view name) {
    std::vector<Node*> result;
    const std::string nameStr{name};
    auto range = m_nodeRegistry.equal_range(nameStr);
-   std::ranges::transform(
-      std::ranges::subrange(range.first, range.second),
-      std::back_inserter(result),
-      [](const auto& pair) { return pair.second; }
-   );
+   std::ranges::transform(std::ranges::subrange(range.first, range.second),
+                          std::back_inserter(result), [](const auto& pair) { return pair.second; });
    return result;
 }
 
 void Scene::ForEachNode(const std::function<void(Node*)>& func) {
-   if (!func || !m_rootNode) return;
+   if (!func || !m_rootNode)
+      return;
    std::queue<Node*> queue;
    queue.push(m_rootNode.get());
    while (!queue.empty()) {
@@ -221,7 +208,8 @@ void Scene::ForEachNode(const std::function<void(Node*)>& func) {
 }
 
 void Scene::ForEachNode(const std::function<void(const Node*)>& func) const {
-   if (!func || !m_rootNode) return;
+   if (!func || !m_rootNode)
+      return;
    std::queue<const Node*> queue;
    queue.push(m_rootNode.get());
    while (!queue.empty()) {
@@ -246,7 +234,7 @@ void Scene::UpdateScene(const float deltaTime) {
    // ForEachNode([deltaTime](Node* node) {
    //     // Update components that need per-frame updates
    //     auto updatableComponents = node->GetComponents<UpdatableComponent>();
-   //     std::ranges::for_each(updatableComponents, 
+   //     std::ranges::for_each(updatableComponents,
    //         [deltaTime](auto* comp) { comp->Update(deltaTime); });
    // });
 }
@@ -259,17 +247,11 @@ void Scene::Clear() {
    m_nodeCounter = 0;
 }
 
-[[nodiscard]] size_t Scene::GetNodeCount() const noexcept {
-   return m_nodeRegistry.size();
-}
+[[nodiscard]] size_t Scene::GetNodeCount() const noexcept { return m_nodeRegistry.size(); }
 
-[[nodiscard]] const std::string& Scene::GetName() const noexcept {
-   return m_name;
-}
+[[nodiscard]] const std::string& Scene::GetName() const noexcept { return m_name; }
 
-void Scene::SetName(std::string name) {
-   m_name = std::move(name);
-}
+void Scene::SetName(std::string name) { m_name = std::move(name); }
 
 void Scene::RegisterNode(Node* node) {
    if (node) {
@@ -278,7 +260,8 @@ void Scene::RegisterNode(Node* node) {
 }
 
 void Scene::UnregisterNode(Node* node) {
-   if (!node) return;
+   if (!node)
+      return;
    // Remove all entries with this node pointer
    const auto range = m_nodeRegistry.equal_range(node->GetName());
    for (auto it = range.first; it != range.second;) {
@@ -295,7 +278,8 @@ void Scene::UnregisterNode(Node* node) {
 }
 
 [[nodiscard]] size_t Scene::CalculateMaxDepth(const Node* node, const size_t currentDepth) const {
-   if (!node) return currentDepth;
+   if (!node)
+      return currentDepth;
    size_t maxDepth = currentDepth;
    for (const auto& child : node->GetChildren()) {
       const size_t childDepth = CalculateMaxDepth(child.get(), currentDepth + 1);
@@ -303,4 +287,3 @@ void Scene::UnregisterNode(Node* node) {
    }
    return maxDepth;
 }
-

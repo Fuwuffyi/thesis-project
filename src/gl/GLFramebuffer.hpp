@@ -9,7 +9,7 @@ class GLTexture;
 class ITexture;
 
 class GLFramebuffer {
-public:
+  public:
    struct AttachmentDesc {
       GLTexture* texture = nullptr;
       uint32_t mipLevel = 0;
@@ -54,20 +54,17 @@ public:
    bool HasStencilAttachment() const { return m_stencilAttachment.texture != nullptr; }
 
    // Blit operations
-   void BlitTo(const GLFramebuffer& target, 
-               uint32_t srcX0, uint32_t srcY0, uint32_t srcX1, uint32_t srcY1,
-               uint32_t dstX0, uint32_t dstY0, uint32_t dstX1, uint32_t dstY1,
-               GLbitfield mask = GL_COLOR_BUFFER_BIT, 
-               GLenum filter = GL_LINEAR) const;
+   void BlitTo(const GLFramebuffer& target, uint32_t srcX0, uint32_t srcY0, uint32_t srcX1,
+               uint32_t srcY1, uint32_t dstX0, uint32_t dstY0, uint32_t dstX1, uint32_t dstY1,
+               GLbitfield mask = GL_COLOR_BUFFER_BIT, GLenum filter = GL_LINEAR) const;
 
    void BlitToScreen(uint32_t screenWidth, uint32_t screenHeight,
-                     GLbitfield mask = GL_COLOR_BUFFER_BIT,
-                     GLenum filter = GL_LINEAR) const;
+                     GLbitfield mask = GL_COLOR_BUFFER_BIT, GLenum filter = GL_LINEAR) const;
 
-private:
+  private:
    void AttachTexture(const AttachmentDesc& attachment, GLenum attachmentType);
 
-private:
+  private:
    GLuint m_fbo = 0;
    uint32_t m_width = 0;
    uint32_t m_height = 0;
@@ -76,4 +73,3 @@ private:
    AttachmentDesc m_depthAttachment;
    AttachmentDesc m_stencilAttachment;
 };
-

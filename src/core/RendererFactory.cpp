@@ -15,4 +15,3 @@ std::unique_ptr<IRenderer> RendererFactory::CreateRenderer(const GraphicsAPI api
          throw std::runtime_error("Unsupported Graphics API");
    }
 }
-

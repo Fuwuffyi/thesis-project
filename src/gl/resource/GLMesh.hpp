@@ -9,7 +9,7 @@
 #include <cstddef>
 
 class GLMesh : public IMesh {
-public:
+  public:
    GLMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
    ~GLMesh();
 
@@ -25,7 +25,7 @@ public:
    size_t GetIndexCount() const override;
    void* GetNativeHandle() const override;
 
-private:
+  private:
    GLBuffer m_ebo;
    GLBuffer m_vbo;
    GLVertexArray m_vao;
@@ -33,4 +33,3 @@ private:
    size_t m_indexCount;
    size_t m_vertexCount;
 };
-

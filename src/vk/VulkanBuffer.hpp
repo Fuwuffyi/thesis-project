@@ -5,7 +5,7 @@
 class VulkanDevice;
 
 class VulkanBuffer {
-public:
+  public:
    enum class Usage : VkBufferUsageFlags {
       Vertex = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
       Index = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
@@ -15,13 +15,10 @@ public:
       TransferDst = VK_BUFFER_USAGE_TRANSFER_DST_BIT
    };
 
-   enum class MemoryType {
-      DeviceLocal,
-      HostVisible,
-      HostCoherent
-   };
+   enum class MemoryType { DeviceLocal, HostVisible, HostCoherent };
 
-   VulkanBuffer(const VulkanDevice& device, const VkDeviceSize size, const Usage usage, const MemoryType memoryType);
+   VulkanBuffer(const VulkanDevice& device, const VkDeviceSize size, const Usage usage,
+                const MemoryType memoryType);
    ~VulkanBuffer();
 
    VulkanBuffer(const VulkanBuffer&) = delete;
@@ -38,10 +35,11 @@ public:
    void Unmap();
 
    void CopyFrom(const VulkanBuffer& srcBuffer, const VkCommandBuffer commandBuffer,
-                 VkDeviceSize size = VK_WHOLE_SIZE, const VkDeviceSize srcOffset = 0, const VkDeviceSize dstOffset = 0);
+                 VkDeviceSize size = VK_WHOLE_SIZE, const VkDeviceSize srcOffset = 0,
+                 const VkDeviceSize dstOffset = 0);
 
-   static void CopyBuffer(const VulkanDevice& device, const VkCommandPool& commandPool, const VkQueue& queue,
-                          const VulkanBuffer& src, VulkanBuffer& dst,
+   static void CopyBuffer(const VulkanDevice& device, const VkCommandPool& commandPool,
+                          const VkQueue& queue, const VulkanBuffer& src, VulkanBuffer& dst,
                           const VkDeviceSize size = VK_WHOLE_SIZE);
 
    VkBuffer Get() const;
@@ -54,12 +52,15 @@ public:
    VkMemoryPropertyFlags GetMemoryProperties() const;
    bool SupportsUsage(Usage usage) const;
    // TODO: Maybe move in util?
-   static uint32_t FindMemoryType(const VkPhysicalDevice& physicalDevice, const uint32_t typeFilter, const VkMemoryPropertyFlags properties);
-private:
+   static uint32_t FindMemoryType(const VkPhysicalDevice& physicalDevice, const uint32_t typeFilter,
+                                  const VkMemoryPropertyFlags properties);
+
+  private:
    void CreateBuffer();
    void AllocateMemory();
    VkMemoryPropertyFlags GetMemoryPropertiesFromType(const MemoryType type) const;
-private:
+
+  private:
    const VulkanDevice* m_device = nullptr;
    VkBuffer m_buffer = VK_NULL_HANDLE;
    VkDeviceMemory m_memory = VK_NULL_HANDLE;
@@ -71,14 +72,11 @@ private:
 };
 
 inline VulkanBuffer::Usage operator|(VulkanBuffer::Usage a, VulkanBuffer::Usage b) {
-   return static_cast<VulkanBuffer::Usage>(
-      static_cast<VkBufferUsageFlags>(a) | static_cast<VkBufferUsageFlags>(b)
-   );
+   return static_cast<VulkanBuffer::Usage>(static_cast<VkBufferUsageFlags>(a) |
+                                           static_cast<VkBufferUsageFlags>(b));
 }
 
 inline VulkanBuffer::Usage operator&(VulkanBuffer::Usage a, VulkanBuffer::Usage b) {
-   return static_cast<VulkanBuffer::Usage>(
-      static_cast<VkBufferUsageFlags>(a) & static_cast<VkBufferUsageFlags>(b)
-   );
+   return static_cast<VulkanBuffer::Usage>(static_cast<VkBufferUsageFlags>(a) &
+                                           static_cast<VkBufferUsageFlags>(b));
 }
-

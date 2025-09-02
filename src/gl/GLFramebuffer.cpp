@@ -5,12 +5,11 @@
 #include <utility>
 
 GLFramebuffer::GLFramebuffer(const CreateInfo& info)
-   : m_width(info.width)
-   , m_height(info.height)
-   , m_colorAttachments(info.colorAttachments)
-   , m_depthAttachment(info.depthAttachment)
-   , m_stencilAttachment(info.stencilAttachment)
-{
+    : m_width(info.width),
+      m_height(info.height),
+      m_colorAttachments(info.colorAttachments),
+      m_depthAttachment(info.depthAttachment),
+      m_stencilAttachment(info.stencilAttachment) {
    glGenFramebuffers(1, &m_fbo);
    if (m_fbo == 0) {
       throw std::runtime_error("Failed to create OpenGL framebuffer");
@@ -63,14 +62,12 @@ GLFramebuffer::~GLFramebuffer() {
 }
 
 GLFramebuffer::GLFramebuffer(GLFramebuffer&& other) noexcept
-   : m_fbo(std::exchange(other.m_fbo, 0))
-   , m_width(other.m_width)
-   , m_height(other.m_height)
-   , m_colorAttachments(std::move(other.m_colorAttachments))
-   , m_depthAttachment(std::move(other.m_depthAttachment))
-   , m_stencilAttachment(std::move(other.m_stencilAttachment))
-{
-}
+    : m_fbo(std::exchange(other.m_fbo, 0)),
+      m_width(other.m_width),
+      m_height(other.m_height),
+      m_colorAttachments(std::move(other.m_colorAttachments)),
+      m_depthAttachment(std::move(other.m_depthAttachment)),
+      m_stencilAttachment(std::move(other.m_stencilAttachment)) {}
 
 GLFramebuffer& GLFramebuffer::operator=(GLFramebuffer&& other) noexcept {
    if (this != &other) {
@@ -92,9 +89,7 @@ void GLFramebuffer::Bind() const {
    glViewport(0, 0, m_width, m_height);
 }
 
-void GLFramebuffer::Unbind() const {
-   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
+void GLFramebuffer::Unbind() const { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
 
 bool GLFramebuffer::IsComplete() const {
    const GLint currentFbo = []() {
@@ -121,14 +116,22 @@ std::string GLFramebuffer::GetStatusString() const {
    glBindFramebuffer(GL_FRAMEBUFFER, currentFbo);
 
    switch (status) {
-      case GL_FRAMEBUFFER_COMPLETE: return "Complete";
-      case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT: return "Incomplete attachment";
-      case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: return "Missing attachment";
-      case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER: return "Incomplete draw buffer";
-      case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER: return "Incomplete read buffer";
-      case GL_FRAMEBUFFER_UNSUPPORTED: return "Unsupported";
-      case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: return "Incomplete multisample";
-      default: return "Unknown error";
+      case GL_FRAMEBUFFER_COMPLETE:
+         return "Complete";
+      case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+         return "Incomplete attachment";
+      case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+         return "Missing attachment";
+      case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+         return "Incomplete draw buffer";
+      case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+         return "Incomplete read buffer";
+      case GL_FRAMEBUFFER_UNSUPPORTED:
+         return "Unsupported";
+      case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+         return "Incomplete multisample";
+      default:
+         return "Unknown error";
    }
 }
 
@@ -142,9 +145,12 @@ void GLFramebuffer::Clear(bool clearColor, bool clearDepth, bool clearStencil) c
    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
    GLbitfield mask = 0;
-   if (clearColor) mask |= GL_COLOR_BUFFER_BIT;
-   if (clearDepth) mask |= GL_DEPTH_BUFFER_BIT;
-   if (clearStencil) mask |= GL_STENCIL_BUFFER_BIT;
+   if (clearColor)
+      mask |= GL_COLOR_BUFFER_BIT;
+   if (clearDepth)
+      mask |= GL_DEPTH_BUFFER_BIT;
+   if (clearStencil)
+      mask |= GL_STENCIL_BUFFER_BIT;
 
    glClear(mask);
    glBindFramebuffer(GL_FRAMEBUFFER, currentFbo);
@@ -187,42 +193,31 @@ void GLFramebuffer::ClearStencil(int32_t stencil) const {
    glBindFramebuffer(GL_FRAMEBUFFER, currentFbo);
 }
 
-void GLFramebuffer::BlitTo(const GLFramebuffer& target,
-                           uint32_t srcX0, uint32_t srcY0, uint32_t srcX1, uint32_t srcY1,
-                           uint32_t dstX0, uint32_t dstY0, uint32_t dstX1, uint32_t dstY1,
-                           GLbitfield mask, GLenum filter) const {
+void GLFramebuffer::BlitTo(const GLFramebuffer& target, uint32_t srcX0, uint32_t srcY0,
+                           uint32_t srcX1, uint32_t srcY1, uint32_t dstX0, uint32_t dstY0,
+                           uint32_t dstX1, uint32_t dstY1, GLbitfield mask, GLenum filter) const {
    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo);
    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.GetId());
 
-   glBlitFramebuffer(
-      static_cast<GLint>(srcX0), static_cast<GLint>(srcY0),
-      static_cast<GLint>(srcX1), static_cast<GLint>(srcY1),
-      static_cast<GLint>(dstX0), static_cast<GLint>(dstY0),
-      static_cast<GLint>(dstX1), static_cast<GLint>(dstY1),
-      mask, filter
-   );
+   glBlitFramebuffer(static_cast<GLint>(srcX0), static_cast<GLint>(srcY0),
+                     static_cast<GLint>(srcX1), static_cast<GLint>(srcY1),
+                     static_cast<GLint>(dstX0), static_cast<GLint>(dstY0),
+                     static_cast<GLint>(dstX1), static_cast<GLint>(dstY1), mask, filter);
 }
 
-void GLFramebuffer::BlitToScreen(uint32_t screenWidth, uint32_t screenHeight,
-                                 GLbitfield mask, GLenum filter) const {
+void GLFramebuffer::BlitToScreen(uint32_t screenWidth, uint32_t screenHeight, GLbitfield mask,
+                                 GLenum filter) const {
    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo);
    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-   glBlitFramebuffer(
-      0, 0, static_cast<GLint>(m_width), static_cast<GLint>(m_height),
-      0, 0, static_cast<GLint>(screenWidth), static_cast<GLint>(screenHeight),
-      mask, filter
-   );
+   glBlitFramebuffer(0, 0, static_cast<GLint>(m_width), static_cast<GLint>(m_height), 0, 0,
+                     static_cast<GLint>(screenWidth), static_cast<GLint>(screenHeight), mask,
+                     filter);
 }
 
 void GLFramebuffer::AttachTexture(const AttachmentDesc& attachment, GLenum attachmentType) {
-   if (!attachment.texture) return;
+   if (!attachment.texture)
+      return;
    // TODO: Add other types of textures for proper support
-   glFramebufferTexture2D(
-      GL_FRAMEBUFFER,
-      attachmentType,
-      GL_TEXTURE_2D,
-      attachment.texture->GetId(),
-      static_cast<GLint>(attachment.mipLevel)
-   );
+   glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentType, GL_TEXTURE_2D,
+                          attachment.texture->GetId(), static_cast<GLint>(attachment.mipLevel));
 }
-

@@ -11,9 +11,7 @@ struct QueueFamilyIndices {
    std::optional<uint32_t> graphicsFamily;
    std::optional<uint32_t> presentFamily;
 
-   bool HasAllValues() {
-      return graphicsFamily.has_value() && presentFamily.has_value();
-   }
+   bool HasAllValues() { return graphicsFamily.has_value() && presentFamily.has_value(); }
 };
 
 struct SwapChainSupportDetails {
@@ -23,10 +21,10 @@ struct SwapChainSupportDetails {
 };
 
 class VulkanDevice {
-public:
+  public:
    VulkanDevice(const VulkanInstance& instance, const VulkanSurface& surface,
-                const std::vector<const char*>& requiredExtensions, const std::vector<const char*>& validationLayers,
-                const bool enableValidation);
+                const std::vector<const char*>& requiredExtensions,
+                const std::vector<const char*>& validationLayers, const bool enableValidation);
    ~VulkanDevice();
 
    VulkanDevice(const VulkanDevice&) = delete;
@@ -43,7 +41,7 @@ public:
    uint32_t GetGraphicsQueueFamily() const;
    uint32_t GetPresentQueueFamily() const;
 
-private:
+  private:
    // Object creation
    void CreatePhysicalDevice(const std::vector<const char*>& requiredExtensions);
    void CreateLogicalDevice(const std::vector<const char*>& requiredExtensions,
@@ -55,12 +53,17 @@ private:
 
    // Device evaluation
    static uint32_t RateDevice(const VkPhysicalDevice& device);
-   static bool IsDeviceSuitable(const VkPhysicalDevice& device, const VkSurfaceKHR& surface, const std::vector<const char*>& requiredExtensions);
-   static bool CheckDeviceExtensionSupport(const VkPhysicalDevice& device, const std::vector<const char*>& requiredExtensions);
-public:
+   static bool IsDeviceSuitable(const VkPhysicalDevice& device, const VkSurfaceKHR& surface,
+                                const std::vector<const char*>& requiredExtensions);
+   static bool CheckDeviceExtensionSupport(const VkPhysicalDevice& device,
+                                           const std::vector<const char*>& requiredExtensions);
+
+  public:
    // TODO: Move to private? when swapchain fixed maybe, unsure.
-   static SwapChainSupportDetails QuerySwapChainSupport(const VkPhysicalDevice& device, const VkSurfaceKHR& surface);
-private:
+   static SwapChainSupportDetails QuerySwapChainSupport(const VkPhysicalDevice& device,
+                                                        const VkSurfaceKHR& surface);
+
+  private:
    // Dependencies
    const VulkanInstance* m_instance = nullptr;
    const VulkanSurface* m_surface = nullptr;
@@ -74,4 +77,3 @@ private:
    VkQueue m_graphicsQueue = VK_NULL_HANDLE;
    VkQueue m_presentQueue = VK_NULL_HANDLE;
 };
-

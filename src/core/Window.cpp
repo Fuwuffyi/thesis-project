@@ -4,10 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <print>
 
-Window::Window(const GraphicsAPI api, const WindowDesc& desc)
-   :
-   m_api(api)
-{
+Window::Window(const GraphicsAPI api, const WindowDesc& desc) : m_api(api) {
    // Set error callback
    glfwSetErrorCallback(Window::ErrorCallback);
    // Initialie GLFW
@@ -32,13 +29,8 @@ Window::Window(const GraphicsAPI api, const WindowDesc& desc)
    }
    glfwWindowHint(GLFW_RESIZABLE, desc.resizable ? GLFW_TRUE : GLFW_FALSE);
    // Create the glfw window
-   m_window = glfwCreateWindow(
-      static_cast<int>(desc.width),
-      static_cast<int>(desc.height),
-      desc.title.c_str(),
-      nullptr,
-      nullptr
-   );
+   m_window = glfwCreateWindow(static_cast<int>(desc.width), static_cast<int>(desc.height),
+                               desc.title.c_str(), nullptr, nullptr);
    if (!m_window) {
       glfwTerminate();
       throw std::runtime_error("Failed to create window");
@@ -70,9 +62,7 @@ Window::~Window() {
    glfwTerminate();
 }
 
-bool Window::ShouldClose() const {
-   return m_window && glfwWindowShouldClose(m_window);
-}
+bool Window::ShouldClose() const { return m_window && glfwWindowShouldClose(m_window); }
 
 void Window::PollEvents() {
    glfwPollEvents();
@@ -128,23 +118,12 @@ void Window::ResizeCallback(GLFWwindow* window, int width, int height) {
    w->m_eventSystem.HandleResize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 }
 
-GLFWwindow* Window::GetNativeWindow() const {
-   return m_window;
-}
+GLFWwindow* Window::GetNativeWindow() const { return m_window; }
 
-EventSystem* Window::GetEventSystem() {
-   return &m_eventSystem;
-}
+EventSystem* Window::GetEventSystem() { return &m_eventSystem; }
 
-uint32_t Window::GetWidth() const {
-   return m_width;
-}
+uint32_t Window::GetWidth() const { return m_width; }
 
-uint32_t Window::GetHeight() const {
-   return m_height;
-}
+uint32_t Window::GetHeight() const { return m_height; }
 
-GraphicsAPI Window::GetAPI() const {
-   return m_api;
-}
-
+GraphicsAPI Window::GetAPI() const { return m_api; }

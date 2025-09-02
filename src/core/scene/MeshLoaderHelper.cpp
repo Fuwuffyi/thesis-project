@@ -9,31 +9,36 @@ Node* MeshLoaderHelper::LoadMeshIntoScene(Scene& scene, ResourceManager& resourc
                                           const std::string& meshName, const std::string& filepath,
                                           const MeshLoadOptions& options) {
    // Load the mesh group from file
-   const ResourceManager::LoadedMeshGroup meshGroup = resourceManager.LoadMeshFromFile(meshName, filepath);
+   const ResourceManager::LoadedMeshGroup meshGroup =
+      resourceManager.LoadMeshFromFile(meshName, filepath);
    if (!meshGroup.IsValid()) {
       return nullptr;
    }
    // Create a parent node group to load meshes to
-   const std::string parentName = options.nodePrefix.empty() ? meshName : options.nodePrefix + meshName;
+   const std::string parentName =
+      options.nodePrefix.empty() ? meshName : options.nodePrefix + meshName;
    Node* parentNode = scene.CreateNode(parentName);
    CreateNodesForMeshGroup(parentNode, resourceManager, meshGroup, options);
    return parentNode;
 }
 
 Node* MeshLoaderHelper::LoadMeshAsChildNode(Node* parent, ResourceManager& resourceManager,
-                                            const std::string& meshName, const std::string& filepath,
+                                            const std::string& meshName,
+                                            const std::string& filepath,
                                             const MeshLoadOptions& options) {
    if (!parent) {
       return nullptr;
    }
    // Load the mesh group from file
-   const ResourceManager::LoadedMeshGroup meshGroup = resourceManager.LoadMeshFromFile(meshName, filepath);
+   const ResourceManager::LoadedMeshGroup meshGroup =
+      resourceManager.LoadMeshFromFile(meshName, filepath);
    if (!meshGroup.IsValid()) {
       return nullptr;
    }
    Node* groupNode = nullptr;
    // Create a child node to group all sub-meshes
-   const std::string groupName = options.nodePrefix.empty() ? meshName : options.nodePrefix + meshName;
+   const std::string groupName =
+      options.nodePrefix.empty() ? meshName : options.nodePrefix + meshName;
    auto childNode = std::make_unique<Node>(groupName);
    childNode->AddComponent<TransformComponent>();
    groupNode = childNode.get();
@@ -83,4 +88,3 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
 std::string MeshLoaderHelper::GenerateNodeName(const std::string& baseName, const size_t index) {
    return baseName + "_" + std::to_string(index);
 }
-

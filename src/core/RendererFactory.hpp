@@ -9,7 +9,6 @@
 class Window;
 
 class RendererFactory {
-public:
+  public:
    static std::unique_ptr<IRenderer> CreateRenderer(const GraphicsAPI api, Window* win);
 };
-

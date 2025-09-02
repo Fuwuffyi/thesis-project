@@ -9,8 +9,7 @@
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugMessenger::DebugCallback(
    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
    VkDebugUtilsMessageTypeFlagsEXT messageType,
-   const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-   void* pUserData) {
+   const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
    std::println("Validation layer: {}", pCallbackData->pMessage);
    return VK_FALSE;
 }
@@ -20,7 +19,8 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
                                       const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
                                       const VkAllocationCallbacks* pAllocator,
                                       VkDebugUtilsMessengerEXT* pDebugMessenger) {
-   auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+   auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+      instance, "vkCreateDebugUtilsMessengerEXT");
    if (func != nullptr) {
       return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
    } else {
@@ -28,32 +28,30 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
    }
 }
 
-void DestroyDebugUtilsMessengerEXT(VkInstance instance,
-                                   VkDebugUtilsMessengerEXT debugMessenger,
+void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
                                    const VkAllocationCallbacks* pAllocator) {
-   auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+   auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+      instance, "vkDestroyDebugUtilsMessengerEXT");
    if (func != nullptr) {
       func(instance, debugMessenger, pAllocator);
    }
 }
 
-VulkanDebugMessenger::VulkanDebugMessenger(const VulkanInstance& instance)
-   :
-   m_instance(&instance)
-{
+VulkanDebugMessenger::VulkanDebugMessenger(const VulkanInstance& instance) : m_instance(&instance) {
    // Select debug layers to log
    VkDebugUtilsMessengerCreateInfoEXT createInfo{};
    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-      VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-      VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+                                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-      VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-      VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+                            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
    createInfo.pfnUserCallback = DebugCallback;
    createInfo.pUserData = nullptr;
    // Create the debug messenger
-   if (CreateDebugUtilsMessengerEXT(m_instance->Get(), &createInfo, nullptr, &m_debugMessenger) != VK_SUCCESS) {
+   if (CreateDebugUtilsMessengerEXT(m_instance->Get(), &createInfo, nullptr, &m_debugMessenger) !=
+       VK_SUCCESS) {
       throw std::runtime_error("Failed to set up debug messenger.");
    }
 }
@@ -65,10 +63,7 @@ VulkanDebugMessenger::~VulkanDebugMessenger() {
 }
 
 VulkanDebugMessenger::VulkanDebugMessenger(VulkanDebugMessenger&& other) noexcept
-   :
-   m_instance(other.m_instance),
-   m_debugMessenger(other.m_debugMessenger)
-{
+    : m_instance(other.m_instance), m_debugMessenger(other.m_debugMessenger) {
    other.m_instance = nullptr;
    other.m_debugMessenger = VK_NULL_HANDLE;
 }
@@ -83,7 +78,4 @@ VulkanDebugMessenger& VulkanDebugMessenger::operator=(VulkanDebugMessenger&& oth
    return *this;
 }
 
-VkDebugUtilsMessengerEXT VulkanDebugMessenger::Get() const {
-   return m_debugMessenger;
-}
-
+VkDebugUtilsMessengerEXT VulkanDebugMessenger::Get() const { return m_debugMessenger; }

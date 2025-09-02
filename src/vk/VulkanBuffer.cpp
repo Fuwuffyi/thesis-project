@@ -7,14 +7,12 @@
 #include <cstring>
 #include <algorithm>
 
-VulkanBuffer::VulkanBuffer(const VulkanDevice& device, const VkDeviceSize size,
-                           const Usage usage, const MemoryType memoryType)
-   :
-   m_device(&device),
-   m_size(size),
-   m_usage(usage),
-   m_memoryProperties(GetMemoryPropertiesFromType(memoryType))
-{
+VulkanBuffer::VulkanBuffer(const VulkanDevice& device, const VkDeviceSize size, const Usage usage,
+                           const MemoryType memoryType)
+    : m_device(&device),
+      m_size(size),
+      m_usage(usage),
+      m_memoryProperties(GetMemoryPropertiesFromType(memoryType)) {
    CreateBuffer();
    AllocateMemory();
    if (memoryType == MemoryType::HostVisible || memoryType == MemoryType::HostCoherent) {
@@ -39,15 +37,14 @@ VulkanBuffer::~VulkanBuffer() {
 }
 
 VulkanBuffer::VulkanBuffer(VulkanBuffer&& other) noexcept
-   : m_device(other.m_device),
-   m_buffer(other.m_buffer),
-   m_memory(other.m_memory),
-   m_size(other.m_size),
-   m_usage(other.m_usage),
-   m_memoryProperties(other.m_memoryProperties),
-   m_mapped(other.m_mapped),
-   m_persistentlyMapped(other.m_persistentlyMapped)
-{
+    : m_device(other.m_device),
+      m_buffer(other.m_buffer),
+      m_memory(other.m_memory),
+      m_size(other.m_size),
+      m_usage(other.m_usage),
+      m_memoryProperties(other.m_memoryProperties),
+      m_mapped(other.m_mapped),
+      m_persistentlyMapped(other.m_persistentlyMapped) {
    other.m_device = nullptr;
    other.m_buffer = VK_NULL_HANDLE;
    other.m_memory = VK_NULL_HANDLE;
@@ -90,7 +87,8 @@ void VulkanBuffer::Update(const void* data, const VkDeviceSize size, const VkDev
    }
    // For device-local buffers, we need to use staging
    if (!(m_memoryProperties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) {
-      throw std::runtime_error("Cannot directly update device-local buffer. Use staging buffer or CopyFrom()");
+      throw std::runtime_error(
+         "Cannot directly update device-local buffer. Use staging buffer or CopyFrom()");
    }
    // Temporarily map, update, and unmap
    void* mapped = Map(size, offset);
@@ -101,7 +99,8 @@ void VulkanBuffer::Update(const void* data, const VkDeviceSize size, const VkDev
    Unmap();
 }
 
-void VulkanBuffer::UpdateMapped(const void* data, const VkDeviceSize size, const VkDeviceSize offset) {
+void VulkanBuffer::UpdateMapped(const void* data, const VkDeviceSize size,
+                                const VkDeviceSize offset) {
    if (!m_mapped) {
       throw std::runtime_error("Buffer is not mapped");
    }
@@ -162,7 +161,8 @@ void VulkanBuffer::Unmap() {
 }
 
 void VulkanBuffer::CopyFrom(const VulkanBuffer& srcBuffer, const VkCommandBuffer commandBuffer,
-                            VkDeviceSize size, const VkDeviceSize srcOffset, const VkDeviceSize dstOffset) {
+                            VkDeviceSize size, const VkDeviceSize srcOffset,
+                            const VkDeviceSize dstOffset) {
    if (size == VK_WHOLE_SIZE) {
       size = std::min(srcBuffer.GetSize() - srcOffset, m_size - dstOffset);
    }
@@ -173,15 +173,15 @@ void VulkanBuffer::CopyFrom(const VulkanBuffer& srcBuffer, const VkCommandBuffer
    vkCmdCopyBuffer(commandBuffer, srcBuffer.Get(), m_buffer, 1, &copyRegion);
 }
 
-void VulkanBuffer::CopyBuffer(const VulkanDevice& device, const VkCommandPool& commandPool, const VkQueue& queue,
-                              const VulkanBuffer& src, VulkanBuffer& dst, const VkDeviceSize size) {
-   VulkanCommandBuffers::ExecuteImmediate(device, commandPool, queue, [&](const VkCommandBuffer& buf){
-      VkBufferCopy copyRegion{};
-      copyRegion.size = size;
-      vkCmdCopyBuffer(buf, src.Get(), dst.Get(),
-                      1, &copyRegion);
-
-   });
+void VulkanBuffer::CopyBuffer(const VulkanDevice& device, const VkCommandPool& commandPool,
+                              const VkQueue& queue, const VulkanBuffer& src, VulkanBuffer& dst,
+                              const VkDeviceSize size) {
+   VulkanCommandBuffers::ExecuteImmediate(
+      device, commandPool, queue, [&](const VkCommandBuffer& buf) {
+         VkBufferCopy copyRegion{};
+         copyRegion.size = size;
+         vkCmdCopyBuffer(buf, src.Get(), dst.Get(), 1, &copyRegion);
+      });
 }
 
 bool VulkanBuffer::SupportsUsage(const Usage usage) const {
@@ -206,9 +206,8 @@ void VulkanBuffer::AllocateMemory() {
    VkMemoryAllocateInfo allocInfo{};
    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
    allocInfo.allocationSize = memRequirements.size;
-   allocInfo.memoryTypeIndex = VulkanBuffer::FindMemoryType(m_device->GetPhysicalDevice(),
-                                                            memRequirements.memoryTypeBits,
-                                                            m_memoryProperties);
+   allocInfo.memoryTypeIndex = VulkanBuffer::FindMemoryType(
+      m_device->GetPhysicalDevice(), memRequirements.memoryTypeBits, m_memoryProperties);
    VkResult result = vkAllocateMemory(m_device->Get(), &allocInfo, nullptr, &m_memory);
    if (result != VK_SUCCESS) {
       throw std::runtime_error("Failed to allocate buffer memory");
@@ -216,11 +215,14 @@ void VulkanBuffer::AllocateMemory() {
    vkBindBufferMemory(m_device->Get(), m_buffer, m_memory, 0);
 }
 
-uint32_t VulkanBuffer::FindMemoryType(const VkPhysicalDevice& physicalDevice, const uint32_t typeFilter, const VkMemoryPropertyFlags properties) {
+uint32_t VulkanBuffer::FindMemoryType(const VkPhysicalDevice& physicalDevice,
+                                      const uint32_t typeFilter,
+                                      const VkMemoryPropertyFlags properties) {
    VkPhysicalDeviceMemoryProperties memProperties;
    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
    for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i) {
-      if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+      if ((typeFilter & (1 << i)) &&
+          (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
          return i;
       }
    }
@@ -240,35 +242,18 @@ VkMemoryPropertyFlags VulkanBuffer::GetMemoryPropertiesFromType(const MemoryType
    }
 }
 
-VkBuffer VulkanBuffer::Get() const {
-   return m_buffer;
-}
+VkBuffer VulkanBuffer::Get() const { return m_buffer; }
 
-VkDeviceMemory VulkanBuffer::GetMemory() const {
-   return m_memory;
-}
+VkDeviceMemory VulkanBuffer::GetMemory() const { return m_memory; }
 
-VkDeviceSize VulkanBuffer::GetSize() const {
-   return m_size;
-}
+VkDeviceSize VulkanBuffer::GetSize() const { return m_size; }
 
-void* VulkanBuffer::GetMapped() const {
-   return m_mapped;
-}
+void* VulkanBuffer::GetMapped() const { return m_mapped; }
 
-bool VulkanBuffer::IsMapped() const {
-   return m_mapped != nullptr;
-}
+bool VulkanBuffer::IsMapped() const { return m_mapped != nullptr; }
 
-bool VulkanBuffer::IsPersistentlyMapped() const {
-   return m_persistentlyMapped;
-}
+bool VulkanBuffer::IsPersistentlyMapped() const { return m_persistentlyMapped; }
 
-VulkanBuffer::Usage VulkanBuffer::GetUsage() const {
-   return m_usage;
-}
+VulkanBuffer::Usage VulkanBuffer::GetUsage() const { return m_usage; }
 
-VkMemoryPropertyFlags VulkanBuffer::GetMemoryProperties() const {
-   return m_memoryProperties;
-}
-
+VkMemoryPropertyFlags VulkanBuffer::GetMemoryProperties() const { return m_memoryProperties; }

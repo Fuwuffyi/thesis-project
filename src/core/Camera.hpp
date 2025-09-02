@@ -4,9 +4,9 @@
 #include "GraphicsAPI.hpp"
 
 class Camera {
-public:
-   Camera(const GraphicsAPI api, const Transform& transform, const glm::vec3& up, const float fov, const float aspectRatio,
-          const float near, const float far);
+  public:
+   Camera(const GraphicsAPI api, const Transform& transform, const glm::vec3& up, const float fov,
+          const float aspectRatio, const float near, const float far);
 
    const glm::vec3& GetViewDirection();
    const glm::vec3& GetRightVector();
@@ -23,10 +23,12 @@ public:
 
    const Transform& GetTransform() const;
    Transform& GetMutableTransform();
-private:
+
+  private:
    void RecalculateView();
    void RecalculateProjection();
-private:
+
+  private:
    const GraphicsAPI m_api;
 
    Transform m_transform;
@@ -45,4 +47,3 @@ private:
    bool m_projDirty;
    bool m_cameraDirty;
 };
-

@@ -6,7 +6,7 @@
 #include <glm/glm.hpp>
 
 class GLShader {
-public:
+  public:
    enum class Type : GLenum {
       Vertex = GL_VERTEX_SHADER,
       Fragment = GL_FRAGMENT_SHADER,
@@ -49,14 +49,13 @@ public:
    bool IsValid() const;
    bool IsLinked() const;
 
-private:
+  private:
    GLuint CompileShader(Type type, const std::string& source);
    std::string ReadFile(const std::string& filepath);
    GLint GetUniformLocation(const std::string& name);
 
-private:
+  private:
    GLuint m_program = 0;
    bool m_isLinked = false;
    std::unordered_map<std::string, GLint> m_uniformLocations;
 };
-

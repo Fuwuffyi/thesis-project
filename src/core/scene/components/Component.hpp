@@ -5,7 +5,7 @@
 class Node;
 
 class Component {
-public:
+  public:
    virtual ~Component() = default;
 
    Component(const Component&) = delete;
@@ -15,10 +15,9 @@ public:
 
    virtual void DrawInspector(Node* node) = 0;
 
-protected:
+  protected:
    Component() = default;
 };
 
-template<typename T>
+template <typename T>
 concept ComponentType = std::derived_from<T, Component>;
-
