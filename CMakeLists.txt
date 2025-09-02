@@ -17,6 +17,15 @@ set(CMAKE_C_EXTENSIONS OFF)
 # Log compiler
 message(STATUS "Detected compiler: ${CMAKE_CXX_COMPILER_ID}")
 
+# Source files
+file(GLOB_RECURSE SOURCE_FILES
+   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
+)
+
+add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+add_dependencies(${PROJECT_NAME} compile_shaders)
+
 # Setup resource copying
 set(TEXTURE_DIR "${CMAKE_SOURCE_DIR}/resources/textures")
 set(TEXTURE_OUT_DIR "${CMAKE_BINARY_DIR}/resources/textures")
@@ -140,6 +149,24 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
       /Zc:__cplusplus
       /Zc:preprocessor
       /utf-8
+      /w14242
+      /w14254
+      /w14263
+      /w14265
+      /w14287
+      /we4289
+      /w14296
+      /w14311
+      /w14545
+      /w14546
+      /w14547
+      /w14549
+      /w14555
+      /w14640
+      /w14826
+      /w14905
+      /w14906
+      /w14928
    )
    # MSVC settings
    set(CMAKE_CXX_FLAGS_DEBUG "/Od /Zi /RTC1 /MDd")
@@ -156,12 +183,40 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
    )
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
    # GCC specific settings
-   add_compile_options(
-      -Wall -Wextra -Wpedantic
-      -Wno-unused-parameter
+   target_compile_options(${PROJECT_NAME} PRIVATE
+      $<$<COMPILE_LANGUAGE:CXX>:
+      -Wall
+      -Wextra
+      -Wpedantic
       -Wconversion
       -Wsign-conversion
+      -Wshadow
+      -Wnon-virtual-dtor
+      -Wold-style-cast
+      -Woverloaded-virtual
+      -Wnull-dereference
+      -Wdouble-promotion
+      -Wformat=2
+      -Wimplicit-fallthrough
+      -Wundef
+      -Wcast-align
+      -Wswitch-enum
+      >
    )
+   target_compile_options(${PROJECT_NAME} PRIVATE
+      $<$<COMPILE_LANGUAGE:C>:
+      -Wall
+      -Wextra
+      -Wpedantic
+      -Wconversion
+      -Wsign-conversion
+      -Wshadow
+      -Wundef
+      -Wcast-align
+      -Wswitch-enum
+      >
+   )
+
    # GCC settings
    set(CMAKE_CXX_FLAGS_DEBUG "-g3 -O0 -fno-omit-frame-pointer")
    set(CMAKE_C_FLAGS_DEBUG "-g3 -O0 -fno-omit-frame-pointer")
@@ -186,11 +241,38 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
    set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,-O1 -Wl,--as-needed -Wl,--strip-all")
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
    # Clang specific settings
-   add_compile_options(
-      -Wall -Wextra -Wpedantic
-      -Wno-unused-parameter
+   target_compile_options(${PROJECT_NAME} PRIVATE
+      $<$<COMPILE_LANGUAGE:CXX>:
+      -Wall
+      -Wextra
+      -Wpedantic
       -Wconversion
       -Wsign-conversion
+      -Wshadow
+      -Wnon-virtual-dtor
+      -Wold-style-cast
+      -Woverloaded-virtual
+      -Wnull-dereference
+      -Wdouble-promotion
+      -Wformat=2
+      -Wimplicit-fallthrough
+      -Wundef
+      -Wcast-align
+      -Wswitch-enum
+      >
+   )
+   target_compile_options(${PROJECT_NAME} PRIVATE
+      $<$<COMPILE_LANGUAGE:C>:
+      -Wall
+      -Wextra
+      -Wpedantic
+      -Wconversion
+      -Wsign-conversion
+      -Wshadow
+      -Wundef
+      -Wcast-align
+      -Wswitch-enum
+      >
    )
    # Clang Debug settings
    set(CMAKE_CXX_FLAGS_DEBUG "-g3 -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
@@ -381,15 +463,6 @@ target_compile_definitions(imgui PUBLIC
 # Create STB library wrapper
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
-
-# Source files
-file(GLOB_RECURSE SOURCE_FILES
-   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
-)
-
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-add_dependencies(${PROJECT_NAME} compile_shaders)
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
