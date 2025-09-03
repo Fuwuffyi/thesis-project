@@ -52,10 +52,6 @@ struct LightsData {
    LightData lights[MAX_LIGHTS];
 };
 
-struct MaterialData {
-   float val = 0.0f;
-};
-
 GLRenderer::GLRenderer(Window* window) : IRenderer(window) {
    // Load OpenGL function pointers
    if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {

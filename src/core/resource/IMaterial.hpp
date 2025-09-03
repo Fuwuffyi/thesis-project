@@ -9,7 +9,7 @@
 #include <variant>
 
 using MaterialParam =
-   std::variant<float, int32_t, uint32_t, glm::vec2, glm::vec3, glm::vec4, glm::mat3, glm::mat4>;
+   std::variant<float, int32_t, uint32_t, glm::vec2, glm::vec3, glm::vec4, glm::mat2, glm::mat3, glm::mat4>;
 
 struct TextureBinding {
    TextureHandle texture;

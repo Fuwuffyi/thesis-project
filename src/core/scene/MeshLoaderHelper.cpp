@@ -63,7 +63,7 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
          childNode->AddComponent<TransformComponent>();
          // Create renderer component with single mesh
          // TODO: Setup default material
-         RendererComponent* renderer = childNode->AddComponent<RendererComponent>(meshHandle);
+         RendererComponent* renderer = childNode->AddComponent<RendererComponent>(meshHandle, MaterialHandle{});
          // Set material index for reference
          RendererComponent::SubMeshRenderer subMeshRenderer;
          subMeshRenderer.mesh = meshHandle;

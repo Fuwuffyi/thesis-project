@@ -75,10 +75,10 @@ layout(location = 0) out vec4 gAlbedo; // RGB color + A AO
 layout(location = 1) out vec4 gNormal; // RG encoded normal + B roughness + A metallic
 
 layout(std140, binding = 2) uniform MaterialData {
-    vec3 albedo;
-    float metallic;
-    float roughness;
     float ao;
+    float roughness;
+    float metallic;
+    vec3 albedo;
 } material;
 
 vec2 encodeOctNormal(vec3 n) {
@@ -95,5 +95,4 @@ void main() {
    gAlbedo = vec4(material.albedo, material.ao);
    gNormal = vec4(encodeOctNormal(fragNormal), material.roughness, material.metallic);
 }
-
 
