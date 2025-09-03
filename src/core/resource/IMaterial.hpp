@@ -32,8 +32,8 @@ class IMaterial : public IResource {
    virtual bool HasTexture(const std::string& name) const = 0;
 
    // Binding
-   virtual void Bind() const = 0;
-   virtual void UpdateUBO() const = 0;
+   virtual void Bind(const uint32_t bindingPoint) = 0;
+   virtual void UpdateUBO() = 0;
 
    // Material template info
    virtual const std::string& GetTemplateName() const = 0;

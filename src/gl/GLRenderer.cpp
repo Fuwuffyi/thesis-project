@@ -23,7 +23,6 @@
 #include <algorithm>
 #include <glad/gl.h>
 #include <imgui.h>
-#include <print>
 #include <GLFW/glfw3.h>
 #include <vector>
 
@@ -68,6 +67,8 @@ GLRenderer::GLRenderer(Window* window) : IRenderer(window) {
    SetupImgui();
    // Create the fullscreen quad for lighting pass
    CreateFullscreenQuad();
+   // Create a default material
+   CreateDefaultMaterial();
    // Load shaders
    LoadShaders();
    // Create shader ubos
@@ -100,6 +101,16 @@ void GLRenderer::CreateFullscreenQuad() {
    };
    const std::vector<uint32_t> quadInds = {0, 1, 2, 2, 3, 0};
    m_fullscreenQuad = m_resourceManager->LoadMesh("quad", quadVerts, quadInds);
+}
+
+void GLRenderer::CreateDefaultMaterial() {
+   m_defaultMaterial = m_resourceManager->CreateMaterial("default_pbr", "PBR");
+   if (IMaterial* material = m_resourceManager->GetMaterial(m_defaultMaterial)) {
+      material->SetParameter("albedo", glm::vec3(0.8f, 0.8f, 0.8f));
+      material->SetParameter("metallic", 0.0f);
+      material->SetParameter("roughness", 0.8f);
+      material->SetParameter("ao", 1.0f);
+   }
 }
 
 void GLRenderer::LoadShaders() {
@@ -196,12 +207,6 @@ void GLRenderer::CreateUBOs() {
    const LightData lightData{};
    m_lightsUbo->UploadData(&lightData, sizeof(LightsData));
    m_lightsUbo->BindBase(1);
-   // Create material UBO
-   m_materialUbo =
-      std::make_unique<GLBuffer>(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
-   const MaterialData matData{};
-   m_materialUbo->UploadData(&matData, sizeof(MaterialData));
-   m_materialUbo->BindBase(2);
 }
 
 GLRenderer::~GLRenderer() { DestroyImgui(); }
@@ -289,20 +294,25 @@ void GLRenderer::RenderFrame() {
    m_geometryPass->Begin();
    m_geometryPass->SetShader(m_geometryPassShader.get());
    // Set up shader texture test
+   /*
    if (const ITexture* tex = m_resourceManager->GetTexture("testing_albedo")) {
-      tex->Bind(3);
-   }
-   if (const ITexture* tex = m_resourceManager->GetTexture("testing_displacement")) {
-      tex->Bind(4);
+      tex->Bind(0);
    }
    if (const ITexture* tex = m_resourceManager->GetTexture("testing_normal")) {
-      tex->Bind(5);
+      tex->Bind(1);
+   }
+   if (const ITexture* tex = m_resourceManager->GetTexture("testing_displacement")) {
+      tex->Bind(2);
    }
    if (const ITexture* tex = m_resourceManager->GetTexture("testing_roughness")) {
-      tex->Bind(6);
+      tex->Bind(3);
    }
    if (const ITexture* tex = m_resourceManager->GetTexture("testing_ao")) {
-      tex->Bind(7);
+      tex->Bind(5);
+   }
+   */
+   if (IMaterial* material = m_resourceManager->GetMaterial(m_defaultMaterial)) {
+      material->Bind(2);
    }
    // Draw the scene
    if (m_activeScene) {

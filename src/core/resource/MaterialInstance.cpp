@@ -1,5 +1,7 @@
 #include "core/resource/MaterialInstance.hpp"
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include <cstring>
 #include <stdexcept>
 
@@ -79,26 +81,61 @@ void MaterialInstance::WriteParamToUBO(const std::string& name, const MaterialPa
    if (paramIt == m_template->GetParameters().end()) {
       return;
    }
-
    const auto& desc = paramIt->second;
    uint8_t* target = m_uboData.data() + desc.offset;
-
    std::visit(
-      [target](const auto& val) {
+      [target, &desc, this](const auto& val) {
          using T = std::decay_t<decltype(val)>;
-         if constexpr (std::is_same_v<T, glm::mat3>) {
-            // mat3 in std140 is stored as 3 vec4s
-            glm::vec4 col0(val[0], 0.0f);
-            glm::vec4 col1(val[1], 0.0f);
-            glm::vec4 col2(val[2], 0.0f);
-            std::memcpy(target, &col0, 16);
-            std::memcpy(target + 16, &col1, 16);
-            std::memcpy(target + 32, &col2, 16);
+         // Calculate remaining buffer space
+         const size_t remainingSpace = m_uboData.size() - desc.offset;
+         if constexpr (std::is_same_v<T, float>) {
+            if (remainingSpace >= 4) {
+               std::memcpy(target, &val, 4);
+            }
+         } else if constexpr (std::is_same_v<T, int32_t>) {
+            if (remainingSpace >= 4) {
+               std::memcpy(target, &val, 4);
+            }
+         } else if constexpr (std::is_same_v<T, uint32_t>) {
+            if (remainingSpace >= 4) {
+               std::memcpy(target, &val, 4);
+            }
+         } else if constexpr (std::is_same_v<T, glm::vec2>) {
+            if (remainingSpace >= 8) {
+               std::memcpy(target, glm::value_ptr(val), 8);
+            }
          } else if constexpr (std::is_same_v<T, glm::vec3>) {
-            // vec3 alignment in std140
-            std::memcpy(target, &val, 12);
-         } else {
-            std::memcpy(target, &val, sizeof(val));
+            // vec3 in std140 layout is stored as vec4 (16 bytes)
+            if (remainingSpace >= 16) {
+               glm::vec4 padded(val.x, val.y, val.z, 0.0f);
+               std::memcpy(target, glm::value_ptr(padded), 16);
+            }
+         } else if constexpr (std::is_same_v<T, glm::vec4>) {
+            if (remainingSpace >= 16) {
+               std::memcpy(target, glm::value_ptr(val), 16);
+            }
+         } else if constexpr (std::is_same_v<T, glm::mat2>) {
+            // mat2 in std140: 2 columns, each column is a vec4 (16 bytes each)
+            if (remainingSpace >= 32) {
+               glm::vec4 col0(val[0][0], val[0][1], 0.0f, 0.0f);
+               std::memcpy(target, glm::value_ptr(col0), 16);
+               glm::vec4 col1(val[1][0], val[1][1], 0.0f, 0.0f);
+               std::memcpy(target + 16, glm::value_ptr(col1), 16);
+            }
+         } else if constexpr (std::is_same_v<T, glm::mat3>) {
+            // mat3 in std140: 3 columns, each column is a vec4 (16 bytes each)
+            if (remainingSpace >= 48) {
+               glm::vec4 col0(val[0][0], val[0][1], val[0][2], 0.0f);
+               std::memcpy(target, glm::value_ptr(col0), 16);
+               glm::vec4 col1(val[1][0], val[1][1], val[1][2], 0.0f);
+               std::memcpy(target + 16, glm::value_ptr(col1), 16);
+               glm::vec4 col2(val[2][0], val[2][1], val[2][2], 0.0f);
+               std::memcpy(target + 32, glm::value_ptr(col2), 16);
+            }
+         } else if constexpr (std::is_same_v<T, glm::mat4>) {
+            if (remainingSpace >= 64) {
+               std::memcpy(target, glm::value_ptr(val), 64);
+            }
          }
       },
       value);

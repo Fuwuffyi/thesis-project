@@ -12,6 +12,7 @@ ResourceManager::ResourceManager(std::unique_ptr<IResourceFactory> factory)
    if (!m_factory) {
       throw std::invalid_argument("ResourceFactory cannot be null.");
    }
+   SetupMaterialTemplates();
 }
 
 ResourceManager::~ResourceManager() { UnloadAll(); }
@@ -77,6 +78,15 @@ TextureHandle ResourceManager::CreateRenderTarget(const std::string_view name, c
                                                   const uint32_t samples) {
    auto texture = m_factory->CreateRenderTarget(width, height, format, samples);
    return RegisterResource<ITexture>(name, std::move(texture));
+}
+
+MaterialHandle ResourceManager::CreateMaterial(const std::string_view name,
+                                               const std::string_view templateName) {
+   if (!m_materialTemplates.contains(std::string{templateName}))
+      throw std::runtime_error("The material template " + std::string{templateName} + " does not exist.");
+   const MaterialTemplate* templ = m_materialTemplates.at(std::string{templateName}).get();
+   auto material = m_factory->CreateMaterial(*templ);
+   return RegisterResource<IMaterial>(name, std::move(material));
 }
 
 MeshHandle ResourceManager::LoadMesh(const std::string_view name,
@@ -151,6 +161,16 @@ ITexture* ResourceManager::GetTexture(const TextureHandle& handle) const {
    return nullptr;
 }
 
+IMaterial* ResourceManager::GetMaterial(const MaterialHandle& handle) const {
+   if (!handle.IsValid())
+      return nullptr;
+   std::shared_lock lock(m_mutex);
+   if (auto it = m_resources.find(handle.GetId()); it != m_resources.end()) {
+      return static_cast<IMaterial*>(it->second->resource.get());
+   }
+   return nullptr;
+}
+
 IMesh* ResourceManager::GetMesh(const MeshHandle& handle) const {
    if (!handle.IsValid())
       return nullptr;
@@ -182,6 +202,17 @@ ITexture* ResourceManager::GetTexture(const std::string_view name) const {
    return nullptr;
 }
 
+IMaterial* ResourceManager::GetMaterial(const std::string_view name) const {
+   std::shared_lock lock(m_mutex);
+   const std::string nameStr{name};
+   if (auto nameIt = m_nameToId.find(nameStr); nameIt != m_nameToId.end()) {
+      if (auto resourceIt = m_resources.find(nameIt->second); resourceIt != m_resources.end()) {
+         return static_cast<IMaterial*>(resourceIt->second->resource.get());
+      }
+   }
+   return nullptr;
+}
+
 IMesh* ResourceManager::GetMesh(const std::string_view name) const {
    std::shared_lock lock(m_mutex);
    const std::string nameStr{name};
@@ -201,6 +232,13 @@ void ResourceManager::RemoveResource(const uint64_t id) {
 }
 
 void ResourceManager::UnloadTexture(const TextureHandle& handle) {
+   if (!handle.IsValid())
+      return;
+   std::unique_lock lock(m_mutex);
+   RemoveResource(handle.GetId());
+}
+
+void ResourceManager::UnloadMaterial(const MaterialHandle& handle) {
    if (!handle.IsValid())
       return;
    std::unique_lock lock(m_mutex);
@@ -255,6 +293,7 @@ void ResourceManager::UnloadAll() {
    std::unique_lock lock(m_mutex);
    m_resources.clear();
    m_nameToId.clear();
+   m_meshGroups.clear();
 }
 
 size_t ResourceManager::GetTotalMemoryUsage() const {
@@ -285,6 +324,25 @@ std::vector<std::pair<ITexture*, std::string>> ResourceManager::GetAllTexturesNa
    return textures;
 }
 
+std::vector<std::pair<IMaterial*, std::string>> ResourceManager::GetAllMaterialsNamed() {
+   std::shared_lock lock(m_mutex);
+   std::vector<std::pair<IMaterial*, std::string>> materials;
+   auto materialEntries =
+      m_resources | std::views::values | std::views::filter([](const auto& entry) {
+         return entry && entry->resource && entry->resource->GetType() == ResourceType::Material;
+      }) |
+      std::views::transform([](const auto& entry) {
+         return std::make_pair(static_cast<IMaterial*>(entry->resource.get()), entry->name);
+      });
+   std::ranges::copy(materialEntries, std::back_inserter(materials));
+   return materials;
+}
+
+std::vector<std::pair<const MaterialTemplate&, std::string>>
+ResourceManager::GetAllMaterialTemplatesNamed() {
+   // TODO: Implement
+}
+
 std::vector<std::pair<IMesh*, std::string>> ResourceManager::GetAllMeshesNamed() {
    std::shared_lock lock(m_mutex);
    std::vector<std::pair<IMesh*, std::string>> meshes;
@@ -299,8 +357,30 @@ std::vector<std::pair<IMesh*, std::string>> ResourceManager::GetAllMeshesNamed()
    return meshes;
 }
 
+void ResourceManager::SetupMaterialTemplates() {
+   std::unique_ptr<MaterialTemplate> pbrTemplate =
+      std::make_unique<MaterialTemplate>("PBR");
+   // PBR Params
+   pbrTemplate->AddParameter("albedo", ParameterDescriptor::Type::Vec3, glm::vec3(1.0f));
+   pbrTemplate->AddParameter("metallic", ParameterDescriptor::Type::Float, 0.0f);
+   pbrTemplate->AddParameter("roughness", ParameterDescriptor::Type::Float, 1.0f);
+   pbrTemplate->AddParameter("ao", ParameterDescriptor::Type::Float, 1.0f);
+   // PBR Textures
+   pbrTemplate->AddTexture("albedoTexture", 0, "albedoSampler");
+   pbrTemplate->AddTexture("normalTexture", 1, "normalSampler");
+   pbrTemplate->AddTexture("displacementTexture", 2, "displacementSampler");
+   pbrTemplate->AddTexture("roughnessTexture", 3, "roughnessSampler");
+   pbrTemplate->AddTexture("metallicTexture", 4, "metallicSampler");
+   pbrTemplate->AddTexture("aoTexture", 5, "aoSampler");
+   // Add the PBR material template
+   pbrTemplate->Finalize();
+   m_materialTemplates[pbrTemplate->GetName()] = std::move(pbrTemplate);
+}
+
 template ResourceHandle<ITexture> ResourceManager::RegisterResource<ITexture>(
    std::string_view, std::unique_ptr<ITexture>, std::string_view);
+template ResourceHandle<IMaterial> ResourceManager::RegisterResource<IMaterial>(
+   std::string_view, std::unique_ptr<IMaterial>, std::string_view);
 template ResourceHandle<IMesh> ResourceManager::RegisterResource<IMesh>(std::string_view,
                                                                         std::unique_ptr<IMesh>,
                                                                         std::string_view);

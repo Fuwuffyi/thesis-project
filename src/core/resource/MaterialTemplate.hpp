@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 struct ParameterDescriptor {
-   enum class Type { Float, Int, UInt, Vec2, Vec3, Vec4, Mat3, Mat4 };
+   enum class Type { Float, Int, UInt, Vec2, Vec3, Vec4, Mat2, Mat3, Mat4 };
 
    Type type;
    std::string name;

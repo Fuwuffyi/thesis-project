@@ -24,6 +24,7 @@ class GLRenderer : public IRenderer {
    void FramebufferCallback(const int32_t width, const int32_t height);
 
    void CreateFullscreenQuad();
+   void CreateDefaultMaterial();
 
    void LoadShaders();
 
@@ -34,11 +35,11 @@ class GLRenderer : public IRenderer {
    void CreateLightingPass();
 
   private:
+   MaterialHandle m_defaultMaterial;
    MeshHandle m_fullscreenQuad;
    // Create UBOs for shader data
    std::unique_ptr<GLBuffer> m_cameraUbo = nullptr;
    std::unique_ptr<GLBuffer> m_lightsUbo = nullptr;
-   std::unique_ptr<GLBuffer> m_materialUbo = nullptr;
    // Geometry pass things
    TextureHandle m_gDepthTexture;
    TextureHandle m_gAlbedoTexture; // RGB color + A AO

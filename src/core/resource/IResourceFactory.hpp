@@ -2,8 +2,11 @@
 
 #include "core/Vertex.hpp"
 
-#include "core/resource/IMesh.hpp"
+#include "core/resource/IMaterial.hpp"
 #include "core/resource/ITexture.hpp"
+#include "core/resource/IMesh.hpp"
+
+#include "core/resource/MaterialTemplate.hpp"
 
 #include <vector>
 #include <memory>
@@ -22,6 +25,8 @@ class IResourceFactory {
    virtual std::unique_ptr<ITexture> CreateRenderTarget(
       const uint32_t width, const uint32_t height,
       const ITexture::Format format = ITexture::Format::RGBA8, const uint32_t samples = 1) = 0;
+   // Material creation methods
+   virtual std::unique_ptr<IMaterial> CreateMaterial(const MaterialTemplate& matTemplate) = 0;
    // Mesh creation methods
    virtual std::unique_ptr<IMesh> CreateMesh(const std::vector<Vertex>& vertices,
                                              const std::vector<uint32_t>& indices) = 0;

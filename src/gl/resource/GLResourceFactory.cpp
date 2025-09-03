@@ -1,7 +1,8 @@
 #include "GLResourceFactory.hpp"
 
-#include "../resource/GLMesh.hpp"
-#include "../resource/GLTexture.hpp"
+#include "gl/resource/GLTexture.hpp"
+#include "gl/resource/GLMaterial.hpp"
+#include "gl/resource/GLMesh.hpp"
 
 std::unique_ptr<ITexture> GLResourceFactory::CreateTexture(const ITexture::CreateInfo& info) {
    return std::make_unique<GLTexture>(info);
@@ -24,6 +25,10 @@ std::unique_ptr<ITexture> GLResourceFactory::CreateRenderTarget(const uint32_t w
                                                                 const ITexture::Format format,
                                                                 const uint32_t samples) {
    return std::make_unique<GLTexture>(width, height, format, false, samples);
+}
+
+std::unique_ptr<IMaterial> GLResourceFactory::CreateMaterial(const MaterialTemplate& matTemplate) {
+   return std::make_unique<GLMaterial>(matTemplate);
 }
 
 std::unique_ptr<IMesh> GLResourceFactory::CreateMesh(const std::vector<Vertex>& vertices,

@@ -3,6 +3,8 @@
 #include "core/resource/IResourceFactory.hpp"
 #include "core/resource/ResourceHandle.hpp"
 
+#include "core/resource/MaterialTemplate.hpp"
+
 #include <shared_mutex>
 #include <unordered_map>
 
@@ -34,6 +36,7 @@ class ResourceManager final {
                                     const ITexture::Format format = ITexture::Format::RGBA8,
                                     const uint32_t samples = 1);
    // Material management
+   MaterialHandle CreateMaterial(const std::string_view name, const std::string_view templateName);
    // Mesh management
    MeshHandle LoadMesh(const std::string_view name, const std::vector<Vertex>& vertices,
                        const std::vector<uint32_t>& indices);
@@ -41,13 +44,16 @@ class ResourceManager final {
    MeshHandle LoadSingleMeshFromFile(const std::string_view name, const std::string_view filepath);
    // Resource access
    ITexture* GetTexture(const TextureHandle& handle) const;
+   IMaterial* GetMaterial(const MaterialHandle& handle) const;
    IMesh* GetMesh(const MeshHandle& handle) const;
    // Resource access by name
    ITexture* GetTexture(const std::string_view name) const;
+   IMaterial* GetMaterial(const std::string_view name) const;
    IMesh* GetMesh(const std::string_view name) const;
    const LoadedMeshGroup* GetMeshGroup(const std::string_view name) const;
    // Resource management
    void UnloadTexture(const TextureHandle& handle);
+   void UnloadMaterial(const MaterialHandle& handle);
    void UnloadMesh(const MeshHandle& handle);
    void UnloadTexture(const std::string_view name);
    void UnloadMaterial(const std::string_view name);
@@ -58,6 +64,8 @@ class ResourceManager final {
    size_t GetTotalMemoryUsage() const;
    size_t GetResourceCount() const;
    std::vector<std::pair<ITexture*, std::string>> GetAllTexturesNamed();
+   std::vector<std::pair<IMaterial*, std::string>> GetAllMaterialsNamed();
+   std::vector<std::pair<const MaterialTemplate&, std::string>> GetAllMaterialTemplatesNamed();
    std::vector<std::pair<IMesh*, std::string>> GetAllMeshesNamed();
 
   private:
@@ -67,6 +75,8 @@ class ResourceManager final {
                                       const std::string_view filepath = {});
 
    void RemoveResource(const uint64_t id);
+
+   void SetupMaterialTemplates();
 
   private:
    struct ResourceEntry {
@@ -79,6 +89,7 @@ class ResourceManager final {
 
    std::unique_ptr<IResourceFactory> m_factory;
    std::unordered_map<uint64_t, std::unique_ptr<ResourceEntry>> m_resources;
+   std::unordered_map<std::string, std::unique_ptr<MaterialTemplate>> m_materialTemplates;
    std::unordered_map<std::string, uint64_t> m_nameToId;
    std::unordered_map<std::string, LoadedMeshGroup> m_meshGroups;
 
