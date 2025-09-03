@@ -5,14 +5,20 @@
 #include <imgui.h>
 #include <utility>
 
-RendererComponent::RendererComponent(const MeshHandle mesh)
-    : m_mesh(std::move(mesh)), m_visible(true), m_castsShadows(true), m_receivesShadows(true) {}
+RendererComponent::RendererComponent(const MeshHandle mesh, const MaterialHandle material)
+    : m_mesh(std::move(mesh)),
+      m_material(std::move(material)),
+      m_visible(true),
+      m_castsShadows(true),
+      m_receivesShadows(true) {}
 
-RendererComponent::RendererComponent(const std::vector<MeshHandle>& meshes) {
+RendererComponent::RendererComponent(const std::vector<MeshHandle>& meshes,
+                                     const std::vector<MaterialHandle>& materials) {
    m_subMeshRenderers.reserve(meshes.size());
-   for (size_t i = 0; i < meshes.size(); ++i) {
+   for (size_t i = 0; i < meshes.size() && i < materials.size(); ++i) {
       SubMeshRenderer renderer;
       renderer.mesh = meshes[i];
+      renderer.material = materials[i];
       m_subMeshRenderers.push_back(std::move(renderer));
    }
 }
@@ -35,6 +41,19 @@ void RendererComponent::SetMesh(const MeshHandle mesh) {
 
 [[nodiscard]] bool RendererComponent::HasMesh() const noexcept {
    return m_mesh.IsValid() || !m_subMeshRenderers.empty();
+}
+
+void RendererComponent::SetMaterial(const MaterialHandle material) {
+   m_material = std::move(material);
+   m_subMeshRenderers.clear();
+}
+
+[[nodiscard]] const MaterialHandle& RendererComponent::GetMaterial() const noexcept {
+   return m_material;
+}
+
+[[nodiscard]] bool RendererComponent::HasMaterial() const noexcept {
+   return m_material.IsValid() || !m_subMeshRenderers.empty();
 }
 
 void RendererComponent::SetSubMeshRenderers(const std::vector<SubMeshRenderer>& renderers) {
@@ -71,6 +90,16 @@ void RendererComponent::SetSubMeshVisible(const size_t index, const bool visible
 
 bool RendererComponent::IsSubMeshVisible(const size_t index) const {
    return index < m_subMeshRenderers.size() ? m_subMeshRenderers[index].visible : false;
+}
+
+void RendererComponent::SetSubMeshMaterial(const size_t index, const MaterialHandle& material) {
+   if (index < m_subMeshRenderers.size()) {
+      m_subMeshRenderers[index].material = material;
+   }
+}
+
+MaterialHandle RendererComponent::GetSubMeshMaterial(const size_t index) const {
+   return index < m_subMeshRenderers.size() ? m_subMeshRenderers[index].material : MaterialHandle{};
 }
 
 void RendererComponent::SetVisible(const bool visible) noexcept { m_visible = visible; }

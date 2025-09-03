@@ -4,7 +4,8 @@
 #include "core/scene/Scene.hpp"
 #include "core/scene/components/RendererComponent.hpp"
 
-// TODO: Load materials and such
+#include "core/resource/IMaterial.hpp"
+
 Node* MeshLoaderHelper::LoadMeshIntoScene(Scene& scene, ResourceManager& resourceManager,
                                           const std::string& meshName, const std::string& filepath,
                                           const MeshLoadOptions& options) {
@@ -61,7 +62,8 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
          std::unique_ptr<Node> childNode = std::make_unique<Node>(nodeName);
          childNode->AddComponent<TransformComponent>();
          // Create renderer component with single mesh
-         RendererComponent* renderer = childNode->AddComponent<RendererComponent>(meshHandle);
+         // TODO: Setup default material
+         RendererComponent* renderer = childNode->AddComponent<RendererComponent>(meshHandle, MaterialHandle{});
          // Set material index for reference
          RendererComponent::SubMeshRenderer subMeshRenderer;
          subMeshRenderer.mesh = meshHandle;
@@ -80,6 +82,8 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
          const auto& meshHandle = meshGroup.subMeshes[i];
          RendererComponent::SubMeshRenderer subMeshRenderer;
          subMeshRenderer.mesh = meshHandle;
+         // TODO: Setup default material
+         subMeshRenderer.material = {};
          renderer->AddSubMeshRenderer(subMeshRenderer);
       }
    }

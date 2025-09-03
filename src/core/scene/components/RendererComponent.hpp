@@ -3,22 +3,23 @@
 #include "core/scene/components/Component.hpp"
 
 #include "core/resource/IMesh.hpp"
+#include "core/resource/IMaterial.hpp"
 
 #include <vector>
 
-// TODO: Handle material/texture information
 class RendererComponent final : public Component {
   public:
    struct SubMeshRenderer {
       MeshHandle mesh;
+      MaterialHandle material;
       bool visible = true;
       bool castsShadows = true;
       bool receivesShadows = true;
    };
 
    RendererComponent() = default;
-   explicit RendererComponent(const MeshHandle mesh);
-   explicit RendererComponent(const std::vector<MeshHandle>& meshes);
+   explicit RendererComponent(const MeshHandle mesh, const MaterialHandle material);
+   explicit RendererComponent(const std::vector<MeshHandle>& meshes, const std::vector<MaterialHandle>& materials);
 
    void DrawInspector(Node* node) override;
 
@@ -26,6 +27,11 @@ class RendererComponent final : public Component {
    void SetMesh(const MeshHandle mesh);
    [[nodiscard]] const MeshHandle& GetMesh() const noexcept;
    [[nodiscard]] bool HasMesh() const noexcept;
+
+   // Material management
+   void SetMaterial(const MaterialHandle material);
+   [[nodiscard]] const MaterialHandle& GetMaterial() const noexcept;
+   [[nodiscard]] bool HasMaterial() const noexcept;
 
    // Submesh management
    void SetSubMeshRenderers(const std::vector<SubMeshRenderer>& renderers);
@@ -38,6 +44,9 @@ class RendererComponent final : public Component {
    // Individual sub-mesh control
    void SetSubMeshVisible(const size_t index, const bool visible);
    [[nodiscard]] bool IsSubMeshVisible(const size_t index) const;
+
+   void SetSubMeshMaterial(const size_t index, const MaterialHandle& material);
+   MaterialHandle GetSubMeshMaterial(const size_t index) const;
 
    // Rendering properties
    void SetVisible(const bool visible) noexcept;
@@ -55,6 +64,7 @@ class RendererComponent final : public Component {
 
   private:
    MeshHandle m_mesh;
+   MaterialHandle m_material;
    std::vector<SubMeshRenderer> m_subMeshRenderers;
 
    bool m_visible;
