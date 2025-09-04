@@ -50,6 +50,9 @@ class ResourceManager final {
    ITexture* GetTexture(const std::string_view name) const;
    IMaterial* GetMaterial(const std::string_view name) const;
    IMesh* GetMesh(const std::string_view name) const;
+   TextureHandle GetTextureHandle(const std::string_view name) const;
+   MaterialHandle GetMaterialHandle(const std::string_view name) const;
+   MeshHandle GetMeshHandle(const std::string_view name) const;
    const LoadedMeshGroup* GetMeshGroup(const std::string_view name) const;
    // Resource management
    void UnloadTexture(const TextureHandle& handle);

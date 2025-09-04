@@ -307,9 +307,6 @@ void GLRenderer::RenderFrame() {
       tex->Bind(5);
    }
    */
-   if (IMaterial* material = m_resourceManager->GetMaterial(m_defaultMaterial)) {
-      material->Bind(2);
-   }
    // Draw the scene
    if (m_activeScene) {
       m_activeScene->UpdateTransforms();
@@ -332,12 +329,20 @@ void GLRenderer::RenderFrame() {
                   if (!subMeshRenderer.visible)
                      continue;
                   if (const IMesh* mesh = m_resourceManager->GetMesh(subMeshRenderer.mesh)) {
-                     mesh->Draw();
+                     if (IMaterial* material =
+                            m_resourceManager->GetMaterial(subMeshRenderer.material)) {
+                        material->Bind(2);
+                        mesh->Draw();
+                     }
                   }
                }
             } else {
                if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
-                  mesh->Draw();
+                  if (IMaterial* material =
+                         m_resourceManager->GetMaterial(renderer->GetMaterial())) {
+                     material->Bind(2);
+                     mesh->Draw();
+                  }
                }
             }
          }

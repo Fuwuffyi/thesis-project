@@ -62,11 +62,12 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
          std::unique_ptr<Node> childNode = std::make_unique<Node>(nodeName);
          childNode->AddComponent<TransformComponent>();
          // Create renderer component with single mesh
-         // TODO: Setup default material
-         RendererComponent* renderer = childNode->AddComponent<RendererComponent>(meshHandle, MaterialHandle{});
+         RendererComponent* renderer =
+            childNode->AddComponent<RendererComponent>(meshHandle, resourceManager.GetMaterialHandle("default_pbr"));
          // Set material index for reference
          RendererComponent::SubMeshRenderer subMeshRenderer;
          subMeshRenderer.mesh = meshHandle;
+         subMeshRenderer.material = resourceManager.GetMaterialHandle("default_pbr");
          renderer->AddSubMeshRenderer(subMeshRenderer);
          parentNode->AddChild(std::move(childNode));
       }
@@ -82,8 +83,7 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
          const auto& meshHandle = meshGroup.subMeshes[i];
          RendererComponent::SubMeshRenderer subMeshRenderer;
          subMeshRenderer.mesh = meshHandle;
-         // TODO: Setup default material
-         subMeshRenderer.material = {};
+         subMeshRenderer.material = resourceManager.GetMaterialHandle("default_pbr");
          renderer->AddSubMeshRenderer(subMeshRenderer);
       }
    }
