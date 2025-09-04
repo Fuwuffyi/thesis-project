@@ -25,6 +25,33 @@ struct MouseState {
    float pitch = 0.0f;
 };
 
+// TODO: This is a test scene, I need to add a serialization/deserialization system
+void CreateFullScene(Scene& scene, ResourceManager& resourceManager, const GraphicsAPI api) {
+   // FIXME: Currently vulkan loads texture statically
+   if (api == GraphicsAPI::OpenGL) {
+      resourceManager.LoadTexture("testing_albedo", "resources/textures/bricks_color.jpg", true,
+                                  true);
+   }
+   resourceManager.LoadTexture("testing_displacement", "resources/textures/bricks_displacement.jpg",
+                               true, false);
+   resourceManager.LoadTexture("testing_normal", "resources/textures/bricks_normal.jpg", true,
+                               false);
+   resourceManager.LoadTexture("testing_roughness", "resources/textures/bricks_roughness.jpg", true,
+                               false);
+   resourceManager.LoadTexture("testing_ao", "resources/textures/bricks_ao.jpg", true, false);
+
+   Node* sponzaNode = MeshLoaderHelper::LoadMeshAsChildNode(scene.GetRootNode(), resourceManager,
+                                                            "sponza", "resources/meshes/sponza.fbx",
+                                                            {.createSeparateNodes = true}, {});
+   sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
+
+   // Create a testing light
+   Node* lightNode = scene.CreateNode("Light node");
+   lightNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 1.0f, 0.0f));
+   LightComponent* light = lightNode->AddComponent<LightComponent>();
+   light->SetType(LightComponent::LightType::Spot);
+}
+
 int main(int argc, char* argv[]) {
    // Check argv for api
    GraphicsAPI api = GraphicsAPI::Vulkan;
@@ -52,35 +79,12 @@ int main(int argc, char* argv[]) {
       std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api, &window);
       float deltaTime = 0.0f;
 
-      // Get renderer resource manager
+      // Create the scene
       ResourceManager* resourceManager = renderer->GetResourceManager();
-      // FIXME: Currently vulkan loads texture statically
-      if (api == GraphicsAPI::OpenGL) {
-         resourceManager->LoadTexture("testing_albedo", "resources/textures/bricks_color.jpg", true,
-                                      true);
-      }
-      resourceManager->LoadTexture("testing_displacement",
-                                   "resources/textures/bricks_displacement.jpg", true, false);
-      resourceManager->LoadTexture("testing_normal", "resources/textures/bricks_normal.jpg", true,
-                                   false);
-      resourceManager->LoadTexture("testing_roughness", "resources/textures/bricks_roughness.jpg",
-                                   true, false);
-      resourceManager->LoadTexture("testing_ao", "resources/textures/bricks_ao.jpg", true, false);
+      Scene scene("Test scene");
+      CreateFullScene(scene, *resourceManager, api);
+      renderer->SetActiveScene(&scene);
 
-      // TODO: Remove afterwards, just a test
-      MaterialHandle testMaterial = resourceManager->CreateMaterial("random_material", "PBR");
-      if (IMaterial* mat = resourceManager->GetMaterial(testMaterial)) {
-         mat->SetParameter("albedo", glm::vec3(1.0f, 1.0f, 1.0f));
-         mat->SetParameter("metallic", 1.0f);
-         mat->SetParameter("roughness", 1.0f);
-         mat->SetParameter("ao", 1.0f);
-         mat->SetTexture("albedoTexture", resourceManager->GetTextureHandle("testing_albedo"));
-         mat->SetTexture("normalTexture", resourceManager->GetTextureHandle("testing_normal"));
-         mat->SetTexture("displacementTexture",
-                         resourceManager->GetTextureHandle("testing_displacement"));
-         mat->SetTexture("roughnessTexture", resourceManager->GetTextureHandle("testing_roughness"));
-         mat->SetTexture("aoTexture", resourceManager->GetTextureHandle("testing_ao"));
-      }
       // Create the camera
       const glm::vec3 startPos = glm::vec3(2.0f);
       const glm::vec3 forward = glm::normalize(glm::vec3(0.0f) - startPos);
@@ -90,20 +94,6 @@ int main(int argc, char* argv[]) {
       const float camSpeed = 3.0f;
       const float camRotateSpeed = glm::radians(60.0f);
       renderer->SetActiveCamera(&cam);
-
-      // Create the scene
-      Scene scene("Test scene");
-      Node* sponzaNode = MeshLoaderHelper::LoadMeshAsChildNode(
-         scene.GetRootNode(), *resourceManager, "sponza", "resources/meshes/sponza.fbx",
-         {.createSeparateNodes = true}, {testMaterial});
-      sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
-      renderer->SetActiveScene(&scene);
-
-      // Create a testing light
-      Node* lightNode = scene.CreateNode("Light node");
-      lightNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 1.0f, 0.0f));
-      LightComponent* light = lightNode->AddComponent<LightComponent>();
-      light->SetType(LightComponent::LightType::Spot);
 
       // Setup events
       EventSystem* events = window.GetEventSystem();
