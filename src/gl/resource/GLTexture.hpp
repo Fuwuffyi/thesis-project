@@ -2,7 +2,8 @@
 
 #include "../../core/resource/ITexture.hpp"
 
-#include <glad/gl.h>
+#include <glm/glm.hpp>
+
 #include <string>
 
 class GLTexture : public ITexture {
@@ -11,6 +12,7 @@ class GLTexture : public ITexture {
    GLTexture(const std::string& filepath, const bool generateMipmaps, const bool sRGB);
    GLTexture(const uint32_t width, const uint32_t height, const Format format,
              const bool isDepth = false, const uint32_t samples = 1);
+   GLTexture(const Format format, const glm::vec4& color);
    ~GLTexture();
 
    GLTexture(const GLTexture&) = delete;
@@ -29,15 +31,15 @@ class GLTexture : public ITexture {
    void Bind(uint32_t unit = 0) const override;
    void* GetNativeHandle() const override;
 
-   GLuint GetId() const;
+   uint32_t GetId() const;
 
   private:
    void CreateStorage();
-   GLenum ConvertFormat(const Format format) const;
-   GLenum ConvertTarget() const;
+   uint32_t ConvertFormat(const Format format) const;
+   uint32_t ConvertTarget() const;
 
   private:
-   GLuint m_id;
+   uint32_t m_id;
    uint32_t m_width;
    uint32_t m_height;
    uint32_t m_depth;

@@ -29,7 +29,7 @@ class MaterialTemplate {
    void AddParameter(const std::string& name, ParameterDescriptor::Type type,
                      const MaterialParam& defaultValue);
    void AddTexture(const std::string& name, uint32_t bindingSlot, const std::string& samplerName,
-                   const TextureHandle& defaultTexture = {});
+                   const TextureHandle& defaultTexture);
 
    // Getters
    const std::string& GetName() const { return m_name; }

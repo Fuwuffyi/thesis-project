@@ -1,13 +1,15 @@
 #pragma once
 
-#include "../../core/resource/IResourceFactory.hpp"
+#include "core/resource/IResourceFactory.hpp"
 
-class GLResourceFactory : public IResourceFactory {
+class GLResourceFactory final : public IResourceFactory {
   public:
    GLResourceFactory() = default;
    ~GLResourceFactory() = default;
 
    std::unique_ptr<ITexture> CreateTexture(const ITexture::CreateInfo& info) override;
+   std::unique_ptr<ITexture> CreateTextureColor(const ITexture::Format format,
+                                                const glm::vec4& color) override;
    std::unique_ptr<ITexture> CreateTextureFromFile(const std::string_view filepath,
                                                    const bool generateMipmaps,
                                                    const bool sRGB) override;

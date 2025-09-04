@@ -16,6 +16,8 @@ class IResourceFactory {
    virtual ~IResourceFactory() = default;
    // Texture creation methods
    virtual std::unique_ptr<ITexture> CreateTexture(const ITexture::CreateInfo& info) = 0;
+   virtual std::unique_ptr<ITexture> CreateTextureColor(const ITexture::Format format,
+                                                        const glm::vec4& color) = 0;
    virtual std::unique_ptr<ITexture> CreateTextureFromFile(const std::string_view filepath,
                                                            const bool generateMipmaps = true,
                                                            const bool sRGB = true) = 0;

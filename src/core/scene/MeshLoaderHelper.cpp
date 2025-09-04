@@ -8,7 +8,8 @@
 
 Node* MeshLoaderHelper::LoadMeshIntoScene(Scene& scene, ResourceManager& resourceManager,
                                           const std::string& meshName, const std::string& filepath,
-                                          const MeshLoadOptions& options) {
+                                          const MeshLoadOptions& options,
+                                          const std::vector<MaterialHandle>& materials) {
    // Load the mesh group from file
    const ResourceManager::LoadedMeshGroup meshGroup =
       resourceManager.LoadMeshFromFile(meshName, filepath);
@@ -19,14 +20,15 @@ Node* MeshLoaderHelper::LoadMeshIntoScene(Scene& scene, ResourceManager& resourc
    const std::string parentName =
       options.nodePrefix.empty() ? meshName : options.nodePrefix + meshName;
    Node* parentNode = scene.CreateNode(parentName);
-   CreateNodesForMeshGroup(parentNode, resourceManager, meshGroup, options);
+   CreateNodesForMeshGroup(parentNode, resourceManager, meshGroup, options, materials);
    return parentNode;
 }
 
 Node* MeshLoaderHelper::LoadMeshAsChildNode(Node* parent, ResourceManager& resourceManager,
                                             const std::string& meshName,
                                             const std::string& filepath,
-                                            const MeshLoadOptions& options) {
+                                            const MeshLoadOptions& options,
+                                            const std::vector<MaterialHandle>& materials) {
    if (!parent) {
       return nullptr;
    }
@@ -44,13 +46,15 @@ Node* MeshLoaderHelper::LoadMeshAsChildNode(Node* parent, ResourceManager& resou
    childNode->AddComponent<TransformComponent>();
    groupNode = childNode.get();
    parent->AddChild(std::move(childNode));
-   CreateNodesForMeshGroup(groupNode, resourceManager, meshGroup, options);
+   CreateNodesForMeshGroup(groupNode, resourceManager, meshGroup, options, materials);
    return groupNode;
 }
 
 void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager& resourceManager,
                                                const ResourceManager::LoadedMeshGroup& meshGroup,
-                                               const MeshLoadOptions& options) {
+                                               const MeshLoadOptions& options,
+                                               const std::vector<MaterialHandle>& materials) {
+   const MaterialHandle defaultMat = resourceManager.GetMaterialHandle("default_pbr");
    if (!parentNode || !meshGroup.IsValid()) {
       return;
    }
@@ -58,16 +62,17 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
       // Create separate nodes for each sub-mesh
       for (size_t i = 0; i < meshGroup.subMeshes.size(); ++i) {
          const MeshHandle& meshHandle = meshGroup.subMeshes[i];
+         const size_t materialIndex = meshGroup.materialIndices[i];
          const std::string nodeName = GenerateNodeName(parentNode->GetName() + "_SubMesh", i);
          std::unique_ptr<Node> childNode = std::make_unique<Node>(nodeName);
          childNode->AddComponent<TransformComponent>();
          // Create renderer component with single mesh
-         RendererComponent* renderer =
-            childNode->AddComponent<RendererComponent>(meshHandle, resourceManager.GetMaterialHandle("default_pbr"));
+         RendererComponent* renderer = childNode->AddComponent<RendererComponent>(
+            meshHandle, materials.size() > materialIndex ? materials[materialIndex] : defaultMat);
          // Set material index for reference
          RendererComponent::SubMeshRenderer subMeshRenderer;
          subMeshRenderer.mesh = meshHandle;
-         subMeshRenderer.material = resourceManager.GetMaterialHandle("default_pbr");
+         subMeshRenderer.material = defaultMat;
          renderer->AddSubMeshRenderer(subMeshRenderer);
          parentNode->AddChild(std::move(childNode));
       }
@@ -81,9 +86,10 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
       renderer->ClearSubMeshes();
       for (size_t i = 0; i < meshGroup.subMeshes.size(); ++i) {
          const auto& meshHandle = meshGroup.subMeshes[i];
+         const size_t materialIndex = meshGroup.materialIndices[i];
          RendererComponent::SubMeshRenderer subMeshRenderer;
          subMeshRenderer.mesh = meshHandle;
-         subMeshRenderer.material = resourceManager.GetMaterialHandle("default_pbr");
+         subMeshRenderer.material = materials.size() > materialIndex ? materials[materialIndex] : defaultMat;
          renderer->AddSubMeshRenderer(subMeshRenderer);
       }
    }

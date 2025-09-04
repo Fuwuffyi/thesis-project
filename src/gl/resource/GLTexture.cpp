@@ -1,6 +1,7 @@
 #include "GLTexture.hpp"
 
 #include <stb_image.h>
+#include <glad/gl.h>
 
 GLTexture::GLTexture(const CreateInfo& info)
     : m_id(0),
@@ -36,8 +37,8 @@ GLTexture::GLTexture(const std::string& filepath, const bool generateMipmaps, co
    m_width = static_cast<uint32_t>(width);
    m_height = static_cast<uint32_t>(height);
    m_depth = 1;
-   GLenum format = GL_RGBA;
-   GLenum internal = GL_RGBA8;
+   uint32_t format = GL_RGBA;
+   uint32_t internal = GL_RGBA8;
    switch (channels) {
       case 1:
          format = GL_RED;
@@ -90,6 +91,46 @@ GLTexture::GLTexture(const uint32_t width, const uint32_t height, const Format f
       m_samples(samples) {
    glGenTextures(1, &m_id);
    CreateStorage();
+}
+
+GLTexture::GLTexture(const Format format, const glm::vec4& color)
+    : m_width(1), m_height(1), m_depth(1), m_format(format), m_isDepth(false), m_samples(1) {
+   glGenTextures(1, &m_id);
+   glBindTexture(GL_TEXTURE_2D, m_id);
+   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+   const uint8_t rgba[4] = {
+      static_cast<uint8_t>(glm::clamp(color.r, 0.0f, 1.0f) * 255.0f),
+      static_cast<uint8_t>(glm::clamp(color.g, 0.0f, 1.0f) * 255.0f),
+      static_cast<uint8_t>(glm::clamp(color.b, 0.0f, 1.0f) * 255.0f),
+      static_cast<uint8_t>(glm::clamp(color.a, 0.0f, 1.0f) * 255.0f),
+   };
+   uint32_t externalFormat = GL_RGBA;
+   switch (format) {
+      case Format::R8:
+         externalFormat = GL_RED;
+         break;
+      case Format::RG8:
+         externalFormat = GL_RG;
+         break;
+      case Format::RGB8:
+         externalFormat = GL_RGB;
+         break;
+      case Format::RGBA8:
+      case Format::SRGB8_ALPHA8:
+      case Format::RGBA16F:
+      case Format::RGBA32F:
+         externalFormat = GL_RGBA;
+         break;
+      default:
+         externalFormat = GL_RGBA;
+         break;
+   }
+   glTexImage2D(GL_TEXTURE_2D, 0, ConvertFormat(format), 1, 1, 0, externalFormat, GL_UNSIGNED_BYTE,
+                rgba);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
 GLTexture::~GLTexture() {
@@ -219,7 +260,7 @@ void GLTexture::CreateStorage() {
    glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
-GLenum GLTexture::ConvertFormat(Format format) const {
+uint32_t GLTexture::ConvertFormat(Format format) const {
    switch (format) {
       case Format::R8:
          return GL_R8;
@@ -244,7 +285,7 @@ GLenum GLTexture::ConvertFormat(Format format) const {
    }
 }
 
-GLenum GLTexture::ConvertTarget() const {
+uint32_t GLTexture::ConvertTarget() const {
    if (m_samples > 1)
       return GL_TEXTURE_2D_MULTISAMPLE;
    return GL_TEXTURE_2D;
@@ -258,4 +299,4 @@ uint32_t GLTexture::GetDepth() const { return m_depth; }
 
 ITexture::Format GLTexture::GetFormat() const { return m_format; }
 
-GLuint GLTexture::GetId() const { return m_id; }
+uint32_t GLTexture::GetId() const { return m_id; }

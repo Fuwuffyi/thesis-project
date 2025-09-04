@@ -28,6 +28,8 @@ class ResourceManager final {
    TextureHandle LoadTexture(const std::string_view name, const std::string_view filepath,
                              const bool generateMipmaps = true, const bool sRGB = true);
    TextureHandle CreateTexture(const std::string_view name, const ITexture::CreateInfo& info);
+   TextureHandle CreateTextureColor(const std::string_view name, const ITexture::Format format,
+                                    const glm::vec4& color);
    TextureHandle CreateDepthTexture(const std::string_view name, const uint32_t width,
                                     const uint32_t height,
                                     const ITexture::Format format = ITexture::Format::Depth32F);

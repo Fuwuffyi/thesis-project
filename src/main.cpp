@@ -66,15 +66,21 @@ int main(int argc, char* argv[]) {
       resourceManager->LoadTexture("testing_roughness", "resources/textures/bricks_roughness.jpg",
                                    true, false);
       resourceManager->LoadTexture("testing_ao", "resources/textures/bricks_ao.jpg", true, false);
-      
-      // TODO: Remove afterwards, just a test
-      IMaterial* defaultMaterial = resourceManager->GetMaterial("default_pbr");
-      defaultMaterial->SetTexture("albedoTexture", resourceManager->GetTextureHandle("testing_albedo"));
-      defaultMaterial->SetTexture("normalTexture", resourceManager->GetTextureHandle("testing_normal"));
-      defaultMaterial->SetTexture("displacementTexture", resourceManager->GetTextureHandle("testing_displacement"));
-      defaultMaterial->SetTexture("roughnessTexture", resourceManager->GetTextureHandle("testing_rougness"));
-      defaultMaterial->SetTexture("aoTexture", resourceManager->GetTextureHandle("testing_ao"));
 
+      // TODO: Remove afterwards, just a test
+      MaterialHandle testMaterial = resourceManager->CreateMaterial("test_pbr", "PBR");
+      if (IMaterial* mat = resourceManager->GetMaterial(testMaterial)) {
+         mat->SetParameter("albedo", glm::vec3(0.8f, 0.8f, 0.8f));
+         mat->SetParameter("metallic", 0.0f);
+         mat->SetParameter("roughness", 0.8f);
+         mat->SetParameter("ao", 1.0f);
+         mat->SetTexture("albedoTexture", resourceManager->GetTextureHandle("testing_albedo"));
+         mat->SetTexture("normalTexture", resourceManager->GetTextureHandle("testing_normal"));
+         mat->SetTexture("displacementTexture",
+                         resourceManager->GetTextureHandle("testing_displacement"));
+         mat->SetTexture("roughnessTexture", resourceManager->GetTextureHandle("testing_rougness"));
+         mat->SetTexture("aoTexture", resourceManager->GetTextureHandle("testing_ao"));
+      }
       // Create the camera
       const glm::vec3 startPos = glm::vec3(2.0f);
       const glm::vec3 forward = glm::normalize(glm::vec3(0.0f) - startPos);
@@ -89,7 +95,7 @@ int main(int argc, char* argv[]) {
       Scene scene("Test scene");
       Node* sponzaNode = MeshLoaderHelper::LoadMeshAsChildNode(
          scene.GetRootNode(), *resourceManager, "sponza", "resources/meshes/sponza.fbx",
-         {.createSeparateNodes = true});
+         {.createSeparateNodes = true}, {testMaterial});
       sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
       renderer->SetActiveScene(&scene);
 

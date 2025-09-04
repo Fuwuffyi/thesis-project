@@ -100,6 +100,7 @@ void GLRenderer::CreateFullscreenQuad() {
 }
 
 void GLRenderer::CreateDefaultMaterial() {
+
    m_defaultMaterial = m_resourceManager->CreateMaterial("default_pbr", "PBR");
    if (IMaterial* material = m_resourceManager->GetMaterial(m_defaultMaterial)) {
       material->SetParameter("albedo", glm::vec3(0.8f, 0.8f, 0.8f));

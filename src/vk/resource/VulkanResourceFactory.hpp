@@ -4,12 +4,14 @@
 
 #include "vk/VulkanDevice.hpp"
 
-class VulkanResourceFactory : public IResourceFactory {
+class VulkanResourceFactory final : public IResourceFactory {
   public:
    explicit VulkanResourceFactory(const VulkanDevice& device);
    ~VulkanResourceFactory() = default;
 
    std::unique_ptr<ITexture> CreateTexture(const ITexture::CreateInfo& info) override;
+   std::unique_ptr<ITexture> CreateTextureColor(const ITexture::Format format,
+                                                const glm::vec4& color) override;
    std::unique_ptr<ITexture> CreateTextureFromFile(const std::string_view filepath,
                                                    const bool generateMipmaps,
                                                    const bool sRGB) override;

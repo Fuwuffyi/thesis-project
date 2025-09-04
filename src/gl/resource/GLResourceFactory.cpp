@@ -1,4 +1,4 @@
-#include "GLResourceFactory.hpp"
+#include "gl/resource/GLResourceFactory.hpp"
 
 #include "gl/resource/GLTexture.hpp"
 #include "gl/resource/GLMaterial.hpp"
@@ -6,6 +6,11 @@
 
 std::unique_ptr<ITexture> GLResourceFactory::CreateTexture(const ITexture::CreateInfo& info) {
    return std::make_unique<GLTexture>(info);
+}
+
+std::unique_ptr<ITexture> GLResourceFactory::CreateTextureColor(const ITexture::Format format,
+                                             const glm::vec4& color) {
+   return std::make_unique<GLTexture>(format, color);
 }
 
 std::unique_ptr<ITexture> GLResourceFactory::CreateTextureFromFile(const std::string_view filepath,
