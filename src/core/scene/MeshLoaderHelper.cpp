@@ -72,7 +72,7 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
          // Set material index for reference
          RendererComponent::SubMeshRenderer subMeshRenderer;
          subMeshRenderer.mesh = meshHandle;
-         subMeshRenderer.material = defaultMat;
+         subMeshRenderer.material = materials.size() > materialIndex ? materials[materialIndex] : defaultMat;
          renderer->AddSubMeshRenderer(subMeshRenderer);
          parentNode->AddChild(std::move(childNode));
       }

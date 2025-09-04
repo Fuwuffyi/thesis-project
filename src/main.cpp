@@ -68,17 +68,17 @@ int main(int argc, char* argv[]) {
       resourceManager->LoadTexture("testing_ao", "resources/textures/bricks_ao.jpg", true, false);
 
       // TODO: Remove afterwards, just a test
-      MaterialHandle testMaterial = resourceManager->CreateMaterial("test_pbr", "PBR");
+      MaterialHandle testMaterial = resourceManager->CreateMaterial("random_material", "PBR");
       if (IMaterial* mat = resourceManager->GetMaterial(testMaterial)) {
-         mat->SetParameter("albedo", glm::vec3(0.8f, 0.8f, 0.8f));
-         mat->SetParameter("metallic", 0.0f);
-         mat->SetParameter("roughness", 0.8f);
+         mat->SetParameter("albedo", glm::vec3(1.0f, 1.0f, 1.0f));
+         mat->SetParameter("metallic", 1.0f);
+         mat->SetParameter("roughness", 1.0f);
          mat->SetParameter("ao", 1.0f);
          mat->SetTexture("albedoTexture", resourceManager->GetTextureHandle("testing_albedo"));
          mat->SetTexture("normalTexture", resourceManager->GetTextureHandle("testing_normal"));
          mat->SetTexture("displacementTexture",
                          resourceManager->GetTextureHandle("testing_displacement"));
-         mat->SetTexture("roughnessTexture", resourceManager->GetTextureHandle("testing_rougness"));
+         mat->SetTexture("roughnessTexture", resourceManager->GetTextureHandle("testing_roughness"));
          mat->SetTexture("aoTexture", resourceManager->GetTextureHandle("testing_ao"));
       }
       // Create the camera
