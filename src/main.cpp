@@ -66,6 +66,14 @@ int main(int argc, char* argv[]) {
       resourceManager->LoadTexture("testing_roughness", "resources/textures/bricks_roughness.jpg",
                                    true, false);
       resourceManager->LoadTexture("testing_ao", "resources/textures/bricks_ao.jpg", true, false);
+      
+      // TODO: Remove afterwards, just a test
+      IMaterial* defaultMaterial = resourceManager->GetMaterial("default_pbr");
+      defaultMaterial->SetTexture("albedoTexture", resourceManager->GetTextureHandle("testing_albedo"));
+      defaultMaterial->SetTexture("normalTexture", resourceManager->GetTextureHandle("testing_normal"));
+      defaultMaterial->SetTexture("displacementTexture", resourceManager->GetTextureHandle("testing_displacement"));
+      defaultMaterial->SetTexture("roughnessTexture", resourceManager->GetTextureHandle("testing_rougness"));
+      defaultMaterial->SetTexture("aoTexture", resourceManager->GetTextureHandle("testing_ao"));
 
       // Create the camera
       const glm::vec3 startPos = glm::vec3(2.0f);

@@ -1,4 +1,4 @@
-/* #version 460
+#version 460
 
 layout(location = 0) in vec3 fragPos;
 layout(location = 1) in vec3 fragNormal;
@@ -9,6 +9,13 @@ layout(std140, binding = 0) uniform CameraData {
    mat4 proj;
    vec3 viewPos;
 } camera;
+
+layout(std140, binding = 2) uniform MaterialData {
+    float ao;
+    float roughness;
+    float metallic;
+    vec3 albedo;
+} material;
 
 // Depth R is used to calculate position
 layout(location = 0) out vec4 gAlbedo; // RGB color + A AO
@@ -54,45 +61,8 @@ void main() {
    vec3 normalTS = texture(normalSampler, parallaxUV).rgb * 2.0 - 1.0;
    vec3 normalWS = normalize(TBN * normalTS);
    // Write g-buffer
-   gAlbedo = vec4(texture(albedoSampler, parallaxUV).rgb, texture(aoSampler, parallaxUV).r);
-   gNormal = vec4(encodeOctNormal(normalWS), texture(roughnessSampler, parallaxUV).r, texture(metallicSampler, parallaxUV).r);
-}
-*/
-#version 460
-
-layout(location = 0) in vec3 fragPos;
-layout(location = 1) in vec3 fragNormal;
-layout(location = 2) in vec2 fragUV;
-
-layout(std140, binding = 0) uniform CameraData {
-   mat4 view;
-   mat4 proj;
-   vec3 viewPos;
-} camera;
-
-// Depth R is used to calculate position
-layout(location = 0) out vec4 gAlbedo; // RGB color + A AO
-layout(location = 1) out vec4 gNormal; // RG encoded normal + B roughness + A metallic
-
-layout(std140, binding = 2) uniform MaterialData {
-    float ao;
-    float roughness;
-    float metallic;
-    vec3 albedo;
-} material;
-
-vec2 encodeOctNormal(vec3 n) {
-   n /= (abs(n.x) + abs(n.y) + abs(n.z));
-   vec2 enc = n.xy;
-   if (n.z < 0.0) {
-      enc = (1.0 - abs(enc.yx)) * sign(enc.xy);
-   }
-   return enc * 0.5 + 0.5;
-}
-
-void main() {
-   // Write g-buffer
-   gAlbedo = vec4(material.albedo, material.ao);
-   gNormal = vec4(encodeOctNormal(fragNormal), material.roughness, material.metallic);
+   gAlbedo = vec4(texture(albedoSampler, parallaxUV).rgb * material.albedo, texture(aoSampler, parallaxUV).r * material.ao);
+   gNormal = vec4(encodeOctNormal(normalWS), texture(roughnessSampler, parallaxUV).r * material.roughness,
+         texture(metallicSampler, parallaxUV).r * material.metallic);
 }
 

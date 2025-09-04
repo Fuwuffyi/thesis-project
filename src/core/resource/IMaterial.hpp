@@ -8,6 +8,8 @@
 #include <string>
 #include <variant>
 
+class ResourceManager;
+
 using MaterialParam =
    std::variant<float, int32_t, uint32_t, glm::vec2, glm::vec3, glm::vec4, glm::mat2, glm::mat3, glm::mat4>;
 
@@ -32,7 +34,7 @@ class IMaterial : public IResource {
    virtual bool HasTexture(const std::string& name) const = 0;
 
    // Binding
-   virtual void Bind(const uint32_t bindingPoint) = 0;
+   virtual void Bind(const uint32_t bindingPoint, const ResourceManager& resourceManager) = 0;
    virtual void UpdateUBO() = 0;
 
    // Material template info

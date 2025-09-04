@@ -249,24 +249,20 @@ void GLRenderer::RenderImgui() {
    {
       const uint32_t columns = 4;
       const uint32_t imgSize = 128;
-      ImGui::SetNextWindowPos(
-         ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + viewport->WorkSize.y - 600));
       ImGui::SetNextWindowSize(ImVec2(columns * imgSize, 600));
-      ImGui::SetNextWindowBgAlpha(0.35f);
-      ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-                               ImGuiWindowFlags_NoSavedSettings |
+      ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings |
                                ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
       if (ImGui::Begin("Texture Browser", nullptr, flags)) {
          ImGui::BeginChild("TextureScrollRegion", ImVec2(0, 0), false,
                            ImGuiWindowFlags_HorizontalScrollbar);
          ImGui::Columns(columns, nullptr, false);
          const auto namedTextures = m_resourceManager->GetAllTexturesNamed();
-         for (const auto& tex : namedTextures) {
-            if (tex.first) {
-               const GLuint texId = static_cast<GLTexture*>(tex.first)->GetId();
+         for (const auto& [tex, name] : namedTextures) {
+            if (tex) {
+               const GLuint texId = static_cast<GLTexture*>(tex)->GetId();
                ImGui::Image((ImTextureID)(intptr_t)texId, ImVec2(imgSize, imgSize), ImVec2(0, 1),
                             ImVec2(1, 0));
-               ImGui::TextWrapped(tex.second.c_str());
+               ImGui::TextWrapped(name.c_str());
             }
             ImGui::NextColumn();
          }
@@ -275,6 +271,7 @@ void GLRenderer::RenderImgui() {
       }
       ImGui::End();
    }
+   // Show materials
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
@@ -289,24 +286,6 @@ void GLRenderer::RenderFrame() {
    m_cameraUbo->UpdateData(&camData, sizeof(CameraData));
    m_geometryPass->Begin();
    m_geometryPass->SetShader(m_geometryPassShader.get());
-   // Set up shader texture test
-   /*
-   if (const ITexture* tex = m_resourceManager->GetTexture("testing_albedo")) {
-      tex->Bind(0);
-   }
-   if (const ITexture* tex = m_resourceManager->GetTexture("testing_normal")) {
-      tex->Bind(1);
-   }
-   if (const ITexture* tex = m_resourceManager->GetTexture("testing_displacement")) {
-      tex->Bind(2);
-   }
-   if (const ITexture* tex = m_resourceManager->GetTexture("testing_roughness")) {
-      tex->Bind(3);
-   }
-   if (const ITexture* tex = m_resourceManager->GetTexture("testing_ao")) {
-      tex->Bind(5);
-   }
-   */
    // Draw the scene
    if (m_activeScene) {
       m_activeScene->UpdateTransforms();
@@ -331,7 +310,7 @@ void GLRenderer::RenderFrame() {
                   if (const IMesh* mesh = m_resourceManager->GetMesh(subMeshRenderer.mesh)) {
                      if (IMaterial* material =
                             m_resourceManager->GetMaterial(subMeshRenderer.material)) {
-                        material->Bind(2);
+                        material->Bind(2, *m_resourceManager.get());
                         mesh->Draw();
                      }
                   }
@@ -340,7 +319,7 @@ void GLRenderer::RenderFrame() {
                if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
                   if (IMaterial* material =
                          m_resourceManager->GetMaterial(renderer->GetMaterial())) {
-                     material->Bind(2);
+                     material->Bind(2, *m_resourceManager.get());
                      mesh->Draw();
                   }
                }

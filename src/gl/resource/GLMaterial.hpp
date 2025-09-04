@@ -9,7 +9,7 @@ class GLMaterial final : public MaterialInstance {
    ~GLMaterial() override = default;
 
    // IMaterial implementation
-   void Bind(const uint32_t bindingPoint) override;
+   void Bind(const uint32_t bindingPoint, const ResourceManager& resourceManager) override;
    void UpdateUBO() override;
    void* GetNativeHandle() const override;
 
