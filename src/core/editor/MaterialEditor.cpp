@@ -1,4 +1,5 @@
 #include "core/editor/MaterialEditor.hpp"
+#include <imgui.h>
 
 #include "core/resource/ResourceManager.hpp"
 #include "core/scene/components/RendererComponent.hpp"
@@ -82,24 +83,31 @@ void MaterialEditor::DrawTextureBrowser() {
 
       for (const auto& [texture, name] : textures) {
          if (texture) {
-            // Draw texture preview
-            DrawTexturePreview(texture, ImVec2(imgSize, imgSize));
+            uint32_t texId = GetTextureId(texture);
 
-            // Drag source for texture
+            // Give each image a unique ID so ImGui knows which item is being interacted with
+            ImGui::PushID(name.c_str());
+
+            // Use ImageButton so the preview is an active widget and receives mouse events.
+            // frame_padding = 0 to remove the visible button frame; adjust as you like.
+            ImGui::ImageButton(name.c_str(), static_cast<ImTextureID>(texId),
+                               ImVec2((float)imgSize, (float)imgSize));
+
+            // Now begin the drag source while the image button is the last active item.
             if (ImGui::BeginDragDropSource()) {
-               ImGui::SetDragDropPayload("TEXTURE", name.c_str(), name.size() + 1);
+               ImGui::SetDragDropPayload("TEXTURE", name.c_str(), name.size() + 1); // include null
                ImGui::Text("Texture: %s", name.c_str());
-               DrawTexturePreview(texture, ImVec2(48, 48));
+               ImGui::Image((ImTextureID)(intptr_t)texId, ImVec2(48, 48), ImVec2(0, 1),
+                            ImVec2(1, 0));
                ImGui::EndDragDropSource();
             }
-
-            // Texture info
+            ImGui::PopID();
+            // Info
             ImGui::TextWrapped("%s", name.c_str());
             ImGui::Text("%ux%u", texture->GetWidth(), texture->GetHeight());
          }
          ImGui::NextColumn();
       }
-
       ImGui::Columns(1);
       ImGui::EndChild();
    }
@@ -336,12 +344,38 @@ void MaterialEditor::DrawTextureSlotEditor(IMaterial* material, const std::strin
    ImGui::SameLine();
 
    if (texture) {
-      DrawTexturePreview(texture, ImVec2(32, 32));
+      uint32_t texId = GetTextureId(texture);
+
+      // Use the texture slot name as the ID so Push/Pop are stable
+      ImGui::PushID(textureName.c_str());
+
+      // Make the preview an ImageButton so it captures mouse input (clicks/drag)
+      ImGui::ImageButton(textureName.c_str(), static_cast<ImTextureID>(texId), ImVec2(32, 32));
+
+      // Find the texture's resource name to use as the payload (reverse lookup)
+      std::string texNameForPayload = "Unknown";
+      const auto textures = m_resourceManager->GetAllTexturesNamed();
+      for (const auto& [tex, name] : textures) {
+         if (m_resourceManager->GetTextureHandle(name) == currentTex) {
+            texNameForPayload = name;
+            break;
+         }
+      }
+
+      if (ImGui::BeginDragDropSource()) {
+         ImGui::SetDragDropPayload("TEXTURE", texNameForPayload.c_str(),
+                                   texNameForPayload.size() + 1);
+         ImGui::Text("Texture: %s", texNameForPayload.c_str());
+         ImGui::Image((ImTextureID)(intptr_t)texId, ImVec2(48, 48), ImVec2(0, 1), ImVec2(1, 0));
+         ImGui::EndDragDropSource();
+      }
+
+      ImGui::PopID();
    } else {
       ImGui::Button("None", ImVec2(32, 32));
    }
 
-   // Drag drop target
+   // Accept drops here
    if (ImGui::BeginDragDropTarget()) {
       if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TEXTURE")) {
          std::string textureNameStr((char*)payload->Data);
