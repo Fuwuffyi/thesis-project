@@ -21,25 +21,28 @@ class GLRenderer : public IRenderer {
    void SetupImgui() override;
    void RenderImgui() override;
    void DestroyImgui() override;
-
-   void FramebufferCallback(const int32_t width, const int32_t height);
-   
    ResourceManager* GetResourceManager() override;
 
-   void CreateFullscreenQuad();
+   void FramebufferCallback(const int32_t width, const int32_t height);
+
+   void CreateUtilityMeshes();
    void CreateDefaultMaterial();
 
    void LoadShaders();
 
    void CreateUBOs();
 
-   void CreateGBuffer();
+   void CreateGeometryFBO();
    void CreateGeometryPass();
+
+   void CreateLightingFBO();
    void CreateLightingPass();
+   void CreateGizmoPass();
 
   private:
    MaterialHandle m_defaultMaterial;
    MeshHandle m_fullscreenQuad;
+   MeshHandle m_unitCube;
    // Create UBOs for shader data
    std::unique_ptr<GLBuffer> m_cameraUbo = nullptr;
    std::unique_ptr<GLBuffer> m_lightsUbo = nullptr;
@@ -51,8 +54,14 @@ class GLRenderer : public IRenderer {
    std::unique_ptr<GLRenderPass> m_geometryPass;
    std::unique_ptr<GLShader> m_geometryPassShader;
    // Lighting pass things
+   TextureHandle m_lightingColorTexture;
+   TextureHandle m_lightingDepthTexture;
+   std::unique_ptr<GLFramebuffer> m_lightingFbo;
    std::unique_ptr<GLRenderPass> m_lightingPass;
    std::unique_ptr<GLShader> m_lightingPassShader;
+   // Gizmo pass things
+   std::unique_ptr<GLRenderPass> m_gizmoPass;
+   std::unique_ptr<GLShader> m_gizmoPassShader;
    // ResourceManager
    std::unique_ptr<ResourceManager> m_resourceManager;
    std::unique_ptr<MaterialEditor> m_materialEditor;
