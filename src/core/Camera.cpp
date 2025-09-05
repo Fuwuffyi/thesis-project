@@ -1,11 +1,7 @@
 #include "Camera.hpp"
 
-#include "Camera.hpp"
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
-
 Camera::Camera(const GraphicsAPI api, const Transform& transform, const glm::vec3& up,
-               const float fov, const float aspectRatio, const float near, const float far)
+               const float fov, const float aspectRatio, const float near, const float far) noexcept
     : m_api(api),
       m_transform(transform),
       m_up(glm::normalize(up)),
@@ -14,40 +10,32 @@ Camera::Camera(const GraphicsAPI api, const Transform& transform, const glm::vec
       m_near(near),
       m_far(far),
       m_view(1.0f),
-      m_proj(1.0f),
+      m_proj(glm::perspective(glm::radians(fov), aspectRatio, near, far)),
       m_camera(1.0f),
       m_viewDirty(true),
       m_projDirty(true),
-      m_cameraDirty(true) {
-   m_proj = glm::perspective(glm::radians(m_fov), m_aspectRatio, m_near, m_far);
+      m_cameraDirty(true) {}
+
+glm::vec3 Camera::GetViewDirection() const noexcept {
+   return glm::rotate(m_transform.GetRotation(), glm::vec3(0.0f, 0.0f, -1.0f));
 }
 
-const glm::vec3& Camera::GetViewDirection() {
-   static glm::vec3 forward;
-   forward = glm::rotate(m_transform.GetRotation(), glm::vec3(0.0f, 0.0f, -1.0f));
-   return forward;
+glm::vec3 Camera::GetRightVector() const noexcept {
+   return glm::rotate(m_transform.GetRotation(), glm::vec3(1.0f, 0.0f, 0.0f));
 }
 
-const glm::vec3& Camera::GetRightVector() {
-   static glm::vec3 right;
-   right = glm::rotate(m_transform.GetRotation(), glm::vec3(1.0f, 0.0f, 0.0f));
-   return right;
+glm::vec3 Camera::GetUpVector() const noexcept {
+   return glm::rotate(m_transform.GetRotation(), glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
-const glm::vec3& Camera::GetUpVector() {
-   static glm::vec3 upVec;
-   upVec = glm::rotate(m_transform.GetRotation(), glm::vec3(0.0f, 1.0f, 0.0f));
-   return upVec;
-}
+float Camera::GetFOV() const noexcept { return m_fov; }
 
-float Camera::GetFOV() const { return m_fov; }
-
-void Camera::SetFOV(const float newFov) {
+void Camera::SetFOV(const float newFov) noexcept {
    m_fov = newFov;
    m_projDirty = true;
 }
 
-void Camera::SetAspectRatio(const float newRatio) {
+void Camera::SetAspectRatio(const float newRatio) noexcept {
    m_aspectRatio = newRatio;
    m_projDirty = true;
 }
@@ -59,10 +47,6 @@ const glm::mat4& Camera::GetViewMatrix() {
    }
    return m_view;
 }
-
-static const glm::mat4 GL_TO_VK_CLIP = glm::mat4(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
-                                                 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.5f, 1.0f);
-
 const glm::mat4& Camera::GetProjectionMatrix() {
    if (m_projDirty) {
       RecalculateProjection();
@@ -79,17 +63,20 @@ const glm::mat4& Camera::GetCameraMatrix() {
    return m_camera;
 }
 
-const Transform& Camera::GetTransform() const { return m_transform; }
+const Transform& Camera::GetTransform() const noexcept { return m_transform; }
 
-Transform& Camera::GetMutableTransform() {
+Transform& Camera::GetMutableTransform() noexcept {
    m_viewDirty = true;
    m_cameraDirty = true;
    return m_transform;
 }
 
-void Camera::RecalculateView() { m_view = glm::inverse(m_transform.GetTransformMatrix()); }
+void Camera::RecalculateView() noexcept { m_view = glm::inverse(m_transform.GetTransformMatrix()); }
 
-void Camera::RecalculateProjection() {
+static const glm::mat4 GL_TO_VK_CLIP = glm::mat4(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f,
+                                                 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.5f, 1.0f);
+
+void Camera::RecalculateProjection() noexcept {
    m_proj = glm::perspective(glm::radians(m_fov), m_aspectRatio, m_near, m_far);
    if (m_api == GraphicsAPI::Vulkan) {
       m_proj = GL_TO_VK_CLIP * m_proj;

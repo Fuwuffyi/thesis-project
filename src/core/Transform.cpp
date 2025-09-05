@@ -1,11 +1,9 @@
-#include "Transform.hpp"
+#include "core/Transform.hpp"
 
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
-#include <iostream>
 
-Transform::Transform(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale)
+Transform::Transform(const glm::vec3& position, const glm::quat& rotation,
+                     const glm::vec3& scale) noexcept
     : m_pos(position),
       m_rot(glm::normalize(rotation)),
       m_scl(scale),
@@ -19,14 +17,14 @@ Transform::Transform(const glm::mat4& transformMatrix) : m_matrix(transformMatri
    m_rot = glm::normalize(m_rot);
 }
 
-Transform::Transform(const Transform& other)
+Transform::Transform(const Transform& other) noexcept
     : m_pos(other.m_pos),
       m_rot(other.m_rot),
       m_scl(other.m_scl),
       m_matrix(other.m_matrix),
       m_dirty(other.m_dirty) {}
 
-Transform& Transform::operator=(const Transform& other) {
+Transform& Transform::operator=(const Transform& other) noexcept {
    if (this != &other) {
       m_pos = other.m_pos;
       m_rot = other.m_rot;
@@ -55,21 +53,33 @@ Transform& Transform::operator=(Transform&& other) noexcept {
    return *this;
 }
 
-void Transform::SetPosition(const glm::vec3& pos) {
+const glm::vec3& Transform::GetPosition() const noexcept { return m_pos; }
+
+void Transform::SetPosition(const glm::vec3& pos) noexcept {
    if (m_pos != pos) {
       m_pos = pos;
       MarkDirty();
    }
 }
 
-void Transform::Translate(const glm::vec3& delta) {
+void Transform::Translate(const glm::vec3& delta) noexcept {
    if (delta != glm::vec3(0.0f)) {
       m_pos += delta;
       MarkDirty();
    }
 }
 
-void Transform::SetRotation(const glm::quat& rot) {
+void Transform::Translate(const float x, const float y, const float z) noexcept {
+   Translate(glm::vec3(x, y, z));
+}
+
+const glm::quat& Transform::GetRotation() const noexcept { return m_rot; }
+
+void Transform::SetPosition(const float x, const float y, const float z) noexcept {
+   SetPosition(glm::vec3(x, y, z));
+}
+
+void Transform::SetRotation(const glm::quat& rot) noexcept {
    const glm::quat normalizedRot = glm::normalize(rot);
    if (m_rot != normalizedRot) {
       m_rot = normalizedRot;
@@ -77,23 +87,26 @@ void Transform::SetRotation(const glm::quat& rot) {
    }
 }
 
-void Transform::SetRotation(const glm::vec3& eulerAngles) { SetRotation(glm::quat(eulerAngles)); }
+void Transform::SetRotation(const glm::vec3& eulerAngles) noexcept {
+   SetRotation(glm::quat(eulerAngles));
+}
 
-void Transform::SetRotation(float pitch, float yaw, float roll) {
+void Transform::SetRotation(const float pitch, const float yaw, const float roll) noexcept {
    SetRotation(glm::vec3(pitch, yaw, roll));
 }
 
-void Transform::Rotate(const glm::quat& deltaRot) { SetRotation(m_rot * glm::normalize(deltaRot)); }
+void Transform::Rotate(const glm::quat& deltaRot) noexcept {
+   SetRotation(m_rot * glm::normalize(deltaRot));
+}
 
-void Transform::Rotate(const glm::vec3& axis, float angle) {
+void Transform::Rotate(const glm::vec3& axis, float angle) noexcept {
    if (angle != 0.0f) {
       Rotate(glm::angleAxis(angle, glm::normalize(axis)));
    }
 }
 
-void Transform::RotateAround(const glm::vec3& point, const glm::vec3& axis, float angle) {
+void Transform::RotateAround(const glm::vec3& point, const glm::vec3& axis, float angle) noexcept {
    if (angle != 0.0f) {
-      // Translate to origin, rotate, translate back
       glm::vec3 offset = m_pos - point;
       const glm::quat rotation = glm::angleAxis(angle, glm::normalize(axis));
       offset = rotation * offset;
@@ -102,19 +115,29 @@ void Transform::RotateAround(const glm::vec3& point, const glm::vec3& axis, floa
    }
 }
 
-void Transform::SetScale(const glm::vec3& scl) {
+const glm::vec3& Transform::GetScale() const noexcept { return m_scl; }
+
+void Transform::SetScale(const glm::vec3& scl) noexcept {
    if (m_scl != scl) {
       m_scl = scl;
       MarkDirty();
    }
 }
 
-void Transform::Scale(const glm::vec3& factor) {
+void Transform::SetScale(const float uniform) noexcept { SetScale(glm::vec3(uniform)); }
+
+void Transform::SetScale(const float x, const float y, const float z) noexcept {
+   SetScale(glm::vec3(x, y, z));
+}
+
+void Transform::Scale(const glm::vec3& factor) noexcept {
    if (factor != glm::vec3(1.0f)) {
       m_scl *= factor;
       MarkDirty();
    }
 }
+
+void Transform::Scale(const float uniform) noexcept { Scale(glm::vec3(uniform)); }
 
 const glm::mat4& Transform::GetTransformMatrix() {
    if (m_dirty) {
@@ -132,15 +155,23 @@ const glm::mat4& Transform::GetTransformMatrix() const {
    return m_matrix;
 }
 
-glm::vec3 Transform::GetForward() const { return glm::rotate(m_rot, glm::vec3(0.0f, 0.0f, -1.0f)); }
+glm::vec3 Transform::GetForward() const noexcept {
+   return glm::rotate(m_rot, glm::vec3(0.0f, 0.0f, -1.0f));
+}
 
-glm::vec3 Transform::GetRight() const { return glm::rotate(m_rot, glm::vec3(1.0f, 0.0f, 0.0f)); }
+glm::vec3 Transform::GetRight() const noexcept {
+   return glm::rotate(m_rot, glm::vec3(1.0f, 0.0f, 0.0f));
+}
 
-glm::vec3 Transform::GetUp() const { return glm::rotate(m_rot, glm::vec3(0.0f, 1.0f, 0.0f)); }
+glm::vec3 Transform::GetUp() const noexcept {
+   return glm::rotate(m_rot, glm::vec3(0.0f, 1.0f, 0.0f));
+}
 
-glm::vec3 Transform::GetEulerAngles() const { return glm::eulerAngles(m_rot); }
+glm::vec3 Transform::GetEulerAngles() const noexcept { return glm::eulerAngles(m_rot); }
 
-void Transform::RecalculateMatrix() const {
+void Transform::MarkDirty() noexcept { m_dirty = true; }
+
+void Transform::RecalculateMatrix() const noexcept {
    const glm::mat4 translation = glm::translate(glm::mat4(1.0f), m_pos);
    const glm::mat4 rotation = glm::toMat4(m_rot);
    const glm::mat4 scaling = glm::scale(glm::mat4(1.0f), m_scl);
@@ -148,28 +179,21 @@ void Transform::RecalculateMatrix() const {
 }
 
 bool Transform::DecomposeMatrix(const glm::mat4& matrix, glm::vec3& position, glm::quat& rotation,
-                                glm::vec3& scale) const {
-   // Extract position (translation)
+                                glm::vec3& scale) const noexcept {
    position = glm::vec3(matrix[3]);
-   // Extract upper-left 3x3 matrix for rotation and scale
    glm::mat3 rotScale = glm::mat3(matrix);
-   // Extract scale
    scale.x = glm::length(rotScale[0]);
    scale.y = glm::length(rotScale[1]);
    scale.z = glm::length(rotScale[2]);
-   // Check for negative scale (determinant < 0)
    if (glm::determinant(rotScale) < 0) {
       scale.x = -scale.x;
    }
-   // Remove scale to get pure rotation matrix
    if (scale.x != 0.0f)
       rotScale[0] /= scale.x;
    if (scale.y != 0.0f)
       rotScale[1] /= scale.y;
    if (scale.z != 0.0f)
       rotScale[2] /= scale.z;
-   // Extract rotation
-   rotation = glm::quat_cast(rotScale);
-   rotation = glm::normalize(rotation);
+   rotation = glm::normalize(glm::quat_cast(rotScale));
    return true;
 }

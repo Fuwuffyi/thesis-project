@@ -2,68 +2,65 @@
 
 #include <glm/glm.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-class Transform {
+class Transform final {
   public:
-   Transform(const glm::vec3& position = glm::vec3(0.0f),
-             const glm::quat& rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
-             const glm::vec3& scale = glm::vec3(1.0f));
+   explicit Transform(const glm::vec3& position = glm::vec3(0.0f),
+                      const glm::quat& rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f),
+                      const glm::vec3& scale = glm::vec3(1.0f)) noexcept;
    explicit Transform(const glm::mat4& transformMatrix);
 
-   Transform(const Transform& other);
-   Transform& operator=(const Transform& other);
+   Transform(const Transform& other) noexcept;
+   Transform& operator=(const Transform& other) noexcept;
    Transform(Transform&& other) noexcept;
    Transform& operator=(Transform&& other) noexcept;
 
    // Position
-   const glm::vec3& GetPosition() const { return m_pos; }
-   void SetPosition(const glm::vec3& pos);
-   void SetPosition(float x, float y, float z) { SetPosition(glm::vec3(x, y, z)); }
-   void Translate(const glm::vec3& delta);
-   void Translate(float x, float y, float z) { Translate(glm::vec3(x, y, z)); }
+   [[nodiscard]] const glm::vec3& GetPosition() const noexcept;
+   void SetPosition(const glm::vec3& pos) noexcept;
+   void SetPosition(const float x, const float y, const float z) noexcept;
+   void Translate(const glm::vec3& delta) noexcept;
+   void Translate(const float x, const float y, const float z) noexcept;
 
    // Rotation
-   const glm::quat& GetRotation() const { return m_rot; }
-   void SetRotation(const glm::quat& rot);
-   void SetRotation(const glm::vec3& eulerAngles);
-   void SetRotation(float pitch, float yaw, float roll);
-   void Rotate(const glm::quat& deltaRot);
-   void Rotate(const glm::vec3& axis, float angle);
-   void RotateAround(const glm::vec3& point, const glm::vec3& axis, float angle);
+   [[nodiscard]] const glm::quat& GetRotation() const noexcept;
+   void SetRotation(const glm::quat& rot) noexcept;
+   void SetRotation(const glm::vec3& eulerAngles) noexcept;
+   void SetRotation(const float pitch, const float yaw, const float roll) noexcept;
+   void Rotate(const glm::quat& deltaRot) noexcept;
+   void Rotate(const glm::vec3& axis, float angle) noexcept;
+   void RotateAround(const glm::vec3& point, const glm::vec3& axis, float angle) noexcept;
 
    // Scale
-   const glm::vec3& GetScale() const { return m_scl; }
-   void SetScale(const glm::vec3& scl);
-   void SetScale(float uniform) { SetScale(glm::vec3(uniform)); }
-   void SetScale(float x, float y, float z) { SetScale(glm::vec3(x, y, z)); }
-   void Scale(const glm::vec3& factor);
-   void Scale(float uniform) { Scale(glm::vec3(uniform)); }
+   [[nodiscard]] const glm::vec3& GetScale() const noexcept;
+   void SetScale(const glm::vec3& scl) noexcept;
+   void SetScale(const float uniform) noexcept;
+   void SetScale(const float x, const float y, const float z) noexcept;
+   void Scale(const glm::vec3& factor) noexcept;
+   void Scale(const float uniform) noexcept;
 
    // Matrix access (cached and optimized)
-   const glm::mat4& GetTransformMatrix();
-   const glm::mat4& GetTransformMatrix() const;
+   [[nodiscard]] const glm::mat4& GetTransformMatrix();
+   [[nodiscard]] const glm::mat4& GetTransformMatrix() const;
 
    // Utility methods
-   glm::vec3 GetForward() const;
-   glm::vec3 GetRight() const;
-   glm::vec3 GetUp() const;
-   glm::vec3 GetEulerAngles() const;
+   [[nodiscard]] glm::vec3 GetForward() const noexcept;
+   [[nodiscard]] glm::vec3 GetRight() const noexcept;
+   [[nodiscard]] glm::vec3 GetUp() const noexcept;
+   [[nodiscard]] glm::vec3 GetEulerAngles() const noexcept;
 
   private:
-   void MarkDirty() { m_dirty = true; }
-   void RecalculateMatrix() const;
-   bool DecomposeMatrix(const glm::mat4& matrix, glm::vec3& position, glm::quat& rotation,
-                        glm::vec3& scale) const;
+   void MarkDirty() noexcept;
+   void RecalculateMatrix() const noexcept;
+   [[nodiscard]] bool DecomposeMatrix(const glm::mat4& matrix, glm::vec3& position,
+                                      glm::quat& rotation, glm::vec3& scale) const noexcept;
 
   private:
-   // Transform components
    glm::vec3 m_pos;
    glm::quat m_rot;
    glm::vec3 m_scl;
 
-   // Cached matrices (mutable for lazy evaluation)
    mutable glm::mat4 m_matrix;
    mutable bool m_dirty;
 };

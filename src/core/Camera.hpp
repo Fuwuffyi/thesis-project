@@ -1,32 +1,32 @@
 #pragma once
 
-#include "Transform.hpp"
-#include "GraphicsAPI.hpp"
+#include "core/Transform.hpp"
+#include "core/GraphicsAPI.hpp"
 
-class Camera {
+class Camera final {
   public:
    Camera(const GraphicsAPI api, const Transform& transform, const glm::vec3& up, const float fov,
-          const float aspectRatio, const float near, const float far);
+          const float aspectRatio, const float near, const float far) noexcept;
 
-   const glm::vec3& GetViewDirection();
-   const glm::vec3& GetRightVector();
-   const glm::vec3& GetUpVector();
+   [[nodiscard]] glm::vec3 GetViewDirection() const noexcept;
+   [[nodiscard]] glm::vec3 GetRightVector() const noexcept;
+   [[nodiscard]] glm::vec3 GetUpVector() const noexcept;
 
-   float GetFOV() const;
-   void SetFOV(const float newFov);
+   [[nodiscard]] float GetFOV() const noexcept;
+   void SetFOV(const float newFov) noexcept;
 
-   void SetAspectRatio(const float newRatio);
+   void SetAspectRatio(const float newRatio) noexcept;
 
-   const glm::mat4& GetViewMatrix();
-   const glm::mat4& GetProjectionMatrix();
-   const glm::mat4& GetCameraMatrix();
+   [[nodiscard]] const glm::mat4& GetViewMatrix();
+   [[nodiscard]] const glm::mat4& GetProjectionMatrix();
+   [[nodiscard]] const glm::mat4& GetCameraMatrix();
 
-   const Transform& GetTransform() const;
-   Transform& GetMutableTransform();
+   [[nodiscard]] const Transform& GetTransform() const noexcept;
+   Transform& GetMutableTransform() noexcept;
 
   private:
-   void RecalculateView();
-   void RecalculateProjection();
+   void RecalculateView() noexcept;
+   void RecalculateProjection() noexcept;
 
   private:
    const GraphicsAPI m_api;

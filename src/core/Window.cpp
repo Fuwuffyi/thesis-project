@@ -1,4 +1,5 @@
-#include "Window.hpp"
+#include "core/Window.hpp"
+
 #include "core/GraphicsAPI.hpp"
 
 #include <GLFW/glfw3.h>
