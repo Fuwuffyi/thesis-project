@@ -42,32 +42,37 @@ void LightComponent::DrawInspector(Node* node) {
 
 void LightComponent::SetType(const LightType type) noexcept { m_type = type; }
 
-[[nodiscard]] LightComponent::LightType LightComponent::GetType() const noexcept { return m_type; }
+LightComponent::LightType LightComponent::GetType() const noexcept { return m_type; }
 
 void LightComponent::SetColor(const glm::vec3& color) noexcept { m_color = color; }
 
-[[nodiscard]] const glm::vec3& LightComponent::GetColor() const noexcept { return m_color; }
+const glm::vec3& LightComponent::GetColor() const noexcept { return m_color; }
 
 void LightComponent::SetIntensity(const float intensity) noexcept { m_intensity = intensity; }
 
-[[nodiscard]] float LightComponent::GetIntensity() const noexcept { return m_intensity; }
+float LightComponent::GetIntensity() const noexcept { return m_intensity; }
 
 void LightComponent::SetConstant(const float constant) noexcept { m_constant = constant; }
 
-[[nodiscard]] float LightComponent::GetConstant() const noexcept { return m_constant; }
+float LightComponent::GetConstant() const noexcept { return m_constant; }
 
 void LightComponent::SetLinear(const float linear) noexcept { m_linear = linear; }
 
-[[nodiscard]] float LightComponent::GetLinear() const noexcept { return m_linear; }
+float LightComponent::GetLinear() const noexcept { return m_linear; }
 
 void LightComponent::SetQuadratic(const float quadratic) noexcept { m_quadratic = quadratic; }
 
-[[nodiscard]] float LightComponent::GetQuadratic() const noexcept { return m_quadratic; }
+float LightComponent::GetQuadratic() const noexcept { return m_quadratic; }
 
 void LightComponent::SetInnerCone(const float innerCone) noexcept { m_innerCone = innerCone; }
 
-[[nodiscard]] float LightComponent::GetInnerCone() const noexcept { return m_innerCone; }
+float LightComponent::GetInnerCone() const noexcept { return m_innerCone; }
 
 void LightComponent::SetOuterCone(const float outerCone) noexcept { m_outerCone = outerCone; }
 
-[[nodiscard]] float LightComponent::GetOuterCone() const noexcept { return m_outerCone; }
+float LightComponent::GetOuterCone() const noexcept { return m_outerCone; }
+
+void LightComponent::SetCastsShadows(const bool castsShadows) noexcept {
+   m_castsShadows = castsShadows;
+}
+bool LightComponent::GetCastsShadows() const noexcept { return m_castsShadows; }

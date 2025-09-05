@@ -36,6 +36,9 @@ class LightComponent final : public Component {
    void SetOuterCone(const float outerCone) noexcept;
    [[nodiscard]] float GetOuterCone() const noexcept;
 
+   void SetCastsShadows(const bool castsShadows) noexcept;
+   [[nodiscard]] bool GetCastsShadows() const noexcept;
+
   private:
    // Generic data
    LightType m_type;
