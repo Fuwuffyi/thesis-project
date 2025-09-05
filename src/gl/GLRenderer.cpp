@@ -13,6 +13,8 @@
 #include "core/scene/components/RendererComponent.hpp"
 #include "core/scene/components/LightComponent.hpp"
 
+#include "core/editor/PerformanceGUI.hpp"
+
 #include "gl/GLFramebuffer.hpp"
 #include "gl/GLRenderPass.hpp"
 #include "gl/GLShader.hpp"
@@ -236,19 +238,7 @@ void GLRenderer::RenderImgui() {
    m_materialEditor->DrawMaterialProperties();
    m_materialEditor->DrawTextureBrowser();
    // FPS Overlay
-   {
-      ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
-      ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
-                               ImGuiWindowFlags_NoSavedSettings |
-                               ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-      ImGui::Begin("FPS Overlay", nullptr, flags);
-      ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-      ImGui::Text("Frame: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
-      ImGui::Text(
-         "Resource MEM: %.3f MB",
-         static_cast<float>(m_resourceManager->GetTotalMemoryUsage()) / (1024.0f * 1024.0f));
-      ImGui::End();
-   }
+   PerformanceGUI::RenderPeformanceGUI(*m_resourceManager.get());
    // Show materials
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

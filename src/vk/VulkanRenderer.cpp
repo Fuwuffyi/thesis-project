@@ -11,6 +11,8 @@
 #include "core/scene/Scene.hpp"
 #include "core/scene/Node.hpp"
 #include "core/scene/components/RendererComponent.hpp"
+
+#include "core/editor/PerformanceGUI.hpp"
 #include "core/editor/MaterialEditor.hpp"
 
 #include "vk/resource/VulkanMesh.hpp"
@@ -487,20 +489,8 @@ void VulkanRenderer::RenderImgui() {
    const ImGuiViewport* viewport = ImGui::GetMainViewport();
    m_activeScene->DrawInspector(*m_materialEditor);
    // FPS Overlay
-   {
-      ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
-      ImGui::SetNextWindowBgAlpha(0.35f);
-      ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
-                               ImGuiWindowFlags_NoSavedSettings |
-                               ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-      ImGui::Begin("FPS Overlay", nullptr, flags);
-      ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-      ImGui::Text("Frame: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
-      ImGui::Text(
-         "Resource MEM: %.3f MB",
-         static_cast<float>(m_resourceManager->GetTotalMemoryUsage()) / (1024.0f * 1024.0f));
-      ImGui::End();
-   }
+   PerformanceGUI::RenderPeformanceGUI(*m_resourceManager.get());
+
    // Show textures
    {
       const uint32_t columns = 4;
