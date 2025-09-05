@@ -26,6 +26,9 @@ VulkanSurface::VulkanSurface(VulkanSurface&& other) noexcept
 
 VulkanSurface& VulkanSurface::operator=(VulkanSurface&& other) noexcept {
    if (this != &other) {
+      if (m_surface != VK_NULL_HANDLE && m_instance != nullptr) {
+         vkDestroySurfaceKHR(m_instance->Get(), m_surface, nullptr);
+      }
       m_instance = other.m_instance;
       m_surface = other.m_surface;
       other.m_instance = nullptr;

@@ -2,6 +2,7 @@
 
 #include "core/resource/ITexture.hpp"
 
+#include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 #include <string>
 
@@ -15,6 +16,8 @@ class VulkanTexture : public ITexture {
                  const bool generateMipmaps, const bool sRGB);
    VulkanTexture(const VulkanDevice& device, const uint32_t width, const uint32_t height,
                  const Format format, const bool isDepth = false, const uint32_t samples = 1);
+   VulkanTexture(const VulkanDevice& device, const ITexture::Format format,
+                             const glm::vec4& color);
    ~VulkanTexture();
 
    VulkanTexture(const VulkanTexture&) = delete;
@@ -36,6 +39,7 @@ class VulkanTexture : public ITexture {
    VkImage GetImage() const;
    VkImageView GetImageView() const;
    VkFormat GetVkFormat() const;
+   VkSampler GetSampler() const;
 
    void TransitionLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout,
                          const VkPipelineStageFlags srcStage, const VkPipelineStageFlags dstStage,
@@ -55,11 +59,11 @@ class VulkanTexture : public ITexture {
    bool FormatSupportsBlitting(const VkFormat format) const;
 
   private:
-   const VulkanDevice* m_device = nullptr;
-   VkImage m_image = VK_NULL_HANDLE;
-   VkImageView m_imageView = VK_NULL_HANDLE;
-   VkDeviceMemory m_imageMemory = VK_NULL_HANDLE;
-   VkSampler m_sampler = VK_NULL_HANDLE;
+   const VulkanDevice* m_device{nullptr};
+   VkImage m_image{VK_NULL_HANDLE};
+   VkImageView m_imageView{VK_NULL_HANDLE};
+   VkDeviceMemory m_imageMemory{VK_NULL_HANDLE};
+   VkSampler m_sampler{VK_NULL_HANDLE};
    VkFormat m_vkFormat;
 
    uint32_t m_width = 0;

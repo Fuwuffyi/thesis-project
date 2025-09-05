@@ -325,8 +325,6 @@ void VulkanRenderer::CreateDepthResources() {
 void VulkanRenderer::CreateTestResources() {
    m_texture = m_resourceManager->LoadTexture("test_texture", "resources/textures/bricks_color.jpg",
                                               true, true);
-   m_textureSampler =
-      std::make_unique<VulkanSampler>(VulkanSampler::CreateAnisotropic(m_device, 16.0f));
 }
 
 void VulkanRenderer::CreateUniformBuffer() {
@@ -389,8 +387,8 @@ void VulkanRenderer::CreateDescriptorSets() {
       if (texture) {
          VulkanTexture* vkTexture = reinterpret_cast<VulkanTexture*>(texture);
          imageInfo.imageView = vkTexture->GetImageView();
+         imageInfo.sampler = vkTexture->GetSampler();
       }
-      imageInfo.sampler = m_textureSampler->Get();
       std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
       descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       descriptorWrites[0].dstSet = m_descriptorSets[i];

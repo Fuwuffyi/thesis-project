@@ -11,8 +11,6 @@
 #include "VulkanRenderPass.hpp"
 #include "VulkanBuffer.hpp"
 
-#include "VulkanSampler.hpp"
-
 #include "core/editor/MaterialEditor.hpp"
 #include "resource/VulkanTexture.hpp"
 
@@ -96,7 +94,6 @@ class VulkanRenderer : public IRenderer {
    std::vector<VkFence> m_inFlightFences;
    TextureHandle m_depthTexture;
    TextureHandle m_texture;
-   std::unique_ptr<VulkanSampler> m_textureSampler;
    std::vector<std::unique_ptr<VulkanBuffer>> m_uniformBuffers;
    std::vector<void*> m_uniformBuffersMapped;
    VkDescriptorPool m_descriptorPool;

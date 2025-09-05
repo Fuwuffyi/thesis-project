@@ -52,6 +52,9 @@ VulkanInstance::VulkanInstance(VulkanInstance&& other) noexcept : m_instance(oth
 
 VulkanInstance& VulkanInstance::operator=(VulkanInstance&& other) noexcept {
    if (this != &other) {
+      if (m_instance != VK_NULL_HANDLE) {
+         vkDestroyInstance(m_instance, nullptr);
+      }
       m_instance = other.m_instance;
       other.m_instance = VK_NULL_HANDLE;
    }

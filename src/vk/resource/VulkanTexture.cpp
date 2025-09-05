@@ -21,7 +21,7 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const CreateInfo& info)
                     : 1;
    CreateImage();
    CreateImageView();
-   CreateSampler();
+   m_sampler = CreateSampler();
 }
 
 VulkanTexture::VulkanTexture(const VulkanDevice& device, const std::string& filepath,
@@ -29,75 +29,30 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const std::string& file
     : m_device(&device) {
    int32_t width, height, channels;
    stbi_set_flip_vertically_on_load(true);
-   uint8_t* pixels = stbi_load(filepath.c_str(), &width, &height, &channels, 0);
+   // Force 4 channels
+   uint8_t* pixels = stbi_load(filepath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
    if (!pixels) {
-      return;
-   }
-   switch (channels) {
-      case 1:
-         m_format = Format::R8;
-         break;
-      case 2:
-         m_format = Format::RG8;
-         break;
-      case 3:
-         stbi_image_free(pixels);
-         pixels = stbi_load(filepath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-      case 4:
-         m_format = sRGB ? Format::SRGB8_ALPHA8 : Format::RGBA8;
-         break;
-      default:
-         // Unexpected channel count, force RGBA
-         m_format = Format::RGBA8;
-         break;
+      throw std::runtime_error("Failed to load image: " + filepath);
    }
    m_width = static_cast<uint32_t>(width);
    m_height = static_cast<uint32_t>(height);
    m_depth = 1;
+   m_format = sRGB ? Format::SRGB8_ALPHA8 : Format::RGBA8;
    m_vkFormat = ConvertFormat(m_format);
    m_mipLevels = generateMipmaps
                     ? static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height)))) + 1
                     : 1;
    // Create staging buffer
-   uint32_t bytesPerPixel = 4; // default
-   switch (m_format) {
-      case Format::R8:
-         bytesPerPixel = 1;
-         break;
-      case Format::RG8:
-         bytesPerPixel = 2;
-         break;
-      case Format::RGB8:
-         bytesPerPixel = 3;
-         break;
-      case Format::RGBA8:
-      case Format::SRGB8_ALPHA8:
-         bytesPerPixel = 4;
-         break;
-      case Format::RGBA16F:
-         bytesPerPixel = 8;
-         break;
-      case Format::RGBA32F:
-         bytesPerPixel = 16;
-         break;
-      case Format::Depth24:
-         bytesPerPixel = 3;
-         break;
-      case Format::Depth32F:
-         bytesPerPixel = 4;
-         break;
-   }
-   VkDeviceSize imageSize = m_width * m_height * bytesPerPixel;
-   VulkanBuffer stagingBuffer(device, imageSize, VulkanBuffer::Usage::TransferSrc,
+   VulkanBuffer stagingBuffer(device, m_width * m_height * 4, VulkanBuffer::Usage::TransferSrc,
                               VulkanBuffer::MemoryType::HostVisible);
-   stagingBuffer.UpdateMapped(pixels, static_cast<size_t>(imageSize));
+   stagingBuffer.UpdateMapped(pixels, m_width * m_height * 4);
+   stbi_image_free(pixels);
    CreateImage();
-   // Copy data from staging buffer to image
    TransitionLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
    CopyFromBuffer(stagingBuffer, 0);
    CreateImageView();
-   CreateSampler();
+   m_sampler = CreateSampler();
    if (generateMipmaps) {
       GenerateMipmaps();
    } else {
@@ -105,7 +60,6 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const std::string& file
                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT,
                        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
    }
-   stbi_image_free(pixels);
 }
 
 VulkanTexture::VulkanTexture(const VulkanDevice& device, uint32_t width, uint32_t height,
@@ -124,15 +78,55 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, uint32_t width, uint32_
 }
 
 VulkanTexture::~VulkanTexture() {
+   if (m_sampler != VK_NULL_HANDLE) {
+      vkDestroySampler(m_device->Get(), m_sampler, nullptr);
+      m_sampler = VK_NULL_HANDLE;
+   }
    if (m_imageView != VK_NULL_HANDLE) {
       vkDestroyImageView(m_device->Get(), m_imageView, nullptr);
+      m_imageView = VK_NULL_HANDLE;
    }
    if (m_image != VK_NULL_HANDLE) {
       vkDestroyImage(m_device->Get(), m_image, nullptr);
+      m_image = VK_NULL_HANDLE;
    }
    if (m_imageMemory != VK_NULL_HANDLE) {
       vkFreeMemory(m_device->Get(), m_imageMemory, nullptr);
+      m_imageMemory = VK_NULL_HANDLE;
    }
+}
+
+VulkanTexture::VulkanTexture(const VulkanDevice& device, const ITexture::Format format,
+                             const glm::vec4& color)
+    : m_device(&device),
+      m_width(1),
+      m_height(1),
+      m_depth(1),
+      m_format(format),
+      m_isDepth(false),
+      m_samples(1),
+      m_mipLevels(1) {
+   m_format = Format::RGBA8;
+   m_vkFormat = ConvertFormat(m_format);
+
+   CreateImage();
+   CreateImageView();
+   m_sampler = CreateSampler();
+
+   uint8_t pixelData[4] = {static_cast<uint8_t>(glm::clamp(color.r * 255.0f, 0.0f, 255.0f)),
+                           static_cast<uint8_t>(glm::clamp(color.g * 255.0f, 0.0f, 255.0f)),
+                           static_cast<uint8_t>(glm::clamp(color.b * 255.0f, 0.0f, 255.0f)),
+                           static_cast<uint8_t>(glm::clamp(color.a * 255.0f, 0.0f, 255.0f))};
+
+   VulkanBuffer stagingBuffer(device, sizeof(pixelData), VulkanBuffer::Usage::TransferSrc,
+                              VulkanBuffer::MemoryType::HostVisible);
+   stagingBuffer.UpdateMapped(pixelData, sizeof(pixelData));
+
+   TransitionLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+   CopyFromBuffer(stagingBuffer, 0);
+   TransitionLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 }
 
 VulkanTexture::VulkanTexture(VulkanTexture&& other) noexcept
@@ -151,10 +145,16 @@ VulkanTexture::VulkanTexture(VulkanTexture&& other) noexcept
    other.m_image = VK_NULL_HANDLE;
    other.m_imageView = VK_NULL_HANDLE;
    other.m_imageMemory = VK_NULL_HANDLE;
+   other.m_sampler = VK_NULL_HANDLE;
+   other.m_device = nullptr;
 }
 
 VulkanTexture& VulkanTexture::operator=(VulkanTexture&& other) noexcept {
    if (this != &other) {
+      // Destroy any existing Vulkan resources
+      if (m_sampler != VK_NULL_HANDLE) {
+         vkDestroySampler(m_device->Get(), m_sampler, nullptr);
+      }
       if (m_imageView != VK_NULL_HANDLE) {
          vkDestroyImageView(m_device->Get(), m_imageView, nullptr);
       }
@@ -164,10 +164,12 @@ VulkanTexture& VulkanTexture::operator=(VulkanTexture&& other) noexcept {
       if (m_imageMemory != VK_NULL_HANDLE) {
          vkFreeMemory(m_device->Get(), m_imageMemory, nullptr);
       }
+      // Move all members
       m_device = other.m_device;
       m_image = other.m_image;
       m_imageView = other.m_imageView;
       m_imageMemory = other.m_imageMemory;
+      m_sampler = other.m_sampler;
       m_vkFormat = other.m_vkFormat;
       m_width = other.m_width;
       m_height = other.m_height;
@@ -176,9 +178,12 @@ VulkanTexture& VulkanTexture::operator=(VulkanTexture&& other) noexcept {
       m_isDepth = other.m_isDepth;
       m_samples = other.m_samples;
       m_mipLevels = other.m_mipLevels;
+      // Null out the moved-from object
+      other.m_device = nullptr;
       other.m_image = VK_NULL_HANDLE;
       other.m_imageView = VK_NULL_HANDLE;
       other.m_imageMemory = VK_NULL_HANDLE;
+      other.m_sampler = VK_NULL_HANDLE;
    }
    return *this;
 }
@@ -286,7 +291,29 @@ void VulkanTexture::CreateImageView() {
 }
 
 VkSampler VulkanTexture::CreateSampler() {
-   // TODO: Create the image sampler
+   VkSamplerCreateInfo samplerInfo{};
+   samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+   samplerInfo.magFilter = VK_FILTER_LINEAR;
+   samplerInfo.minFilter = VK_FILTER_LINEAR;
+   samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+   samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+   samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+   samplerInfo.anisotropyEnable = VK_TRUE;
+   VkPhysicalDeviceProperties properties{};
+   vkGetPhysicalDeviceProperties(m_device->GetPhysicalDevice(), &properties);
+   samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+   samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+   samplerInfo.unnormalizedCoordinates = VK_FALSE;
+   samplerInfo.compareEnable = VK_FALSE;
+   samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+   samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+   samplerInfo.mipLodBias = 0.0f;
+   samplerInfo.minLod = 0.0f;
+   samplerInfo.maxLod = static_cast<float>(m_mipLevels);
+   if (vkCreateSampler(m_device->Get(), &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to create texture sampler!");
+   }
+   return m_sampler;
 }
 
 void VulkanTexture::TransitionLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout,
@@ -355,7 +382,8 @@ void VulkanTexture::CopyFromBuffer(const VulkanBuffer& buffer, const uint32_t mi
          region.bufferOffset = 0;
          region.bufferRowLength = 0;
          region.bufferImageHeight = 0;
-         region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+         region.imageSubresource.aspectMask =
+            m_isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
          region.imageSubresource.mipLevel = mipLevel;
          region.imageSubresource.baseArrayLayer = 0;
          region.imageSubresource.layerCount = 1;
@@ -505,3 +533,5 @@ VkImage VulkanTexture::GetImage() const { return m_image; }
 VkImageView VulkanTexture::GetImageView() const { return m_imageView; }
 
 VkFormat VulkanTexture::GetVkFormat() const { return m_vkFormat; }
+
+VkSampler VulkanTexture::GetSampler() const { return m_sampler; }

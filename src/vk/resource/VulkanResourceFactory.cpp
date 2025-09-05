@@ -13,7 +13,7 @@ std::unique_ptr<ITexture> VulkanResourceFactory::CreateTexture(const ITexture::C
 
 std::unique_ptr<ITexture> VulkanResourceFactory::CreateTextureColor(const ITexture::Format format,
                                                 const glm::vec4& color) {
-   // TODO: Implement single pixel texture creation
+   return std::make_unique<VulkanTexture>(*m_device, format, color);
 }
 
 std::unique_ptr<ITexture> VulkanResourceFactory::CreateTextureFromFile(
