@@ -59,6 +59,7 @@ GLRenderer::GLRenderer(Window* window) : IRenderer(window) {
    }
    // Setup resource manager
    m_resourceManager = std::make_unique<ResourceManager>(std::make_unique<GLResourceFactory>());
+   m_materialEditor = std::make_unique<MaterialEditor>(m_resourceManager.get());
    // Setup imgui
    SetupImgui();
    // Create the fullscreen quad for lighting pass
@@ -100,7 +101,6 @@ void GLRenderer::CreateFullscreenQuad() {
 }
 
 void GLRenderer::CreateDefaultMaterial() {
-
    m_defaultMaterial = m_resourceManager->CreateMaterial("default_pbr", "PBR");
    if (IMaterial* material = m_resourceManager->GetMaterial(m_defaultMaterial)) {
       material->SetParameter("albedo", glm::vec3(0.8f, 0.8f, 0.8f));
@@ -230,11 +230,14 @@ void GLRenderer::RenderImgui() {
    ImGui_ImplGlfw_NewFrame();
    ImGui::NewFrame();
    const ImGuiViewport* viewport = ImGui::GetMainViewport();
-   m_activeScene->DrawInspector();
+   m_activeScene->DrawInspector(*m_materialEditor);
+   // Draw material editor
+   m_materialEditor->DrawMaterialBrowser();
+   m_materialEditor->DrawMaterialProperties();
+   m_materialEditor->DrawTextureBrowser();
    // FPS Overlay
    {
       ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
-      ImGui::SetNextWindowBgAlpha(0.35f);
       ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
                                ImGuiWindowFlags_NoSavedSettings |
                                ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
@@ -244,32 +247,6 @@ void GLRenderer::RenderImgui() {
       ImGui::Text(
          "Resource MEM: %.3f MB",
          static_cast<float>(m_resourceManager->GetTotalMemoryUsage()) / (1024.0f * 1024.0f));
-      ImGui::End();
-   }
-   // Show textures
-   {
-      const uint32_t columns = 4;
-      const uint32_t imgSize = 128;
-      ImGui::SetNextWindowSize(ImVec2(columns * imgSize, 600));
-      ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings |
-                               ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-      if (ImGui::Begin("Texture Browser", nullptr, flags)) {
-         ImGui::BeginChild("TextureScrollRegion", ImVec2(0, 0), false,
-                           ImGuiWindowFlags_HorizontalScrollbar);
-         ImGui::Columns(columns, nullptr, false);
-         const auto namedTextures = m_resourceManager->GetAllTexturesNamed();
-         for (const auto& [tex, name] : namedTextures) {
-            if (tex) {
-               const GLuint texId = static_cast<GLTexture*>(tex)->GetId();
-               ImGui::Image((ImTextureID)(intptr_t)texId, ImVec2(imgSize, imgSize), ImVec2(0, 1),
-                            ImVec2(1, 0));
-               ImGui::TextWrapped(name.c_str());
-            }
-            ImGui::NextColumn();
-         }
-         ImGui::Columns(1);
-         ImGui::EndChild();
-      }
       ImGui::End();
    }
    // Show materials

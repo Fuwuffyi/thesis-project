@@ -6,6 +6,7 @@
 #include <memory>
 
 class Node;
+class MaterialEditor;
 
 class Scene final {
   public:
@@ -17,7 +18,7 @@ class Scene final {
    Scene(Scene&&) = default;
    Scene& operator=(Scene&&) = default;
 
-   void DrawInspector();
+   void DrawInspector(MaterialEditor& matEditor);
 
    [[nodiscard]] Node* GetRootNode() const noexcept;
 

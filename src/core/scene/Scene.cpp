@@ -1,5 +1,6 @@
 #include "core/scene/Scene.hpp"
 
+#include "core/editor/MaterialEditor.hpp"
 #include "core/scene/Node.hpp"
 
 #include "core/scene/components/LightComponent.hpp"
@@ -19,7 +20,7 @@ Scene::Scene(std::string name) : m_name(std::move(name)), m_nodeCounter(0) {
 
 Scene::~Scene() { Clear(); }
 
-void Scene::DrawInspector() {
+void Scene::DrawInspector(MaterialEditor& matEditor) {
    const ImGuiViewport* viewport = ImGui::GetMainViewport();
    static Node* selectedNode = nullptr;
    ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + viewport->WorkSize.x - 300,
@@ -72,7 +73,7 @@ void Scene::DrawInspector() {
       if (TransformComponent* comp = selectedNode->GetComponent<TransformComponent>())
          comp->DrawInspector(selectedNode);
       if (RendererComponent* comp = selectedNode->GetComponent<RendererComponent>())
-         comp->DrawInspector(selectedNode);
+         matEditor.DrawRendererComponentInspector(selectedNode, comp);
       if (LightComponent* comp = selectedNode->GetComponent<LightComponent>())
          comp->DrawInspector(selectedNode);
       if (ImGui::Button("Add component"))
@@ -93,8 +94,9 @@ void Scene::DrawInspector() {
          ImGui::EndPopup();
       }
       static char childName[60] = {};
-      if (ImGui::Button("Add child"))
+      if (ImGui::Button("Add child")) {
          ImGui::OpenPopup("add_child_popup");
+      }
       if (ImGui::BeginPopup("add_child_popup")) {
          ImGui::InputText("Child Name", childName, IM_ARRAYSIZE(childName));
          if (ImGui::Button("Add")) {

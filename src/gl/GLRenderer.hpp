@@ -1,10 +1,9 @@
 #pragma once
 
-#include <cstdint>
-
 #include "core/IRenderer.hpp"
+#include "core/editor/MaterialEditor.hpp"
+
 #include "gl/GLBuffer.hpp"
-#include "core/resource/ITexture.hpp"
 
 class GLFramebuffer;
 class GLShader;
@@ -37,6 +36,7 @@ class GLRenderer : public IRenderer {
   private:
    MaterialHandle m_defaultMaterial;
    MeshHandle m_fullscreenQuad;
+   std::unique_ptr<MaterialEditor> m_materialEditor;
    // Create UBOs for shader data
    std::unique_ptr<GLBuffer> m_cameraUbo = nullptr;
    std::unique_ptr<GLBuffer> m_lightsUbo = nullptr;

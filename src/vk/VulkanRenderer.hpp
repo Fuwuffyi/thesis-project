@@ -13,6 +13,7 @@
 
 #include "VulkanSampler.hpp"
 
+#include "core/editor/MaterialEditor.hpp"
 #include "resource/VulkanTexture.hpp"
 
 #include <vulkan/vulkan.h>
@@ -100,4 +101,5 @@ class VulkanRenderer : public IRenderer {
    std::vector<void*> m_uniformBuffersMapped;
    VkDescriptorPool m_descriptorPool;
    std::vector<VkDescriptorSet> m_descriptorSets;
+   std::unique_ptr<MaterialEditor> m_materialEditor;
 };

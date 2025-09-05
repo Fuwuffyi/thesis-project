@@ -11,6 +11,7 @@
 #include "core/scene/Scene.hpp"
 #include "core/scene/Node.hpp"
 #include "core/scene/components/RendererComponent.hpp"
+#include "core/editor/MaterialEditor.hpp"
 
 #include "vk/resource/VulkanMesh.hpp"
 #include "vk/resource/VulkanResourceFactory.hpp"
@@ -48,6 +49,7 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
       m_renderPass(m_device, m_swapchain.GetFormat(), FindDepthFormat()) {
    m_resourceManager =
       std::make_unique<ResourceManager>(std::make_unique<VulkanResourceFactory>(m_device));
+   m_materialEditor = std::make_unique<MaterialEditor>(m_resourceManager.get());
    CreateDescriptorSetLayout();
    CreateGraphicsPipeline();
    CreateDepthResources();
@@ -485,7 +487,7 @@ void VulkanRenderer::RenderImgui() {
    ImGui_ImplGlfw_NewFrame();
    ImGui::NewFrame();
    const ImGuiViewport* viewport = ImGui::GetMainViewport();
-   m_activeScene->DrawInspector();
+   m_activeScene->DrawInspector(*m_materialEditor);
    // FPS Overlay
    {
       ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
