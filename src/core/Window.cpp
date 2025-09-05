@@ -5,31 +5,32 @@
 #include <print>
 
 Window::Window(const GraphicsAPI api, const WindowDesc& desc) : m_api(api) {
-   // Set error callback
+#ifndef NDEBUG
    glfwSetErrorCallback(Window::ErrorCallback);
-   // Initialie GLFW
+#endif
    if (!glfwInit()) {
       std::println("GLFW initialization failed");
       throw std::runtime_error("GLFW init failed");
    }
-   // Setup window flags based on API
-   if (api == GraphicsAPI::OpenGL) {
-      glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-      glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-      glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+   switch (api) {
+      case GraphicsAPI::OpenGL:
+         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #ifdef __APPLE__
-      glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 #endif
-      glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
-   } else if (api == GraphicsAPI::Vulkan) {
-      glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-   } else {
-      glfwTerminate();
-      throw std::runtime_error("Unsupported Graphics API");
+         glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
+         break;
+      case GraphicsAPI::Vulkan:
+         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+         break;
+      default:
+         glfwTerminate();
+         throw std::runtime_error("Unsupported Graphics API");
    }
    glfwWindowHint(GLFW_RESIZABLE, desc.resizable ? GLFW_TRUE : GLFW_FALSE);
-   // Create the glfw window
-   m_window = glfwCreateWindow(static_cast<int>(desc.width), static_cast<int>(desc.height),
+   m_window = glfwCreateWindow(static_cast<int32_t>(desc.width), static_cast<int32_t>(desc.height),
                                desc.title.c_str(), nullptr, nullptr);
    if (!m_window) {
       glfwTerminate();
@@ -37,24 +38,22 @@ Window::Window(const GraphicsAPI api, const WindowDesc& desc) : m_api(api) {
    }
    m_width = desc.width;
    m_height = desc.height;
-   // Set main window if GL
    if (api == GraphicsAPI::OpenGL) {
       glfwMakeContextCurrent(m_window);
       if (!desc.vsync) {
          glfwSwapInterval(0);
       }
    }
-   // Setup callback configuration
    glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
    glfwSetWindowUserPointer(m_window, this);
-   glfwSetFramebufferSizeCallback(m_window, Window::FramebufferSizeCallback);
-   glfwSetKeyCallback(m_window, Window::KeyCallback);
-   glfwSetMouseButtonCallback(m_window, Window::MouseButtonCallback);
-   glfwSetCursorPosCallback(m_window, Window::CursorPosCallback);
-   glfwSetWindowSizeCallback(m_window, Window::ResizeCallback);
+   glfwSetFramebufferSizeCallback(m_window, FramebufferSizeCallback);
+   glfwSetKeyCallback(m_window, KeyCallback);
+   glfwSetMouseButtonCallback(m_window, MouseButtonCallback);
+   glfwSetCursorPosCallback(m_window, CursorPosCallback);
+   glfwSetWindowSizeCallback(m_window, ResizeCallback);
 }
 
-Window::~Window() {
+Window::~Window() noexcept {
    if (m_window) {
       glfwDestroyWindow(m_window);
       m_window = nullptr;
@@ -62,14 +61,18 @@ Window::~Window() {
    glfwTerminate();
 }
 
-bool Window::ShouldClose() const { return m_window && glfwWindowShouldClose(m_window); }
+bool Window::ShouldClose() const noexcept { return m_window && glfwWindowShouldClose(m_window); }
+
+void Window::SetShouldClose(const bool shouldClose) const {
+   glfwSetWindowShouldClose(m_window, shouldClose);
+}
 
 void Window::PollEvents() {
    glfwPollEvents();
    m_eventSystem.ProcessHeldEvents();
 }
 
-void Window::OnFramebufferResize(int32_t width, int32_t height) {
+void Window::OnFramebufferResize(const int32_t width, const int32_t height) {
    m_width = static_cast<uint32_t>(width);
    m_height = static_cast<uint32_t>(height);
    if (m_resizeCallback) {
@@ -77,7 +80,7 @@ void Window::OnFramebufferResize(int32_t width, int32_t height) {
    }
 }
 
-void Window::SetResizeCallback(std::function<void(int, int)> callback) {
+void Window::SetResizeCallback(std::function<void(const int32_t, const int32_t)> callback) {
    m_resizeCallback = std::move(callback);
 }
 
@@ -85,45 +88,47 @@ void Window::SetCursorVisible(const bool visible) const {
    glfwSetInputMode(m_window, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 }
 
-void Window::FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
-   Window* windowPtr = static_cast<Window*>(glfwGetWindowUserPointer(window));
-   if (windowPtr) {
-      windowPtr->OnFramebufferResize(width, height);
+void Window::FramebufferSizeCallback(GLFWwindow* window, const int32_t width,
+                                     const int32_t height) {
+   if (auto* w = static_cast<Window*>(glfwGetWindowUserPointer(window))) {
+      w->OnFramebufferResize(width, height);
    }
 }
 
-void Window::ErrorCallback(int error, const char* description) {
+void Window::ErrorCallback(const int32_t error, const char* description) {
    std::println("GLFW Error {}: {}", error, description);
 }
 
-void Window::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-   Window* w = static_cast<Window*>(glfwGetWindowUserPointer(window));
-   w->m_eventSystem.HandleKeyEvent(static_cast<uint32_t>(key), static_cast<uint32_t>(scancode),
-                                   static_cast<uint32_t>(action), static_cast<uint32_t>(mods));
+void Window::KeyCallback(GLFWwindow* window, const int32_t key, const int32_t scancode,
+                         const int32_t action, const int mods) {
+   if (auto* w = static_cast<Window*>(glfwGetWindowUserPointer(window))) {
+      w->m_eventSystem.HandleKeyEvent(static_cast<uint32_t>(key), static_cast<uint32_t>(scancode),
+                                      static_cast<uint32_t>(action), static_cast<uint32_t>(mods));
+   }
 }
 
-void Window::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-   Window* w = static_cast<Window*>(glfwGetWindowUserPointer(window));
-   w->m_eventSystem.HandleMouseEvent(static_cast<uint32_t>(button), static_cast<uint32_t>(action),
-                                     static_cast<uint32_t>(mods));
+void Window::MouseButtonCallback(GLFWwindow* window, const int32_t button, const int32_t action,
+                                 const int32_t mods) {
+   if (auto* w = static_cast<Window*>(glfwGetWindowUserPointer(window))) {
+      w->m_eventSystem.HandleMouseEvent(static_cast<uint32_t>(button),
+                                        static_cast<uint32_t>(action), static_cast<uint32_t>(mods));
+   }
 }
 
-void Window::CursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
-   Window* w = static_cast<Window*>(glfwGetWindowUserPointer(window));
-   w->m_eventSystem.HandleCursorPos(static_cast<float>(xpos), static_cast<float>(ypos));
+void Window::CursorPosCallback(GLFWwindow* window, const double xpos, const double ypos) {
+   if (auto* w = static_cast<Window*>(glfwGetWindowUserPointer(window))) {
+      w->m_eventSystem.HandleCursorPos(static_cast<float>(xpos), static_cast<float>(ypos));
+   }
 }
 
-void Window::ResizeCallback(GLFWwindow* window, int width, int height) {
-   Window* w = static_cast<Window*>(glfwGetWindowUserPointer(window));
-   w->m_eventSystem.HandleResize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+void Window::ResizeCallback(GLFWwindow* window, const int32_t width, const int32_t height) {
+   if (auto* w = static_cast<Window*>(glfwGetWindowUserPointer(window))) {
+      w->m_eventSystem.HandleResize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+   }
 }
 
-GLFWwindow* Window::GetNativeWindow() const { return m_window; }
-
-EventSystem* Window::GetEventSystem() { return &m_eventSystem; }
-
-uint32_t Window::GetWidth() const { return m_width; }
-
-uint32_t Window::GetHeight() const { return m_height; }
-
-GraphicsAPI Window::GetAPI() const { return m_api; }
+GLFWwindow* Window::GetNativeWindow() const noexcept { return m_window; }
+EventSystem* Window::GetEventSystem() noexcept { return &m_eventSystem; }
+uint32_t Window::GetWidth() const noexcept { return m_width; }
+uint32_t Window::GetHeight() const noexcept { return m_height; }
+GraphicsAPI Window::GetAPI() const noexcept { return m_api; }

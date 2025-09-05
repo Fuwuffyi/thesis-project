@@ -1,3 +1,5 @@
 #pragma once
 
-enum class GraphicsAPI { OpenGL, Vulkan };
+#include <cstdint>
+
+enum class GraphicsAPI : uint8_t { OpenGL, Vulkan };

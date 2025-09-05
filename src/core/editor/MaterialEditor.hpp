@@ -10,7 +10,7 @@ class ITexture;
 class RendererComponent;
 class ResourceManager;
 
-class MaterialEditor {
+class MaterialEditor final {
   public:
    explicit MaterialEditor(ResourceManager* resourceManager);
 

@@ -1,10 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <unordered_set>
 #include <functional>
+#include <unordered_set>
 
-class EventSystem {
+class EventSystem final {
   public:
    using KeyCallback =
       std::function<void(const uint32_t key, const uint32_t scancode, const uint32_t mods)>;
@@ -12,8 +12,13 @@ class EventSystem {
    using CursorPosCallback = std::function<void(const float xpos, const float ypos)>;
    using ResizeCallback = std::function<void(const uint32_t width, const uint32_t height)>;
 
-   EventSystem() = default;
-   ~EventSystem() = default;
+   EventSystem() noexcept = default;
+   ~EventSystem() noexcept = default;
+
+   EventSystem(const EventSystem&) = delete;
+   EventSystem& operator=(const EventSystem&) = delete;
+   EventSystem(EventSystem&&) noexcept = default;
+   EventSystem& operator=(EventSystem&&) noexcept = default;
 
    void OnKeyDown(const uint32_t key, const KeyCallback cb);
    void OnKeyUp(const uint32_t key, const KeyCallback cb);
@@ -21,14 +26,12 @@ class EventSystem {
    void OnMouseDown(const uint32_t button, const MouseCallback cb);
    void OnMouseUp(const uint32_t button, const MouseCallback cb);
    void OnMouseHeld(const uint32_t button, const MouseCallback cb);
-
    void OnCursorPos(const CursorPosCallback cb);
    void OnResize(const ResizeCallback cb);
 
    void HandleKeyEvent(const uint32_t key, const uint32_t scancode, const uint32_t action,
                        const uint32_t mods);
    void HandleMouseEvent(const uint32_t button, const uint32_t action, const uint32_t mods);
-
    void HandleCursorPos(const float xpos, const float ypos);
    void HandleResize(const uint32_t width, const uint32_t height);
    void ProcessHeldEvents();
