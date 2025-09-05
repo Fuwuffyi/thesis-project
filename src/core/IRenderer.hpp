@@ -8,7 +8,6 @@
 class Window;
 class Camera;
 class Scene;
-class ResourceManager;
 
 class IRenderer {
   public:

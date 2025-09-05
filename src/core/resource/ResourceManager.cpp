@@ -333,6 +333,7 @@ void ResourceManager::UnloadMeshGroup(const std::string_view name) {
 void ResourceManager::UnloadAll() {
    std::unique_lock lock(m_mutex);
    m_resources.clear();
+   m_materialTemplates.clear();
    m_nameToId.clear();
    m_meshGroups.clear();
 }
