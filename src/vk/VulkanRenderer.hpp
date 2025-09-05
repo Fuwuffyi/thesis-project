@@ -12,6 +12,7 @@
 #include "VulkanBuffer.hpp"
 
 #include "core/editor/MaterialEditor.hpp"
+#include "core/resource/ResourceManager.hpp"
 #include "resource/VulkanTexture.hpp"
 
 #include <vulkan/vulkan.h>
@@ -65,6 +66,7 @@ class VulkanRenderer : public IRenderer {
                                 const VkFormatFeatureFlags features) const;
    VkFormat FindDepthFormat() const;
    bool HasStencilComponent(const VkFormat& format) const;
+   ResourceManager* GetResourceManager() override;
    // TODO: Remove once scene impl complete
    // Functions to create textures
    // Testing mesh
@@ -98,5 +100,6 @@ class VulkanRenderer : public IRenderer {
    std::vector<void*> m_uniformBuffersMapped;
    VkDescriptorPool m_descriptorPool;
    std::vector<VkDescriptorSet> m_descriptorSets;
+   std::unique_ptr<ResourceManager> m_resourceManager;
    std::unique_ptr<MaterialEditor> m_materialEditor;
 };

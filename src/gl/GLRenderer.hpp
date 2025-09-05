@@ -3,6 +3,8 @@
 #include "core/IRenderer.hpp"
 #include "core/editor/MaterialEditor.hpp"
 
+#include "core/resource/ResourceManager.hpp"
+
 #include "gl/GLBuffer.hpp"
 
 class GLFramebuffer;
@@ -21,6 +23,8 @@ class GLRenderer : public IRenderer {
    void DestroyImgui() override;
 
    void FramebufferCallback(const int32_t width, const int32_t height);
+   
+   ResourceManager* GetResourceManager() override;
 
    void CreateFullscreenQuad();
    void CreateDefaultMaterial();
@@ -36,7 +40,6 @@ class GLRenderer : public IRenderer {
   private:
    MaterialHandle m_defaultMaterial;
    MeshHandle m_fullscreenQuad;
-   std::unique_ptr<MaterialEditor> m_materialEditor;
    // Create UBOs for shader data
    std::unique_ptr<GLBuffer> m_cameraUbo = nullptr;
    std::unique_ptr<GLBuffer> m_lightsUbo = nullptr;
@@ -50,4 +53,7 @@ class GLRenderer : public IRenderer {
    // Lighting pass things
    std::unique_ptr<GLRenderPass> m_lightingPass;
    std::unique_ptr<GLShader> m_lightingPassShader;
+   // ResourceManager
+   std::unique_ptr<ResourceManager> m_resourceManager;
+   std::unique_ptr<MaterialEditor> m_materialEditor;
 };

@@ -325,8 +325,8 @@ void VulkanRenderer::CreateDepthResources() {
 }
 
 void VulkanRenderer::CreateTestResources() {
-   m_texture = m_resourceManager->LoadTexture("test_texture", "resources/textures/bricks_color.jpg",
-                                              true, true);
+   m_texture = m_resourceManager->LoadTexture(
+      "test_texture", "resources/textures/arch_stone_wall_01_BaseColor.png", true, true);
 }
 
 void VulkanRenderer::CreateUniformBuffer() {
@@ -576,3 +576,5 @@ void VulkanRenderer::RenderFrame() {
    // Increase frame counter
    m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
+
+ResourceManager* VulkanRenderer::GetResourceManager() { return m_resourceManager.get(); }

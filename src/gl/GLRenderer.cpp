@@ -346,3 +346,5 @@ void GLRenderer::RenderFrame() {
    // Swap buffers
    glfwSwapBuffers(m_window->GetNativeWindow());
 }
+
+ResourceManager* GLRenderer::GetResourceManager() { return m_resourceManager.get(); }
