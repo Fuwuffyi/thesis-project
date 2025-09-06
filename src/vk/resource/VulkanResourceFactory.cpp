@@ -1,7 +1,8 @@
 #include "VulkanResourceFactory.hpp"
 
-#include "../resource/VulkanMesh.hpp"
-#include "../resource/VulkanTexture.hpp"
+#include "vk/resource/VulkanMesh.hpp"
+#include "vk/resource/VulkanTexture.hpp"
+#include "vk/resource/VulkanMaterial.hpp"
 
 #include <memory>
 
@@ -12,7 +13,7 @@ std::unique_ptr<ITexture> VulkanResourceFactory::CreateTexture(const ITexture::C
 }
 
 std::unique_ptr<ITexture> VulkanResourceFactory::CreateTextureColor(const ITexture::Format format,
-                                                const glm::vec4& color) {
+                                                                    const glm::vec4& color) {
    return std::make_unique<VulkanTexture>(*m_device, format, color);
 }
 
@@ -34,8 +35,9 @@ std::unique_ptr<ITexture> VulkanResourceFactory::CreateRenderTarget(const uint32
    return std::make_unique<VulkanTexture>(*m_device, width, height, format, false, samples);
 }
 
-std::unique_ptr<IMaterial> VulkanResourceFactory::CreateMaterial(const MaterialTemplate& matTemplate) {
-   // TODO: Implement material creationm
+std::unique_ptr<IMaterial> VulkanResourceFactory::CreateMaterial(
+   const MaterialTemplate& matTemplate) {
+   return std::make_unique<VulkanMaterial>(*m_device, matTemplate);
 }
 
 std::unique_ptr<IMesh> VulkanResourceFactory::CreateMesh(const std::vector<Vertex>& vertices,
