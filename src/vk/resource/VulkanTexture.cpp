@@ -134,6 +134,7 @@ VulkanTexture::VulkanTexture(VulkanTexture&& other) noexcept
       m_image(other.m_image),
       m_imageView(other.m_imageView),
       m_imageMemory(other.m_imageMemory),
+      m_sampler(other.m_sampler),
       m_vkFormat(other.m_vkFormat),
       m_width(other.m_width),
       m_height(other.m_height),
@@ -141,12 +142,21 @@ VulkanTexture::VulkanTexture(VulkanTexture&& other) noexcept
       m_format(other.m_format),
       m_isDepth(other.m_isDepth),
       m_samples(other.m_samples),
-      m_mipLevels(other.m_mipLevels) {
+      m_mipLevels(other.m_mipLevels),
+      m_descriptorSet(other.m_descriptorSet),
+      m_descriptorNeedsUpdate(other.m_descriptorNeedsUpdate),
+      m_minFilter(other.m_minFilter),
+      m_magFilter(other.m_magFilter),
+      m_addressMode(other.m_addressMode),
+      m_anisotropyEnabled(other.m_anisotropyEnabled),
+      m_maxAnisotropy(other.m_maxAnisotropy) {
    other.m_image = VK_NULL_HANDLE;
    other.m_imageView = VK_NULL_HANDLE;
    other.m_imageMemory = VK_NULL_HANDLE;
    other.m_sampler = VK_NULL_HANDLE;
    other.m_device = nullptr;
+   other.m_descriptorSet = VK_NULL_HANDLE;
+   other.m_descriptorNeedsUpdate = true;
 }
 
 VulkanTexture& VulkanTexture::operator=(VulkanTexture&& other) noexcept {
@@ -465,6 +475,106 @@ void VulkanTexture::GenerateMipmaps() {
                               VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
                               &barrier);
       });
+}
+
+VkDescriptorImageInfo VulkanTexture::GetDescriptorImageInfo() const {
+   VkDescriptorImageInfo imageInfo{};
+   imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+   imageInfo.imageView = m_imageView;
+   imageInfo.sampler = m_sampler;
+   return imageInfo;
+}
+
+void VulkanTexture::UpdateSamplerSettings(VkFilter minFilter, VkFilter magFilter,
+                                          VkSamplerAddressMode addressMode, bool enableAnisotropy,
+                                          float maxAnisotropy) {
+   // Store new settings
+   m_minFilter = minFilter;
+   m_magFilter = magFilter;
+   m_addressMode = addressMode;
+   m_anisotropyEnabled = enableAnisotropy;
+   m_maxAnisotropy = maxAnisotropy;
+
+   // Destroy old sampler
+   if (m_sampler != VK_NULL_HANDLE) {
+      vkDestroySampler(m_device->Get(), m_sampler, nullptr);
+   }
+
+   // Create new sampler with updated settings
+   m_sampler = CreateSampler(minFilter, magFilter, addressMode, enableAnisotropy, maxAnisotropy);
+}
+
+VkSampler VulkanTexture::CreateSampler(VkFilter minFilter, VkFilter magFilter,
+                                       VkSamplerAddressMode addressMode, bool enableAnisotropy,
+                                       float maxAnisotropy) {
+   VkSamplerCreateInfo samplerInfo{};
+   samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+   samplerInfo.magFilter = magFilter;
+   samplerInfo.minFilter = minFilter;
+   samplerInfo.addressModeU = addressMode;
+   samplerInfo.addressModeV = addressMode;
+   samplerInfo.addressModeW = addressMode;
+
+   if (enableAnisotropy) {
+      VkPhysicalDeviceProperties properties{};
+      vkGetPhysicalDeviceProperties(m_device->GetPhysicalDevice(), &properties);
+      samplerInfo.anisotropyEnable = VK_TRUE;
+      samplerInfo.maxAnisotropy = std::min(maxAnisotropy, properties.limits.maxSamplerAnisotropy);
+   } else {
+      samplerInfo.anisotropyEnable = VK_FALSE;
+      samplerInfo.maxAnisotropy = 1.0f;
+   }
+
+   samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+   samplerInfo.unnormalizedCoordinates = VK_FALSE;
+   samplerInfo.compareEnable = VK_FALSE;
+   samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+   samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+   samplerInfo.mipLodBias = 0.0f;
+   samplerInfo.minLod = 0.0f;
+   samplerInfo.maxLod = static_cast<float>(m_mipLevels);
+
+   VkSampler sampler;
+   if (vkCreateSampler(m_device->Get(), &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to create texture sampler!");
+   }
+
+   return sampler;
+}
+
+void VulkanTexture::CreateDescriptorSet(VkDevice device, VkDescriptorPool descriptorPool,
+                                        VkDescriptorSetLayout layout) {
+   VkDescriptorSetAllocateInfo allocInfo{};
+   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+   allocInfo.descriptorPool = descriptorPool;
+   allocInfo.descriptorSetCount = 1;
+   allocInfo.pSetLayouts = &layout;
+
+   if (vkAllocateDescriptorSets(device, &allocInfo, &m_descriptorSet) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to allocate descriptor set for texture.");
+   }
+
+   m_descriptorNeedsUpdate = true;
+}
+
+void VulkanTexture::UpdateDescriptorSet(VkDevice device) {
+   if (m_descriptorSet == VK_NULL_HANDLE) {
+      throw std::runtime_error("Descriptor set not created before UpdateDescriptorSet.");
+   }
+
+   VkDescriptorImageInfo imageInfo = GetDescriptorImageInfo();
+
+   VkWriteDescriptorSet descriptorWrite{};
+   descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+   descriptorWrite.dstSet = m_descriptorSet;
+   descriptorWrite.dstBinding = 0; // depends on your layout
+   descriptorWrite.dstArrayElement = 0;
+   descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+   descriptorWrite.descriptorCount = 1;
+   descriptorWrite.pImageInfo = &imageInfo;
+
+   vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+   m_descriptorNeedsUpdate = false;
 }
 
 bool VulkanTexture::FormatSupportsBlitting(const VkFormat format) const {

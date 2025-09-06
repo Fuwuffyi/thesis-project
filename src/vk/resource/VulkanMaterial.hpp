@@ -20,17 +20,14 @@ class VulkanMaterial final : public MaterialInstance {
 
    // Vulkan-specific methods
    VkBuffer GetUniformBuffer() const;
-   VkDescriptorSet GetDescriptorSet() const { return m_descriptorSet; }
-   void SetDescriptorSet(VkDescriptorSet descriptorSet) { m_descriptorSet = descriptorSet; }
 
-   // Update descriptor sets with current texture bindings
-   void UpdateDescriptorSets(const ResourceManager& resourceManager, VkDevice device,
-                             VkDescriptorPool descriptorPool,
-                             VkDescriptorSetLayout descriptorSetLayout);
+   // Get all texture descriptor sets for binding
+   std::vector<VkDescriptorSet> GetTextureDescriptorSets(const ResourceManager& resourceManager,
+                                                         VkDevice device,
+                                                         VkDescriptorPool descriptorPool,
+                                                         VkDescriptorSetLayout textureLayout) const;
 
   private:
    const VulkanDevice* m_device;
    std::unique_ptr<VulkanBuffer> m_uniformBuffer;
-   VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
-   bool m_descriptorSetNeedsUpdate = true;
 };

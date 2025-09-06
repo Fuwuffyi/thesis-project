@@ -51,7 +51,8 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
       m_renderPass(m_device, m_swapchain.GetFormat(), FindDepthFormat()) {
    m_resourceManager =
       std::make_unique<ResourceManager>(std::make_unique<VulkanResourceFactory>(m_device));
-   m_materialEditor = std::make_unique<MaterialEditor>(m_resourceManager.get());
+   m_materialEditor =
+      std::make_unique<MaterialEditor>(m_resourceManager.get(), GraphicsAPI::Vulkan);
    CreateDescriptorSetLayout();
    CreateGraphicsPipeline();
    CreateDepthResources();
@@ -384,12 +385,10 @@ void VulkanRenderer::CreateDescriptorSets() {
       bufferInfo.offset = 0;
       bufferInfo.range = sizeof(CameraData);
       VkDescriptorImageInfo imageInfo{};
-      imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       ITexture* texture = m_resourceManager->GetTexture(m_texture);
       if (texture) {
          VulkanTexture* vkTexture = reinterpret_cast<VulkanTexture*>(texture);
-         imageInfo.imageView = vkTexture->GetImageView();
-         imageInfo.sampler = vkTexture->GetSampler();
+         imageInfo = vkTexture->GetDescriptorImageInfo();
       }
       std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
       descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -488,36 +487,13 @@ void VulkanRenderer::RenderImgui() {
    ImGui::NewFrame();
    const ImGuiViewport* viewport = ImGui::GetMainViewport();
    m_activeScene->DrawInspector(*m_materialEditor);
+   // Render material editor
+   m_materialEditor->DrawMaterialBrowser();
+   m_materialEditor->DrawMaterialProperties();
+   m_materialEditor->DrawTextureBrowser();
    // FPS Overlay
    PerformanceGUI::RenderPeformanceGUI(*m_resourceManager.get());
-
-   // Show textures
-   {
-      const uint32_t columns = 4;
-      const uint32_t imgSize = 128;
-      ImGui::SetNextWindowPos(
-         ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + viewport->WorkSize.y - 600));
-      ImGui::SetNextWindowSize(ImVec2(columns * imgSize, 600));
-      ImGui::SetNextWindowBgAlpha(0.35f);
-      ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-                               ImGuiWindowFlags_NoSavedSettings |
-                               ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-      if (ImGui::Begin("Texture Browser", nullptr, flags)) {
-         ImGui::BeginChild("TextureScrollRegion", ImVec2(0, 0), false,
-                           ImGuiWindowFlags_HorizontalScrollbar);
-         ImGui::Columns(columns, nullptr, false);
-         const auto namedTextures = m_resourceManager->GetAllTexturesNamed();
-         for (const auto& tex : namedTextures) {
-            if (tex.first) {
-               // TODO: Render textures
-            }
-            ImGui::NextColumn();
-         }
-         ImGui::Columns(1);
-         ImGui::EndChild();
-      }
-      ImGui::End();
-   }
+   // Imgui render end
    ImGui::Render();
 }
 
@@ -578,3 +554,13 @@ void VulkanRenderer::RenderFrame() {
 }
 
 ResourceManager* VulkanRenderer::GetResourceManager() { return m_resourceManager.get(); }
+
+void VulkanRenderer::CreateDefaultMaterial() {
+   auto defaultMat = m_resourceManager->CreateMaterial("default_pbr", "PBR");
+   if (IMaterial* material = m_resourceManager->GetMaterial(defaultMat)) {
+      material->SetParameter("albedo", glm::vec3(0.8f, 0.8f, 0.8f));
+      material->SetParameter("metallic", 0.0f);
+      material->SetParameter("roughness", 0.8f);
+      material->SetParameter("ao", 1.0f);
+   }
+}

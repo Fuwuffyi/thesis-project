@@ -71,6 +71,7 @@ class VulkanRenderer : public IRenderer {
    // Functions to create textures
    // Testing mesh
    void CreateTestResources();
+   void CreateDefaultMaterial();
    void CreateUniformBuffer();
    void UpdateUniformBuffer(const uint32_t currentImage);
 

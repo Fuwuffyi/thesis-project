@@ -1,5 +1,6 @@
 #include "GLRenderer.hpp"
 
+#include "core/GraphicsAPI.hpp"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
@@ -61,7 +62,7 @@ GLRenderer::GLRenderer(Window* window) : IRenderer(window) {
    }
    // Setup resource manager
    m_resourceManager = std::make_unique<ResourceManager>(std::make_unique<GLResourceFactory>());
-   m_materialEditor = std::make_unique<MaterialEditor>(m_resourceManager.get());
+   m_materialEditor = std::make_unique<MaterialEditor>(m_resourceManager.get(), GraphicsAPI::OpenGL);
    // Setup imgui
    SetupImgui();
    // Create the fullscreen quad for lighting pass
@@ -313,7 +314,7 @@ void GLRenderer::RenderImgui() {
    m_materialEditor->DrawTextureBrowser();
    // FPS Overlay
    PerformanceGUI::RenderPeformanceGUI(*m_resourceManager.get());
-   // Show materials
+   // Render end
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

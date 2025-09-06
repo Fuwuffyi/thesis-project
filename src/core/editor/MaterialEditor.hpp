@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <cstdint>
 #include <string>
+#include "core/GraphicsAPI.hpp"
 
 class Node;
 class IMaterial;
@@ -12,7 +13,7 @@ class ResourceManager;
 
 class MaterialEditor final {
   public:
-   explicit MaterialEditor(ResourceManager* resourceManager);
+   explicit MaterialEditor(ResourceManager* resourceManager, const GraphicsAPI api);
 
    // Main material browser/editor window
    void DrawMaterialBrowser();
@@ -34,19 +35,6 @@ class MaterialEditor final {
    void DrawMaterialCreationDialog();
 
   private:
-   ResourceManager* m_resourceManager;
-
-   // UI State
-   IMaterial* m_selectedMaterial = nullptr;
-   std::string m_selectedMaterialName;
-   bool m_showMaterialBrowser = true;
-   bool m_showTextureBrowser = true;
-   bool m_showMaterialCreation = false;
-
-   // Material creation state
-   char m_newMaterialName[256] = {};
-   std::string m_selectedTemplate = "PBR";
-
    // Helper functions
    void DrawMaterialParameterEditor(IMaterial* material);
    void DrawTextureSlotEditor(IMaterial* material, const std::string& textureName,
@@ -59,4 +47,19 @@ class MaterialEditor final {
    // Texture preview helpers
    void DrawTexturePreview(ITexture* texture, const ImVec2& size = ImVec2(64, 64));
    uint32_t GetTextureId(ITexture* texture); // Platform-specific texture ID for ImGui
+
+  private:
+   ResourceManager* m_resourceManager;
+   GraphicsAPI m_api;
+
+   // UI State
+   IMaterial* m_selectedMaterial = nullptr;
+   std::string m_selectedMaterialName;
+   bool m_showMaterialBrowser = true;
+   bool m_showTextureBrowser = true;
+   bool m_showMaterialCreation = false;
+
+   // Material creation state
+   char m_newMaterialName[256] = {};
+   std::string m_selectedTemplate = "PBR";
 };

@@ -1,6 +1,7 @@
 #include "core/editor/MaterialEditor.hpp"
 #include <imgui.h>
 
+#include "core/GraphicsAPI.hpp"
 #include "core/resource/ResourceManager.hpp"
 #include "core/scene/components/RendererComponent.hpp"
 
@@ -8,9 +9,10 @@
 #include "core/resource/ITexture.hpp"
 
 #include "gl/resource/GLTexture.hpp"
+#include "vk/resource/VulkanTexture.hpp"
 
-MaterialEditor::MaterialEditor(ResourceManager* resourceManager)
-    : m_resourceManager(resourceManager) {}
+MaterialEditor::MaterialEditor(ResourceManager* resourceManager, const GraphicsAPI api)
+    : m_resourceManager(resourceManager), m_api(api) {}
 
 void MaterialEditor::DrawMaterialBrowser() {
    if (!m_showMaterialBrowser)
@@ -402,9 +404,11 @@ uint32_t MaterialEditor::GetTextureId(ITexture* texture) {
    if (!texture)
       return 0;
 
-   // OpenGL:
-   GLTexture* glTexture = static_cast<GLTexture*>(texture);
-   return glTexture->GetId();
-   // For Vulkan, descriptor sets for ImGui
-   // return 0;
+   if (m_api == GraphicsAPI::OpenGL) {
+      GLTexture* glTexture = static_cast<GLTexture*>(texture);
+      return glTexture->GetId();
+   } else {
+      VulkanTexture* vkTexture = static_cast<VulkanTexture*>(texture);
+      return (ImTextureID)vkTexture->GetDescriptorSet();
+   }
 }
