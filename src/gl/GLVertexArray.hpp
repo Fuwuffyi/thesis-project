@@ -5,7 +5,7 @@
 
 class GLBuffer;
 
-class GLVertexArray {
+class GLVertexArray final {
   public:
    GLVertexArray();
    ~GLVertexArray();

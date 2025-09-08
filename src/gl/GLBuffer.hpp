@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-class GLBuffer {
+class GLBuffer final {
   public:
    enum class Type : GLenum {
       Array = GL_ARRAY_BUFFER,
