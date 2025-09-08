@@ -9,6 +9,7 @@ GLRenderPass::GLRenderPass(const CreateInfo& info)
       m_colorAttachments(info.colorAttachments),
       m_depthStencilAttachment(info.depthStencilAttachment),
       m_renderState(info.renderState),
+      m_primitiveType(info.renderState.primitiveType),
       m_shader(info.shader) {
    // Validate color attachments match framebuffer
    if (m_framebuffer) {
@@ -140,6 +141,8 @@ void GLRenderPass::UpdateRenderState(const RenderState& state) {
       ApplyRenderState();
    }
 }
+
+uint32_t GLRenderPass::GetPrimitiveType() const { return static_cast<uint32_t>(m_primitiveType); }
 
 uint32_t GLRenderPass::GetViewportWidth() const {
    if (m_renderState.useFramebufferViewport) {

@@ -42,7 +42,7 @@ class GLRenderer : public IRenderer {
   private:
    MaterialHandle m_defaultMaterial;
    MeshHandle m_fullscreenQuad;
-   MeshHandle m_unitCube;
+   MeshHandle m_lineCube;
    // Create UBOs for shader data
    std::unique_ptr<GLBuffer> m_cameraUbo = nullptr;
    std::unique_ptr<GLBuffer> m_lightsUbo = nullptr;

@@ -2,7 +2,6 @@
 
 #include <glad/gl.h>
 #include <vector>
-#include <memory>
 #include <cstdint>
 #include <glm/glm.hpp>
 
@@ -31,7 +30,7 @@ class GLRenderPass {
 
    enum class BlendMode { None, Alpha, Additive, Multiply, Custom };
 
-   enum class PrimitiveType {
+   enum class PrimitiveType : uint32_t {
       Points = GL_POINTS,
       Lines = GL_LINES,
       LineStrip = GL_LINE_STRIP,
@@ -118,6 +117,7 @@ class GLRenderPass {
    GLFramebuffer* GetFramebuffer() const { return m_framebuffer; }
    const RenderState& GetRenderState() const { return m_renderState; }
    const GLShader* GetShader() const { return m_shader; }
+   uint32_t GetPrimitiveType() const;
    bool IsActive() const { return m_isActive; }
 
    // Utility methods
@@ -136,6 +136,7 @@ class GLRenderPass {
    std::vector<ColorAttachmentDesc> m_colorAttachments;
    DepthStencilAttachmentDesc m_depthStencilAttachment;
    RenderState m_renderState;
+   PrimitiveType m_primitiveType;
    const GLShader* m_shader;
 
    bool m_isActive = false;

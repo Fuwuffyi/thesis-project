@@ -1,6 +1,7 @@
 #include "GLRenderer.hpp"
 
 #include "core/GraphicsAPI.hpp"
+#include "gl/resource/GLMesh.hpp"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
@@ -23,7 +24,6 @@
 #include "gl/resource/GLResourceFactory.hpp"
 #include "gl/resource/GLTexture.hpp"
 
-#include <algorithm>
 #include <glad/gl.h>
 #include <imgui.h>
 #include <GLFW/glfw3.h>
@@ -62,7 +62,8 @@ GLRenderer::GLRenderer(Window* window) : IRenderer(window) {
    }
    // Setup resource manager
    m_resourceManager = std::make_unique<ResourceManager>(std::make_unique<GLResourceFactory>());
-   m_materialEditor = std::make_unique<MaterialEditor>(m_resourceManager.get(), GraphicsAPI::OpenGL);
+   m_materialEditor =
+      std::make_unique<MaterialEditor>(m_resourceManager.get(), GraphicsAPI::OpenGL);
    // Setup imgui
    SetupImgui();
    // Create the fullscreen quad for lighting pass
@@ -119,9 +120,9 @@ void GLRenderer::CreateUtilityMeshes() {
       {glm::vec3(0.5f, 0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(1, 1)},
       {glm::vec3(-0.5f, 0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(0, 1)},
    };
-   const std::vector<uint32_t> cubeInds = {0, 1, 2, 2, 3, 0, 1, 5, 6, 6, 2, 1, 5, 4, 7, 7, 6, 5,
-                                           4, 0, 3, 3, 7, 4, 4, 5, 1, 1, 0, 4, 3, 2, 6, 6, 7, 3};
-   m_unitCube = m_resourceManager->LoadMesh("unit_cube", cubeVerts, cubeInds);
+   const std::vector<uint32_t> cubeInds = {0, 1, 1, 5, 5, 4, 4, 0, 3, 2, 2, 6,
+                                           6, 7, 7, 3, 0, 3, 1, 2, 5, 6, 4, 7};
+   m_lineCube = m_resourceManager->LoadMesh("unit_cube", cubeVerts, cubeInds);
 }
 
 void GLRenderer::CreateDefaultMaterial() {
@@ -424,11 +425,13 @@ void GLRenderer::RenderFrame() {
              lightComp && lightsData.lightCount < MAX_LIGHTS) {
             if (const TransformComponent* transformComp =
                    node->GetComponent<TransformComponent>()) {
-               if (const IMesh* cubeMesh = m_resourceManager->GetMesh(m_unitCube)) {
+               if (const IMesh* cubeMesh = m_resourceManager->GetMesh(m_lineCube)) {
                   m_gizmoPassShader->SetMat4("model",
                                              transformComp->GetTransform().GetTransformMatrix());
                   m_gizmoPassShader->SetVec3("gizmoColor", lightComp->GetColor());
-                  cubeMesh->Draw();
+                  if (const GLMesh* glCubeMesh = dynamic_cast<const GLMesh*>(cubeMesh)) {
+                     glCubeMesh->Draw(m_gizmoPass->GetPrimitiveType());
+                  }
                }
             }
          }

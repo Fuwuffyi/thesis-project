@@ -21,6 +21,7 @@ class GLMesh : public IMesh {
    bool IsValid() const override;
 
    void Draw() const override;
+   void Draw(const uint32_t drawType) const;
    size_t GetVertexCount() const override;
    size_t GetIndexCount() const override;
    void* GetNativeHandle() const override;

@@ -1,4 +1,5 @@
 #include "GLMesh.hpp"
+#include <stdexcept>
 
 GLMesh::GLMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
     : m_ebo(GLBuffer::Type::Element, GLBuffer::Usage::StaticDraw),
@@ -26,7 +27,13 @@ bool GLMesh::IsValid() const {
    return true;
 }
 
-void GLMesh::Draw() const { m_vao.DrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT); }
+void GLMesh::Draw() const {
+   m_vao.DrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT);
+}
+
+void GLMesh::Draw(const uint32_t drawType) const {
+   m_vao.DrawElements(drawType, m_indexCount, GL_UNSIGNED_INT);
+}
 
 size_t GLMesh::GetIndexCount() const { return m_indexCount; }
 
