@@ -16,19 +16,9 @@ Camera::Camera(const GraphicsAPI api, const Transform& transform, const glm::vec
       m_projDirty(true),
       m_cameraDirty(true) {}
 
-glm::vec3 Camera::GetViewDirection() const noexcept {
-   return glm::rotate(m_transform.GetRotation(), glm::vec3(0.0f, 0.0f, -1.0f));
-}
-
-glm::vec3 Camera::GetRightVector() const noexcept {
-   return glm::rotate(m_transform.GetRotation(), glm::vec3(1.0f, 0.0f, 0.0f));
-}
-
-glm::vec3 Camera::GetUpVector() const noexcept {
-   return glm::rotate(m_transform.GetRotation(), glm::vec3(0.0f, 1.0f, 0.0f));
-}
-
-float Camera::GetFOV() const noexcept { return m_fov; }
+glm::vec3 Camera::GetViewDirection() const noexcept { return m_transform.GetForward(); }
+glm::vec3 Camera::GetRightVector() const noexcept { return m_transform.GetRight(); }
+glm::vec3 Camera::GetUpVector() const noexcept { return m_transform.GetUp(); }
 
 void Camera::SetFOV(const float newFov) noexcept {
    m_fov = newFov;
@@ -47,6 +37,7 @@ const glm::mat4& Camera::GetViewMatrix() {
    }
    return m_view;
 }
+
 const glm::mat4& Camera::GetProjectionMatrix() {
    if (m_projDirty) {
       RecalculateProjection();
@@ -61,14 +52,6 @@ const glm::mat4& Camera::GetCameraMatrix() {
       m_cameraDirty = false;
    }
    return m_camera;
-}
-
-const Transform& Camera::GetTransform() const noexcept { return m_transform; }
-
-Transform& Camera::GetMutableTransform() noexcept {
-   m_viewDirty = true;
-   m_cameraDirty = true;
-   return m_transform;
 }
 
 void Camera::RecalculateView() noexcept { m_view = glm::inverse(m_transform.GetTransformMatrix()); }

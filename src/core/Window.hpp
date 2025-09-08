@@ -35,11 +35,10 @@ class Window final {
 
    void SetCursorVisible(const bool visible) const;
 
-   [[nodiscard]] GLFWwindow* GetNativeWindow() const noexcept;
-   [[nodiscard]] EventSystem* GetEventSystem() noexcept;
-   [[nodiscard]] uint32_t GetWidth() const noexcept;
-   [[nodiscard]] uint32_t GetHeight() const noexcept;
-   [[nodiscard]] GraphicsAPI GetAPI() const noexcept;
+   [[nodiscard]] constexpr GLFWwindow* GetNativeWindow() const noexcept { return m_window; }
+   [[nodiscard]] constexpr EventSystem* GetEventSystem() noexcept { return &m_eventSystem; }
+   [[nodiscard]] constexpr uint32_t GetWidth() const noexcept { return m_width; }
+   [[nodiscard]] constexpr uint32_t GetHeight() const noexcept { return m_height; }
 
   private:
    static void ErrorCallback(const int32_t error, const char* description);

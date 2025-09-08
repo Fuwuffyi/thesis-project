@@ -53,8 +53,6 @@ Transform& Transform::operator=(Transform&& other) noexcept {
    return *this;
 }
 
-const glm::vec3& Transform::GetPosition() const noexcept { return m_pos; }
-
 void Transform::SetPosition(const glm::vec3& pos) noexcept {
    if (m_pos != pos) {
       m_pos = pos;
@@ -72,8 +70,6 @@ void Transform::Translate(const glm::vec3& delta) noexcept {
 void Transform::Translate(const float x, const float y, const float z) noexcept {
    Translate(glm::vec3(x, y, z));
 }
-
-const glm::quat& Transform::GetRotation() const noexcept { return m_rot; }
 
 void Transform::SetPosition(const float x, const float y, const float z) noexcept {
    SetPosition(glm::vec3(x, y, z));
@@ -115,8 +111,6 @@ void Transform::RotateAround(const glm::vec3& point, const glm::vec3& axis, floa
    }
 }
 
-const glm::vec3& Transform::GetScale() const noexcept { return m_scl; }
-
 void Transform::SetScale(const glm::vec3& scl) noexcept {
    if (m_scl != scl) {
       m_scl = scl;
@@ -138,14 +132,6 @@ void Transform::Scale(const glm::vec3& factor) noexcept {
 }
 
 void Transform::Scale(const float uniform) noexcept { Scale(glm::vec3(uniform)); }
-
-const glm::mat4& Transform::GetTransformMatrix() {
-   if (m_dirty) {
-      RecalculateMatrix();
-      m_dirty = false;
-   }
-   return m_matrix;
-}
 
 const glm::mat4& Transform::GetTransformMatrix() const {
    if (m_dirty) {

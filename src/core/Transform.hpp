@@ -17,14 +17,14 @@ class Transform final {
    Transform& operator=(Transform&& other) noexcept;
 
    // Position
-   [[nodiscard]] const glm::vec3& GetPosition() const noexcept;
+   [[nodiscard]] constexpr const glm::vec3& GetPosition() const noexcept { return m_pos; }
    void SetPosition(const glm::vec3& pos) noexcept;
    void SetPosition(const float x, const float y, const float z) noexcept;
    void Translate(const glm::vec3& delta) noexcept;
    void Translate(const float x, const float y, const float z) noexcept;
 
    // Rotation
-   [[nodiscard]] const glm::quat& GetRotation() const noexcept;
+   [[nodiscard]] constexpr const glm::quat& GetRotation() const noexcept { return m_rot; }
    void SetRotation(const glm::quat& rot) noexcept;
    void SetRotation(const glm::vec3& eulerAngles) noexcept;
    void SetRotation(const float pitch, const float yaw, const float roll) noexcept;
@@ -33,15 +33,14 @@ class Transform final {
    void RotateAround(const glm::vec3& point, const glm::vec3& axis, float angle) noexcept;
 
    // Scale
-   [[nodiscard]] const glm::vec3& GetScale() const noexcept;
+   [[nodiscard]] constexpr const glm::vec3& GetScale() const noexcept { return m_scl; }
    void SetScale(const glm::vec3& scl) noexcept;
    void SetScale(const float uniform) noexcept;
    void SetScale(const float x, const float y, const float z) noexcept;
    void Scale(const glm::vec3& factor) noexcept;
    void Scale(const float uniform) noexcept;
 
-   // Matrix access (cached and optimized)
-   [[nodiscard]] const glm::mat4& GetTransformMatrix();
+   // Matrix access
    [[nodiscard]] const glm::mat4& GetTransformMatrix() const;
 
    // Utility methods

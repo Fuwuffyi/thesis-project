@@ -127,9 +127,3 @@ void Window::ResizeCallback(GLFWwindow* window, const int32_t width, const int32
       w->m_eventSystem.HandleResize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
    }
 }
-
-GLFWwindow* Window::GetNativeWindow() const noexcept { return m_window; }
-EventSystem* Window::GetEventSystem() noexcept { return &m_eventSystem; }
-uint32_t Window::GetWidth() const noexcept { return m_width; }
-uint32_t Window::GetHeight() const noexcept { return m_height; }
-GraphicsAPI Window::GetAPI() const noexcept { return m_api; }

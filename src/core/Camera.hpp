@@ -12,7 +12,7 @@ class Camera final {
    [[nodiscard]] glm::vec3 GetRightVector() const noexcept;
    [[nodiscard]] glm::vec3 GetUpVector() const noexcept;
 
-   [[nodiscard]] float GetFOV() const noexcept;
+   [[nodiscard]] constexpr float GetFOV() const noexcept { return m_fov; }
    void SetFOV(const float newFov) noexcept;
 
    void SetAspectRatio(const float newRatio) noexcept;
@@ -21,8 +21,13 @@ class Camera final {
    [[nodiscard]] const glm::mat4& GetProjectionMatrix();
    [[nodiscard]] const glm::mat4& GetCameraMatrix();
 
-   [[nodiscard]] const Transform& GetTransform() const noexcept;
-   Transform& GetMutableTransform() noexcept;
+   [[nodiscard]] constexpr const Transform& GetTransform() const noexcept { return m_transform; }
+
+   constexpr Transform& GetMutableTransform() noexcept {
+      m_viewDirty = true;
+      m_cameraDirty = true;
+      return m_transform;
+   }
 
   private:
    void RecalculateView() noexcept;
