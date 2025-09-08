@@ -94,7 +94,7 @@ void GLVertexArray::DisableAttribute(const uint32_t index) const noexcept {
    }
 }
 
-void GLVertexArray::SetAttributeFormat(const uint32_t index, const int32_t size,
+void GLVertexArray::SetAttributeFormat(const uint32_t index, const size_t size,
                                        const uint32_t type, const bool normalized,
                                        const uint32_t relativeOffset) const noexcept {
    if (m_vao != 0) {
@@ -109,7 +109,7 @@ void GLVertexArray::SetAttributeBinding(const uint32_t index,
    }
 }
 
-void GLVertexArray::DrawArrays(const uint32_t mode, const int32_t first,
+void GLVertexArray::DrawArrays(const uint32_t mode, const uint32_t first,
                                const size_t count) const noexcept {
    if (m_vao != 0) {
       Bind();
