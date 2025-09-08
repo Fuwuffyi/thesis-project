@@ -1,11 +1,11 @@
-#include "RendererFactory.hpp"
+#include "core/RendererFactory.hpp"
 
 #include <stdexcept>
 
-#include "../gl/GLRenderer.hpp"
-#include "../vk/VulkanRenderer.hpp"
+#include "gl/GLRenderer.hpp"
+#include "vk/VulkanRenderer.hpp"
 
-std::unique_ptr<IRenderer> RendererFactory::CreateRenderer(const GraphicsAPI api, Window* win) {
+std::unique_ptr<IRenderer> RendererFactory::CreateRenderer(const GraphicsAPI api, Window* const win) {
    switch (api) {
       case GraphicsAPI::OpenGL:
          return std::make_unique<GLRenderer>(win);

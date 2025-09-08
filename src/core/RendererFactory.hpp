@@ -2,13 +2,12 @@
 
 #include <memory>
 
-#include "GraphicsAPI.hpp"
-#include "IRenderer.hpp"
+#include "core/GraphicsAPI.hpp"
+#include "core/IRenderer.hpp"
 
-// Forward declaration of the window class
 class Window;
 
-class RendererFactory {
+class RendererFactory final {
   public:
-   static std::unique_ptr<IRenderer> CreateRenderer(const GraphicsAPI api, Window* win);
+   [[nodiscard]] static std::unique_ptr<IRenderer> CreateRenderer(const GraphicsAPI api, Window* const win);
 };
