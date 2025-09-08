@@ -6,7 +6,7 @@
 
 class GLBuffer final {
   public:
-   enum class Type : GLenum {
+   enum class Type : uint32_t {
       Array = GL_ARRAY_BUFFER,
       Element = GL_ELEMENT_ARRAY_BUFFER,
       Uniform = GL_UNIFORM_BUFFER,
@@ -14,7 +14,7 @@ class GLBuffer final {
       TransformFeedback = GL_TRANSFORM_FEEDBACK_BUFFER
    };
 
-   enum class Usage : GLenum {
+   enum class Usage : uint32_t {
       StaticDraw = GL_STATIC_DRAW,
       DynamicDraw = GL_DYNAMIC_DRAW,
       StreamDraw = GL_STREAM_DRAW,
