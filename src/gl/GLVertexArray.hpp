@@ -1,11 +1,9 @@
 #pragma once
 
-#include <glad/gl.h>
+#include <cstddef>
 #include <cstdint>
-#include <vector>
 
 class GLBuffer;
-struct Vertex;
 
 class GLVertexArray {
   public:
@@ -17,36 +15,29 @@ class GLVertexArray {
    GLVertexArray(GLVertexArray&& other) noexcept;
    GLVertexArray& operator=(GLVertexArray&& other) noexcept;
 
-   void Bind() const;
-   void Unbind() const;
+   void Bind() const noexcept;
+   static void Unbind() noexcept;
 
-   // Attach a vertex buffer to this VAO
-   void AttachVertexBuffer(const GLBuffer& buffer, const GLuint bindingIndex = 0,
-                           const GLintptr offset = 0, const GLsizei stride = 0);
+   void AttachVertexBuffer(const GLBuffer& buffer, uint32_t bindingIndex = 0, size_t offset = 0,
+                           size_t stride = 0) const;
+   void AttachElementBuffer(const GLBuffer& buffer) const;
 
-   // Attach an element buffer to this VAO
-   void AttachElementBuffer(const GLBuffer& buffer);
+   void SetupVertexAttributes() const;
+   void EnableAttribute(uint32_t index) const noexcept;
+   void DisableAttribute(uint32_t index) const noexcept;
+   void SetAttributeFormat(uint32_t index, int32_t size, uint32_t type, bool normalized,
+                           uint32_t relativeOffset) const noexcept;
+   void SetAttributeBinding(uint32_t index, uint32_t bindingIndex) const noexcept;
 
-   // Setup vertex attribute pointers for common vertex formats
-   void SetupVertexAttributes();
+   void DrawArrays(uint32_t mode, int32_t first, size_t count) const noexcept;
+   void DrawElements(uint32_t mode, size_t count, uint32_t type,
+                     const void* indices = nullptr) const noexcept;
+   void DrawElementsInstanced(uint32_t mode, size_t count, uint32_t type, const void* indices,
+                              size_t instanceCount) const noexcept;
 
-   // Manual vertex attribute setup
-   void EnableAttribute(const GLuint index);
-   void DisableAttribute(const GLuint index);
-   void SetAttributeFormat(const GLuint index, const GLint size, const GLenum type,
-                           const GLboolean normalized, const GLuint relativeOffset);
-   void SetAttributeBinding(const GLuint index, const GLuint bindingIndex);
-
-   // Drawing functions
-   void DrawArrays(const GLenum mode, const GLint first, const GLsizei count) const;
-   void DrawElements(const GLenum mode, const GLsizei count, const GLenum type,
-                     const void* indices = nullptr) const;
-   void DrawElementsInstanced(const GLenum mode, const GLsizei count, const GLenum type,
-                              const void* indices, const GLsizei instanceCount) const;
-
-   GLuint Get() const;
-   bool IsValid() const;
+   [[nodiscard]] constexpr uint32_t Get() const noexcept { return m_vao; }
+   [[nodiscard]] constexpr bool IsValid() const noexcept { return m_vao != 0; }
 
   private:
-   GLuint m_vao = 0;
+   uint32_t m_vao{0};
 };

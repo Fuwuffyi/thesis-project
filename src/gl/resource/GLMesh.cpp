@@ -1,5 +1,4 @@
 #include "GLMesh.hpp"
-#include <stdexcept>
 
 GLMesh::GLMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
     : m_ebo(GLBuffer::Type::Element, GLBuffer::Usage::StaticDraw),
@@ -7,8 +6,8 @@ GLMesh::GLMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>&
       m_vao(),
       m_indexCount(indices.size()),
       m_vertexCount(vertices.size()) {
-   m_vbo.UploadData(vertices);
-   m_ebo.UploadData(indices);
+   m_vbo.UploadData(std::span(vertices));
+   m_ebo.UploadData(std::span(indices));
    m_vao.AttachVertexBuffer(m_vbo, 0, 0, sizeof(Vertex));
    m_vao.AttachElementBuffer(m_ebo);
    m_vao.SetupVertexAttributes();
@@ -22,14 +21,9 @@ size_t GLMesh::GetMemoryUsage() const {
    return (m_vertexCount * sizeof(Vertex)) + (m_indexCount * sizeof(uint32_t));
 }
 
-bool GLMesh::IsValid() const {
-   // NOTE: RAII handles this, would throw exception otherwise
-   return true;
-}
+bool GLMesh::IsValid() const { return m_vao.IsValid() && m_vbo.IsValid() && m_ebo.IsValid(); }
 
-void GLMesh::Draw() const {
-   m_vao.DrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT);
-}
+void GLMesh::Draw() const { m_vao.DrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT); }
 
 void GLMesh::Draw(const uint32_t drawType) const {
    m_vao.DrawElements(drawType, m_indexCount, GL_UNSIGNED_INT);

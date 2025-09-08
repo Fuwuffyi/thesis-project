@@ -7,6 +7,7 @@
 #include "../GLVertexArray.hpp"
 
 #include <cstddef>
+#include <vector>
 
 class GLMesh : public IMesh {
   public:
