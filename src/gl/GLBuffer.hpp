@@ -47,17 +47,17 @@ class GLBuffer final {
    template <typename T>
    void UpdateData(const std::span<const T> data, const size_t offset = 0) const;
 
-   [[nodiscard]] void* Map(const GLenum access = GL_READ_WRITE) const;
+   [[nodiscard]] void* Map(const uint32_t access = GL_READ_WRITE) const;
    void Unmap() const noexcept;
 
-   [[nodiscard]] constexpr GLuint Get() const noexcept { return m_buffer; }
+   [[nodiscard]] constexpr uint32_t Get() const noexcept { return m_buffer; }
    [[nodiscard]] constexpr GLBuffer::Type GetType() const noexcept { return m_type; }
    [[nodiscard]] constexpr GLBuffer::Usage GetUsage() const noexcept { return m_usage; }
    [[nodiscard]] constexpr size_t GetSize() const noexcept { return m_size; }
    [[nodiscard]] constexpr bool IsValid() const noexcept { return m_buffer != 0; }
 
   private:
-   GLuint m_buffer{0};
+   uint32_t m_buffer{0};
    Type m_type;
    Usage m_usage;
    size_t m_size{0};

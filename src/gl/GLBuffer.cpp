@@ -68,7 +68,7 @@ void GLBuffer::UpdateData(const void* const data, const size_t size, const size_
                         data);
 }
 
-void* GLBuffer::Map(const GLenum access) const {
+void* GLBuffer::Map(const uint32_t access) const {
    if (m_buffer == 0) {
       throw std::runtime_error("Cannot map invalid buffer");
    }
