@@ -14,13 +14,13 @@ VulkanMesh::VulkanMesh(const std::vector<Vertex>& vertices, const std::vector<ui
 
 VulkanMesh::~VulkanMesh() = default;
 
-ResourceType VulkanMesh::GetType() const { return ResourceType::Mesh; }
+ResourceType VulkanMesh::GetType() const noexcept { return ResourceType::Mesh; }
 
-size_t VulkanMesh::GetMemoryUsage() const {
+size_t VulkanMesh::GetMemoryUsage() const noexcept {
    return (m_vertexCount * sizeof(Vertex)) + (m_indexCount * sizeof(uint32_t));
 }
 
-bool VulkanMesh::IsValid() const {
+bool VulkanMesh::IsValid() const noexcept {
    // NOTE: Handled by RAII
    return true;
 }

@@ -3,45 +3,50 @@
 #include "MaterialTemplate.hpp"
 #include "IMaterial.hpp"
 
+#include <unordered_map>
 #include <vector>
+#include <string>
+#include <string_view>
 
 class MaterialInstance : public IMaterial {
   public:
-   MaterialInstance(const MaterialTemplate& materialTemplate);
-   virtual ~MaterialInstance() = default;
+   explicit MaterialInstance(const MaterialTemplate& materialTemplate);
+   ~MaterialInstance() override = default;
 
    // IResource implementation
-   ResourceType GetType() const override { return ResourceType::Material; }
-   size_t GetMemoryUsage() const override;
-   bool IsValid() const override { return m_template != nullptr; }
+   [[nodiscard]] constexpr ResourceType GetType() const noexcept override {
+      return ResourceType::Material;
+   }
+   [[nodiscard]] size_t GetMemoryUsage() const noexcept override;
+   [[nodiscard]] constexpr bool IsValid() const noexcept override { return m_template != nullptr; }
 
    // IMaterial implementation
-   void SetParameter(const std::string& name, const MaterialParam& value) override;
-   MaterialParam GetParameter(const std::string& name) const override;
-   bool HasParameter(const std::string& name) const override;
+   void SetParameter(const std::string_view name, const MaterialParam& value) override;
+   [[nodiscard]] MaterialParam GetParameter(const std::string_view name) const override;
+   [[nodiscard]] bool HasParameter(const std::string_view name) const noexcept override;
 
-   void SetTexture(const std::string& name, const TextureHandle& texture) override;
-   TextureHandle GetTexture(const std::string& name) const override;
-   bool HasTexture(const std::string& name) const override;
+   void SetTexture(const std::string_view name, const TextureHandle texture) override;
+   [[nodiscard]] TextureHandle GetTexture(const std::string_view name) const override;
+   [[nodiscard]] bool HasTexture(const std::string_view name) const noexcept override;
 
-   const std::string& GetTemplateName() const override;
+   [[nodiscard]] std::string_view GetTemplateName() const noexcept override;
 
    // Get raw UBO data for upload
-   const void* GetUBOData() const { return m_uboData.data(); }
-   uint32_t GetUBOSize() const;
+   [[nodiscard]] constexpr const void* GetUBOData() const noexcept { return m_uboData.data(); }
+   [[nodiscard]] uint32_t GetUBOSize() const noexcept;
 
    // Mark UBO as dirty (needs update)
-   void MarkDirty() { m_uboDirty = true; }
-   bool IsUBODirty() const { return m_uboDirty; }
-   void ClearDirty() { m_uboDirty = false; }
+   constexpr void MarkDirty() noexcept { m_uboDirty = true; }
+   [[nodiscard]] constexpr bool IsUBODirty() const noexcept { return m_uboDirty; }
+   constexpr void ClearDirty() noexcept { m_uboDirty = false; }
 
   protected:
-   const MaterialTemplate* m_template;
+   const MaterialTemplate* m_template{};
    std::unordered_map<std::string, MaterialParam> m_parameters;
    std::unordered_map<std::string, TextureHandle> m_textures;
-   std::vector<uint8_t> m_uboData;
-   mutable bool m_uboDirty = true;
+   std::vector<std::byte> m_uboData;
+   mutable bool m_uboDirty{true};
 
    void UpdateUBOData();
-   void WriteParamToUBO(const std::string& name, const MaterialParam& value);
+   void WriteParamToUBO(const std::string_view name, const MaterialParam& value);
 };

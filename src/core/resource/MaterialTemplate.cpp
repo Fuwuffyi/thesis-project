@@ -1,47 +1,47 @@
 #include "core/resource/MaterialTemplate.hpp"
 
-#include <algorithm>
 #include <stdexcept>
-#include <vector>
+#include <utility>
 
-MaterialTemplate::MaterialTemplate(std::string name) : m_name(std::move(name)) {}
+MaterialTemplate::MaterialTemplate(const std::string name) noexcept : m_name(std::move(name)) {}
 
-void MaterialTemplate::AddParameter(const std::string& name, ParameterDescriptor::Type type,
+void MaterialTemplate::AddParameter(const std::string_view name,
+                                    const ParameterDescriptor::Type type,
                                     const MaterialParam& defaultValue) {
    if (m_finalized) {
       throw std::runtime_error("Cannot add parameters to finalized template");
    }
-   ParameterDescriptor desc;
-   desc.name = name;
-   desc.type = type;
-   desc.defaultValue = defaultValue;
-   desc.size = GetTypeSize(type);
-   desc.offset = 0; // Will be calculated during finalization
-   m_parameters[name] = desc;
+   const ParameterDescriptor desc{
+      .type = type,
+      .name = std::string(name),
+      .defaultValue = defaultValue,
+      .offset = 0,
+      .size = GetTypeSize(type),
+   };
+   m_parameters.emplace(desc.name, std::move(desc));
 }
 
-void MaterialTemplate::AddTexture(const std::string& name, uint32_t bindingSlot,
-                                  const std::string& samplerName,
-                                  const TextureHandle& defaultTexture) {
+void MaterialTemplate::AddTexture(const std::string_view name, const uint32_t bindingSlot,
+                                  const std::string_view samplerName,
+                                  const TextureHandle defaultTexture) {
    if (m_finalized) {
       throw std::runtime_error("Cannot add textures to finalized template");
    }
-
-   TextureDescriptor desc;
-   desc.name = name;
-   desc.bindingSlot = bindingSlot;
-   desc.samplerName = samplerName;
-   desc.defaultTexture = defaultTexture;
-
-   m_textures[name] = desc;
+   const TextureDescriptor desc{
+      .name = std::string(name),
+      .bindingSlot = bindingSlot,
+      .samplerName = std::string(samplerName),
+      .defaultTexture = defaultTexture,
+   };
+   m_textures.emplace(desc.name, std::move(desc));
 }
 
-void MaterialTemplate::Finalize() {
-   if (m_finalized)
+void MaterialTemplate::Finalize() noexcept {
+   if (m_finalized) [[unlikely]]
       return;
    uint32_t currentOffset = 0;
-   for (auto& [name, desc] : m_parameters) {
-      uint32_t alignment = GetTypeAlignment(desc.type);
+   for (auto& [_, desc] : m_parameters) {
+      const auto alignment = GetTypeAlignment(desc.type);
       currentOffset = AlignOffset(currentOffset, alignment);
       desc.offset = currentOffset;
       currentOffset += desc.size;
@@ -50,48 +50,49 @@ void MaterialTemplate::Finalize() {
    m_finalized = true;
 }
 
-uint32_t MaterialTemplate::GetTypeSize(ParameterDescriptor::Type type) const {
+constexpr uint32_t MaterialTemplate::GetTypeSize(const ParameterDescriptor::Type type) noexcept {
+   using Type = ParameterDescriptor::Type;
    switch (type) {
-      case ParameterDescriptor::Type::Float:
-      case ParameterDescriptor::Type::Int:
-      case ParameterDescriptor::Type::UInt:
+      case Type::Float:
+      case Type::Int:
+      case Type::UInt:
          return 4;
-      case ParameterDescriptor::Type::Vec2:
+      case Type::Vec2:
          return 8;
-      case ParameterDescriptor::Type::Vec3:
-         return 16; // vec3 is padded to vec4 in std140
-      case ParameterDescriptor::Type::Vec4:
+      case Type::Vec3:
+      case Type::Vec4:
          return 16;
-      case ParameterDescriptor::Type::Mat2:
-         return 32; // 2 columns * 16 bytes each (vec4 alignment)
-      case ParameterDescriptor::Type::Mat3:
-         return 48; // 3 columns * 16 bytes each (vec4 alignment)
-      case ParameterDescriptor::Type::Mat4:
-         return 64; // 4 columns * 16 bytes each
-      default:
-         return 4;
+      case Type::Mat2:
+         return 32;
+      case Type::Mat3:
+         return 48;
+      case Type::Mat4:
+         return 64;
    }
+   std::unreachable();
 }
 
-uint32_t MaterialTemplate::GetTypeAlignment(ParameterDescriptor::Type type) const {
+constexpr uint32_t MaterialTemplate::GetTypeAlignment(
+   const ParameterDescriptor::Type type) noexcept {
+   using Type = ParameterDescriptor::Type;
    switch (type) {
-      case ParameterDescriptor::Type::Float:
-      case ParameterDescriptor::Type::Int:
-      case ParameterDescriptor::Type::UInt:
+      case Type::Float:
+      case Type::Int:
+      case Type::UInt:
          return 4;
-      case ParameterDescriptor::Type::Vec2:
+      case Type::Vec2:
          return 8;
-      case ParameterDescriptor::Type::Vec3:
-      case ParameterDescriptor::Type::Vec4:
-      case ParameterDescriptor::Type::Mat2:
-      case ParameterDescriptor::Type::Mat3:
-      case ParameterDescriptor::Type::Mat4:
+      case Type::Vec3:
+      case Type::Vec4:
+      case Type::Mat2:
+      case Type::Mat3:
+      case Type::Mat4:
          return 16;
-      default:
-         return 4;
    }
+   std::unreachable();
 }
 
-uint32_t MaterialTemplate::AlignOffset(uint32_t offset, uint32_t alignment) const {
+constexpr uint32_t MaterialTemplate::AlignOffset(const uint32_t offset,
+                                                 const uint32_t alignment) noexcept {
    return (offset + alignment - 1) & ~(alignment - 1);
 }

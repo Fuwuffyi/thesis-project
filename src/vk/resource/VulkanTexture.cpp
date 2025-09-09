@@ -198,9 +198,9 @@ VulkanTexture& VulkanTexture::operator=(VulkanTexture&& other) noexcept {
    return *this;
 }
 
-ResourceType VulkanTexture::GetType() const { return ResourceType::Texture; }
+ResourceType VulkanTexture::GetType() const noexcept { return ResourceType::Texture; }
 
-size_t VulkanTexture::GetMemoryUsage() const {
+size_t VulkanTexture::GetMemoryUsage() const noexcept {
    size_t bytesPerPixel = 4;
    switch (m_format) {
       case Format::R8:
@@ -239,7 +239,7 @@ size_t VulkanTexture::GetMemoryUsage() const {
    return totalSize * m_samples;
 }
 
-bool VulkanTexture::IsValid() const {
+bool VulkanTexture::IsValid() const noexcept {
    return m_image != VK_NULL_HANDLE && m_imageView != VK_NULL_HANDLE;
 }
 
@@ -624,19 +624,19 @@ uint32_t VulkanTexture::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlag
    throw std::runtime_error("Failed to find suitable memory type!");
 }
 
-uint32_t VulkanTexture::GetWidth() const { return m_width; }
+uint32_t VulkanTexture::GetWidth() const noexcept { return m_width; }
 
-uint32_t VulkanTexture::GetHeight() const { return m_height; }
+uint32_t VulkanTexture::GetHeight() const noexcept { return m_height; }
 
-uint32_t VulkanTexture::GetDepth() const { return m_depth; }
+uint32_t VulkanTexture::GetDepth() const noexcept { return m_depth; }
 
-ITexture::Format VulkanTexture::GetFormat() const { return m_format; }
+ITexture::Format VulkanTexture::GetFormat() const noexcept { return m_format; }
 
-void VulkanTexture::Bind(const uint32_t unit) const {
+void VulkanTexture::Bind(const uint32_t unit) const noexcept {
    throw std::runtime_error("Bind method not implemented for vulkan texture.");
 }
 
-void* VulkanTexture::GetNativeHandle() const { return reinterpret_cast<void*>(m_image); }
+void* VulkanTexture::GetNativeHandle() const noexcept { return reinterpret_cast<void*>(m_image); }
 
 VkImage VulkanTexture::GetImage() const { return m_image; }
 

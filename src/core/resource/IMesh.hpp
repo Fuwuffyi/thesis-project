@@ -6,10 +6,10 @@
 class IMesh : public IResource {
   public:
    virtual ~IMesh() = default;
-   virtual void Draw() const = 0;
-   virtual size_t GetVertexCount() const = 0;
-   virtual size_t GetIndexCount() const = 0;
-   virtual void* GetNativeHandle() const = 0;
+   [[nodiscard]] virtual void Draw() const = 0;
+   [[nodiscard]] virtual size_t GetVertexCount() const = 0;
+   [[nodiscard]] virtual size_t GetIndexCount() const = 0;
+   [[nodiscard]] virtual void* GetNativeHandle() const = 0;
 };
 
 using MeshHandle = ResourceHandle<IMesh>;

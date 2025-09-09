@@ -1,11 +1,37 @@
-#include "GLTexture.hpp"
+#include "gl/resource/GLTexture.hpp"
 
-#include <stb_image.h>
 #include <glad/gl.h>
+#include <stb_image.h>
+
+#include <utility>
+#include <cassert>
+
+static constexpr size_t BytesPerPixelForFormat(const ITexture::Format fmt) noexcept {
+   switch (fmt) {
+      case ITexture::Format::R8:
+         return 1;
+      case ITexture::Format::RG8:
+         return 2;
+      case ITexture::Format::RGB8:
+         return 3;
+      case ITexture::Format::RGBA8:
+         return 4;
+      case ITexture::Format::SRGB8_ALPHA8:
+         return 4;
+      case ITexture::Format::RGBA16F:
+         return 8;
+      case ITexture::Format::RGBA32F:
+         return 16;
+      case ITexture::Format::Depth24:
+         return 3;
+      case ITexture::Format::Depth32F:
+         return 4;
+   }
+   return 4;
+}
 
 GLTexture::GLTexture(const CreateInfo& info)
-    : m_id(0),
-      m_width(info.width),
+    : m_width(info.width),
       m_height(info.height),
       m_depth(info.depth),
       m_format(info.format),
@@ -16,68 +42,64 @@ GLTexture::GLTexture(const CreateInfo& info)
 }
 
 GLTexture::GLTexture(const std::string& filepath, const bool generateMipmaps, const bool sRGB)
-    : m_id(0),
-      m_width(0),
-      m_height(0),
-      m_depth(1),
-      m_format(Format::RGBA8),
-      m_isDepth(false),
-      m_samples(1)
-
-{
+    : m_depth(1), m_format(Format::RGBA8), m_isDepth(false), m_samples(1) {
    glGenTextures(1, &m_id);
-   int32_t width, height, channels;
+   int32_t w = 0, h = 0, channels = 0;
    stbi_set_flip_vertically_on_load(true);
-   uint8_t* data = stbi_load(filepath.c_str(), &width, &height, &channels, 0);
+   unsigned char* data = stbi_load(filepath.c_str(), &w, &h, &channels, 0);
    if (!data) {
       glDeleteTextures(1, &m_id);
       m_id = 0;
       return;
    }
-   m_width = static_cast<uint32_t>(width);
-   m_height = static_cast<uint32_t>(height);
-   m_depth = 1;
-   uint32_t format = GL_RGBA;
-   uint32_t internal = GL_RGBA8;
+   m_width = static_cast<uint32_t>(w);
+   m_height = static_cast<uint32_t>(h);
+   uint32_t externalFormat = GL_RGBA;
+   uint32_t internalFormat = GL_RGBA8;
    switch (channels) {
       case 1:
-         format = GL_RED;
-         internal = GL_R8;
+         externalFormat = GL_RED;
+         internalFormat = GL_R8;
          m_format = Format::R8;
          break;
       case 2:
-         format = GL_RG;
-         internal = GL_RG8;
+         externalFormat = GL_RG;
+         internalFormat = GL_RG8;
          m_format = Format::RG8;
          break;
       case 3:
-         format = GL_RGB;
-         internal = sRGB ? GL_SRGB8 : GL_RGB8;
+         externalFormat = GL_RGB;
+         internalFormat = sRGB ? GL_SRGB8 : GL_RGB8;
          m_format = Format::RGB8;
          break;
       case 4:
-         format = GL_RGBA;
-         internal = sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+         externalFormat = GL_RGBA;
+         internalFormat = sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
          m_format = sRGB ? Format::SRGB8_ALPHA8 : Format::RGBA8;
          break;
       default:
-         // Unexpected channel count, force RGBA
-         format = GL_RGBA;
-         internal = GL_RGBA8;
+         externalFormat = GL_RGBA;
+         internalFormat = GL_RGBA8;
          m_format = Format::RGBA8;
          break;
    }
-   glBindTexture(GL_TEXTURE_2D, m_id);
+   const uint32_t target = GL_TEXTURE_2D;
+   glBindTexture(target, m_id);
    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-   glTexImage2D(GL_TEXTURE_2D, 0, internal, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+   glTexStorage2D(
+      target,
+      1u + (generateMipmaps ? static_cast<uint32_t>(std::floor(std::log2(std::max(w, h)))) : 0u),
+      internalFormat, m_width, m_height);
+   glTexSubImage2D(target, 0, 0, 0, m_width, m_height, externalFormat, GL_UNSIGNED_BYTE, data);
    if (generateMipmaps) {
-      glGenerateMipmap(GL_TEXTURE_2D);
+      glGenerateMipmap(target);
    }
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+   // Filtering and wrapping
+   glTexParameteri(target, GL_TEXTURE_MIN_FILTER,
                    generateMipmaps ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+   glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+   glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_REPEAT);
+   glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_REPEAT);
    stbi_image_free(data);
 }
 
@@ -98,12 +120,11 @@ GLTexture::GLTexture(const Format format, const glm::vec4& color)
    glGenTextures(1, &m_id);
    glBindTexture(GL_TEXTURE_2D, m_id);
    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-   const uint8_t rgba[4] = {
-      static_cast<uint8_t>(glm::clamp(color.r, 0.0f, 1.0f) * 255.0f),
-      static_cast<uint8_t>(glm::clamp(color.g, 0.0f, 1.0f) * 255.0f),
-      static_cast<uint8_t>(glm::clamp(color.b, 0.0f, 1.0f) * 255.0f),
-      static_cast<uint8_t>(glm::clamp(color.a, 0.0f, 1.0f) * 255.0f),
-   };
+   const unsigned char rgba[] = {
+      static_cast<unsigned char>(glm::clamp(color.r, 0.0f, 1.0f) * 255.0f),
+      static_cast<unsigned char>(glm::clamp(color.g, 0.0f, 1.0f) * 255.0f),
+      static_cast<unsigned char>(glm::clamp(color.b, 0.0f, 1.0f) * 255.0f),
+      static_cast<unsigned char>(glm::clamp(color.a, 0.0f, 1.0f) * 255.0f)};
    uint32_t externalFormat = GL_RGBA;
    switch (format) {
       case Format::R8:
@@ -115,115 +136,78 @@ GLTexture::GLTexture(const Format format, const glm::vec4& color)
       case Format::RGB8:
          externalFormat = GL_RGB;
          break;
-      case Format::RGBA8:
-      case Format::SRGB8_ALPHA8:
-      case Format::RGBA16F:
-      case Format::RGBA32F:
-         externalFormat = GL_RGBA;
-         break;
       default:
          externalFormat = GL_RGBA;
          break;
    }
-   glTexImage2D(GL_TEXTURE_2D, 0, ConvertFormat(format), 1, 1, 0, externalFormat, GL_UNSIGNED_BYTE,
-                rgba);
+
+   const uint32_t internal = ConvertFormatInternal(format);
+   // Immutable storage preferred
+   glTexStorage2D(GL_TEXTURE_2D, 1, internal, 1, 1);
+   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1, 1, externalFormat, GL_UNSIGNED_BYTE, rgba);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
-GLTexture::~GLTexture() {
+GLTexture::~GLTexture() noexcept {
    if (m_id != 0) {
       glDeleteTextures(1, &m_id);
    }
 }
 
 GLTexture::GLTexture(GLTexture&& other) noexcept
-    : m_id(other.m_id),
+    : m_id(std::exchange(other.m_id, 0)),
       m_width(other.m_width),
       m_height(other.m_height),
       m_depth(other.m_depth),
       m_format(other.m_format),
       m_isDepth(other.m_isDepth),
-      m_samples(other.m_samples) {
-   other.m_id = 0;
-}
+      m_samples(other.m_samples) {}
 
 GLTexture& GLTexture::operator=(GLTexture&& other) noexcept {
-   if (this != &other) {
-      if (m_id != 0) {
-         glDeleteTextures(1, &m_id);
-      }
-      m_id = other.m_id;
-      m_width = other.m_width;
-      m_height = other.m_height;
-      m_depth = other.m_depth;
-      m_format = other.m_format;
-      m_isDepth = other.m_isDepth;
-      m_samples = other.m_samples;
-      other.m_id = 0;
+   if (this == &other)
+      return *this;
+   if (m_id != 0) {
+      glDeleteTextures(1, &m_id);
    }
+   m_id = std::exchange(other.m_id, 0);
+   m_width = other.m_width;
+   m_height = other.m_height;
+   m_depth = other.m_depth;
+   m_format = other.m_format;
+   m_isDepth = other.m_isDepth;
+   m_samples = other.m_samples;
    return *this;
 }
 
-ResourceType GLTexture::GetType() const { return ResourceType::Texture; }
+ResourceType GLTexture::GetType() const noexcept { return ResourceType::Texture; }
 
-size_t GLTexture::GetMemoryUsage() const {
-   size_t bytesPerPixel = 4;
-   switch (m_format) {
-      case Format::R8:
-         bytesPerPixel = 1;
-         break;
-      case Format::RG8:
-         bytesPerPixel = 2;
-         break;
-      case Format::RGB8:
-         bytesPerPixel = 3;
-         break;
-      case Format::RGBA8:
-         break;
-      case Format::SRGB8_ALPHA8:
-         bytesPerPixel = 4;
-         break;
-      case Format::RGBA16F:
-         bytesPerPixel = 8;
-         break;
-      case Format::RGBA32F:
-         bytesPerPixel = 16;
-         break;
-      case Format::Depth24:
-         bytesPerPixel = 3;
-         break;
-      case Format::Depth32F:
-         bytesPerPixel = 4;
-         break;
-   }
-   return m_width * m_height * m_depth * bytesPerPixel * m_samples;
+size_t GLTexture::GetMemoryUsage() const noexcept {
+   return static_cast<size_t>(m_width) * m_height * m_depth * BytesPerPixelForFormat(m_format) *
+          std::max<uint32_t>(1, m_samples);
 }
 
-bool GLTexture::IsValid() const { return m_id != 0; }
+bool GLTexture::IsValid() const noexcept { return m_id != 0; }
 
-void GLTexture::Bind(const uint32_t unit) const {
+void GLTexture::Bind(const uint32_t unit) const noexcept {
    glActiveTexture(GL_TEXTURE0 + unit);
    glBindTexture(ConvertTarget(), m_id);
 }
 
-void* GLTexture::GetNativeHandle() const {
-   return reinterpret_cast<void*>(static_cast<uintptr_t>(m_id));
-}
-
 void GLTexture::CreateStorage() {
-   const GLenum target = ConvertTarget();
-   const GLenum internalFormat = ConvertFormat(m_format);
+   assert(m_id != 0);
+   const uint32_t target = ConvertTarget();
+   const uint32_t internal = ConvertFormatInternal(m_format);
    glBindTexture(target, m_id);
    if (m_samples > 1) {
-      glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, m_samples, internalFormat, m_width,
-                              m_height, GL_TRUE);
+      glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, m_samples, internal, m_width, m_height,
+                                GL_TRUE);
       return;
    }
-   GLenum externalFormat = GL_RGBA;
-   GLenum externalType = GL_UNSIGNED_BYTE;
+   uint32_t externalFormat = GL_RGBA;
+   uint32_t externalType = GL_UNSIGNED_BYTE;
    if (m_isDepth) {
       externalFormat = GL_DEPTH_COMPONENT;
       externalType = (m_format == Format::Depth32F) ? GL_FLOAT : GL_UNSIGNED_INT;
@@ -238,12 +222,6 @@ void GLTexture::CreateStorage() {
          case Format::RGB8:
             externalFormat = GL_RGB;
             break;
-         case Format::RGBA8:
-         case Format::SRGB8_ALPHA8:
-         case Format::RGBA16F:
-         case Format::RGBA32F:
-            externalFormat = GL_RGBA;
-            break;
          default:
             externalFormat = GL_RGBA;
             break;
@@ -252,16 +230,15 @@ void GLTexture::CreateStorage() {
          externalType = GL_FLOAT;
       }
    }
-   glTexImage2D(target, 0, internalFormat, m_width, m_height, 0, externalFormat, externalType,
-                nullptr);
+   glTexStorage2D(target, 1, internal, m_width, m_height);
    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, m_isDepth ? GL_NEAREST : GL_LINEAR);
    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, m_isDepth ? GL_NEAREST : GL_LINEAR);
    glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
    glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
-uint32_t GLTexture::ConvertFormat(Format format) const {
-   switch (format) {
+uint32_t GLTexture::ConvertFormatInternal(const Format fmt) const noexcept {
+   switch (fmt) {
       case Format::R8:
          return GL_R8;
       case Format::RG8:
@@ -285,18 +262,6 @@ uint32_t GLTexture::ConvertFormat(Format format) const {
    }
 }
 
-uint32_t GLTexture::ConvertTarget() const {
-   if (m_samples > 1)
-      return GL_TEXTURE_2D_MULTISAMPLE;
-   return GL_TEXTURE_2D;
+uint32_t GLTexture::ConvertTarget() const noexcept {
+   return (m_samples > 1) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 }
-
-uint32_t GLTexture::GetWidth() const { return m_width; }
-
-uint32_t GLTexture::GetHeight() const { return m_height; }
-
-uint32_t GLTexture::GetDepth() const { return m_depth; }
-
-ITexture::Format GLTexture::GetFormat() const { return m_format; }
-
-uint32_t GLTexture::GetId() const { return m_id; }

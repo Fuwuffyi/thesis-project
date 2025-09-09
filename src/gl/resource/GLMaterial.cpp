@@ -9,22 +9,16 @@ GLMaterial::GLMaterial(const MaterialTemplate& materialTemplate)
 void GLMaterial::Bind(const uint32_t bindingPoint, const ResourceManager& resourceManager) {
    UpdateUBO();
    m_ubo.BindBase(bindingPoint);
-   // Bind textures
    const auto& textureDescriptors = m_template->GetTextures();
    for (const auto& [textureName, descriptor] : textureDescriptors) {
-      const TextureHandle& textureHandle = GetTexture(textureName);
-      // Try to get the texture from the handle first
       ITexture* texture = nullptr;
-      if (textureHandle.IsValid()) {
-         texture = resourceManager.GetTexture(textureHandle);
+      const TextureHandle& th = GetTexture(textureName);
+      if (th.IsValid()) {
+         texture = resourceManager.GetTexture(th);
       }
-      // If no texture is set or texture is invalid, try to use default
-      if (!texture) {
-         if (descriptor.defaultTexture.IsValid()) {
-            texture = resourceManager.GetTexture(descriptor.defaultTexture);
-         }
+      if (!texture && descriptor.defaultTexture.IsValid()) {
+         texture = resourceManager.GetTexture(descriptor.defaultTexture);
       }
-      // Bind the texture if we have one
       if (texture && texture->IsValid()) {
          texture->Bind(descriptor.bindingSlot);
       }
@@ -39,6 +33,6 @@ void GLMaterial::UpdateUBO() {
    ClearDirty();
 }
 
-void* GLMaterial::GetNativeHandle() const {
+void* GLMaterial::GetNativeHandle() const noexcept {
    return reinterpret_cast<void*>(static_cast<uintptr_t>(m_ubo.Get()));
 }

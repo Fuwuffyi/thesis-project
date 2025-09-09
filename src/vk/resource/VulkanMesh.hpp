@@ -17,9 +17,9 @@ class VulkanMesh : public IMesh {
    VulkanMesh(const VulkanMesh&) = delete;
    VulkanMesh& operator=(const VulkanMesh&) = delete;
 
-   ResourceType GetType() const override;
-   size_t GetMemoryUsage() const override;
-   bool IsValid() const override;
+   ResourceType GetType() const noexcept override;
+   size_t GetMemoryUsage() const noexcept override;
+   bool IsValid() const noexcept override;
 
    void Draw() const;
    size_t GetIndexCount() const;

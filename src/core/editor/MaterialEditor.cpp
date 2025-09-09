@@ -60,7 +60,7 @@ void MaterialEditor::DrawMaterialProperties() {
    ImGui::Begin("Material Properties");
 
    ImGui::Text("Material: %s", m_selectedMaterialName.c_str());
-   ImGui::Text("Template: %s", m_selectedMaterial->GetTemplateName().c_str());
+   ImGui::Text("Template: %s", m_selectedMaterial->GetTemplateName());
 
    ImGui::Separator();
 

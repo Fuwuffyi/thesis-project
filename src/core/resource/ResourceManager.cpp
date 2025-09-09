@@ -421,7 +421,7 @@ void ResourceManager::SetupMaterialTemplates() {
    pbrTemplate->AddTexture("aoTexture", 5, "aoSampler", defAO);
    // Add the PBR material template
    pbrTemplate->Finalize();
-   m_materialTemplates[pbrTemplate->GetName()] = std::move(pbrTemplate);
+   m_materialTemplates[std::string{pbrTemplate->GetName()}] = std::move(pbrTemplate);
 }
 
 template ResourceHandle<ITexture> ResourceManager::RegisterResource<ITexture>(

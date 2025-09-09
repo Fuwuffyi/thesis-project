@@ -1,37 +1,39 @@
 #pragma once
 
-#include "../../core/resource/IMesh.hpp"
+#include "core/resource/IMesh.hpp"
 
-#include "../../core/Vertex.hpp"
-#include "../GLBuffer.hpp"
-#include "../GLVertexArray.hpp"
+#include "gl/GLBuffer.hpp"
+#include "gl/GLVertexArray.hpp"
 
-#include <cstddef>
 #include <vector>
 
-class GLMesh : public IMesh {
+struct Vertex;
+
+class GLMesh final : public IMesh {
   public:
-   GLMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
-   ~GLMesh();
+   GLMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) noexcept;
+   ~GLMesh() override = default;
 
    GLMesh(const GLMesh&) = delete;
    GLMesh& operator=(const GLMesh&) = delete;
 
-   ResourceType GetType() const override;
-   size_t GetMemoryUsage() const override;
-   bool IsValid() const override;
+   [[nodiscard]] constexpr ResourceType GetType() const noexcept override {
+      return ResourceType::Mesh;
+   }
+   [[nodiscard]] size_t GetMemoryUsage() const noexcept override;
+   [[nodiscard]] bool IsValid() const noexcept override;
 
-   void Draw() const override;
-   void Draw(const uint32_t drawType) const;
-   size_t GetVertexCount() const override;
-   size_t GetIndexCount() const override;
-   void* GetNativeHandle() const override;
+   void Draw() const noexcept override;
+   void Draw(uint32_t drawType) const;
+   [[nodiscard]] constexpr size_t GetVertexCount() const noexcept override { return m_vertexCount; }
+   [[nodiscard]] constexpr size_t GetIndexCount() const noexcept override { return m_indexCount; }
+   [[nodiscard]] void* GetNativeHandle() const noexcept override;
 
   private:
    GLBuffer m_ebo;
    GLBuffer m_vbo;
    GLVertexArray m_vao;
 
-   size_t m_indexCount;
-   size_t m_vertexCount;
+   size_t m_indexCount{0};
+   size_t m_vertexCount{0};
 };

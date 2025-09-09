@@ -10,10 +10,9 @@ class ITexture : public IResource {
    enum class Format { RGBA8, RGBA16F, RGBA32F, SRGB8_ALPHA8, Depth24, Depth32F, R8, RG8, RGB8 };
 
    enum class FilterMode { Nearest, Linear, LinearMipmapLinear, NearestMipmapNearest };
-
    enum class WrapMode { Repeat, ClampToEdge, ClampToBorder, MirroredRepeat };
 
-   struct CreateInfo {
+   struct CreateInfo final {
       uint32_t width = 0;
       uint32_t height = 0;
       uint32_t depth = 1;
@@ -29,12 +28,13 @@ class ITexture : public IResource {
    };
 
    virtual ~ITexture() = default;
-   virtual uint32_t GetWidth() const = 0;
-   virtual uint32_t GetHeight() const = 0;
-   virtual uint32_t GetDepth() const = 0;
-   virtual Format GetFormat() const = 0;
-   virtual void Bind(const uint32_t unit = 0) const = 0;
-   virtual void* GetNativeHandle() const = 0;
+
+   [[nodiscard]] virtual uint32_t GetWidth() const noexcept = 0;
+   [[nodiscard]] virtual uint32_t GetHeight() const noexcept = 0;
+   [[nodiscard]] virtual uint32_t GetDepth() const noexcept = 0;
+   [[nodiscard]] virtual Format GetFormat() const noexcept = 0;
+   virtual void Bind(const uint32_t unit = 0) const noexcept = 0;
+   [[nodiscard]] virtual void* GetNativeHandle() const noexcept = 0;
 };
 
 using TextureHandle = ResourceHandle<ITexture>;

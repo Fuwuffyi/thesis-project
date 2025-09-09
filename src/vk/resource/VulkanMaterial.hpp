@@ -16,7 +16,7 @@ class VulkanMaterial final : public MaterialInstance {
    // MaterialInstance implementation
    void Bind(const uint32_t bindingPoint, const ResourceManager& resourceManager) override;
    void UpdateUBO() override;
-   void* GetNativeHandle() const override;
+   void* GetNativeHandle() const noexcept override;
 
    // Vulkan-specific methods
    VkBuffer GetUniformBuffer() const;

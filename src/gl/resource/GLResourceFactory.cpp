@@ -9,7 +9,7 @@ std::unique_ptr<ITexture> GLResourceFactory::CreateTexture(const ITexture::Creat
 }
 
 std::unique_ptr<ITexture> GLResourceFactory::CreateTextureColor(const ITexture::Format format,
-                                             const glm::vec4& color) {
+                                                                const glm::vec4& color) {
    return std::make_unique<GLTexture>(format, color);
 }
 

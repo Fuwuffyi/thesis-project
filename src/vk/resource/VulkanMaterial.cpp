@@ -4,8 +4,6 @@
 #include "vk/VulkanDevice.hpp"
 #include "vk/resource/VulkanTexture.hpp"
 
-#include <stdexcept>
-
 VulkanMaterial::VulkanMaterial(const VulkanDevice& device, const MaterialTemplate& materialTemplate)
     : MaterialInstance(materialTemplate), m_device(&device) {
    // Create uniform buffer if UBO size > 0
@@ -43,7 +41,7 @@ void VulkanMaterial::UpdateUBO() {
    ClearDirty();
 }
 
-void* VulkanMaterial::GetNativeHandle() const {
+void* VulkanMaterial::GetNativeHandle() const noexcept {
    if (m_uniformBuffer) {
       return reinterpret_cast<void*>(m_uniformBuffer->Get());
    }

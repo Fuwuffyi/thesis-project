@@ -26,15 +26,15 @@ class VulkanTexture : public ITexture {
    VulkanTexture& operator=(VulkanTexture&& other) noexcept;
 
    // ITexture implementation
-   ResourceType GetType() const override;
-   size_t GetMemoryUsage() const override;
-   bool IsValid() const override;
-   uint32_t GetWidth() const override;
-   uint32_t GetHeight() const override;
-   uint32_t GetDepth() const override;
-   Format GetFormat() const override;
-   void Bind(uint32_t unit = 0) const override;
-   void* GetNativeHandle() const override;
+   ResourceType GetType() const noexcept override;
+   size_t GetMemoryUsage() const noexcept override;
+   bool IsValid() const noexcept override;
+   uint32_t GetWidth() const noexcept override;
+   uint32_t GetHeight() const noexcept override;
+   uint32_t GetDepth() const noexcept override;
+   Format GetFormat() const noexcept override;
+   void Bind(uint32_t unit = 0) const noexcept override;
+   void* GetNativeHandle() const noexcept override;
 
    // Vulkan-specific accessors
    VkImage GetImage() const;

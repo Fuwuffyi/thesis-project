@@ -7,7 +7,7 @@ enum class ResourceType { Texture, Mesh, Material };
 class IResource {
   public:
    virtual ~IResource() = default;
-   virtual ResourceType GetType() const = 0;
-   virtual size_t GetMemoryUsage() const = 0;
-   virtual bool IsValid() const = 0;
+   [[nodiscard]] virtual ResourceType GetType() const noexcept = 0;
+   [[nodiscard]] virtual size_t GetMemoryUsage() const noexcept = 0;
+   [[nodiscard]] virtual bool IsValid() const noexcept = 0;
 };
