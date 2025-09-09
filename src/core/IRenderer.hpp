@@ -1,8 +1,5 @@
 #pragma once
 
-#include <memory>
-
-// Forward declaration for Window stuff
 class Window;
 class Camera;
 class Scene;
