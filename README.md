@@ -1,13 +1,13 @@
 # ThesisProject
 
-A simple C++23 graphics engine that supports **OpenGL 4.6** and **Vulkan 1.4**.
+A simple C++23 PBR graphics engine that supports **OpenGL 4.6** and **Vulkan 1.4**.
 
 ---
 
 ## Requirements
 - CMake ≥ 3.25
 - C++23 compatible compiler:
-  - GCC ≥ 13 (gcc15 recommended here)
+  - GCC ≥ 13
   - Clang ≥ 16
   - MSVC ≥ 2022
 - Vulkan SDK (with `glslangValidator`)
@@ -44,11 +44,11 @@ Run:
 ## Directory Layout
 ```graphql
 resources/
-  textures/   # .png/.jpg
-  meshes/     # .obj/.fbx
+  textures/   # Textures .png/.jpg
+  meshes/     # Models .obj/.fbx
   shaders/
     gl/       # GLSL shaders for OpenGL
-    vk/       # GLSL shaders for Vulkan (compiled to SPIR-V)
+    vk/       # GLSL shaders for Vulkan
 src/
   core/       # Cross API code
   gl/         # OpenGL specific code
