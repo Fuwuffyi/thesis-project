@@ -95,7 +95,7 @@ void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) 
    CreateGizmoPass();
 }
 
-ResourceManager* GLRenderer::GetResourceManager() { return m_resourceManager.get(); }
+ResourceManager* GLRenderer::GetResourceManager() const noexcept { return m_resourceManager.get(); }
 
 void GLRenderer::CreateUtilityMeshes() {
    // Quad for lighting pass

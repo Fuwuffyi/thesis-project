@@ -21,7 +21,7 @@ class GLRenderer : public IRenderer {
    void SetupImgui() override;
    void RenderImgui() override;
    void DestroyImgui() override;
-   ResourceManager* GetResourceManager() override;
+   [[nodiscard]] ResourceManager* GetResourceManager() const noexcept override;
 
    void FramebufferCallback(const int32_t width, const int32_t height);
 

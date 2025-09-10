@@ -19,9 +19,7 @@
 #include "vk/resource/VulkanResourceFactory.hpp"
 
 #include <GLFW/glfw3.h>
-#include <algorithm>
 #include <chrono>
-#include <fstream>
 #include <memory>
 #include <print>
 #include <stdexcept>
@@ -553,7 +551,7 @@ void VulkanRenderer::RenderFrame() {
    m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-ResourceManager* VulkanRenderer::GetResourceManager() { return m_resourceManager.get(); }
+ResourceManager* VulkanRenderer::GetResourceManager() const noexcept { return m_resourceManager.get(); }
 
 void VulkanRenderer::CreateDefaultMaterial() {
    auto defaultMat = m_resourceManager->CreateMaterial("default_pbr", "PBR");

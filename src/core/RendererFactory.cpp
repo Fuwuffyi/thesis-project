@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include "core/IRenderer.hpp"
 #include "gl/GLRenderer.hpp"
 #include "vk/VulkanRenderer.hpp"
 

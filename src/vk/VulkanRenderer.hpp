@@ -21,7 +21,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
-#include <optional>
 #include <vector>
 
 struct CameraData {
@@ -66,7 +65,7 @@ class VulkanRenderer : public IRenderer {
                                 const VkFormatFeatureFlags features) const;
    VkFormat FindDepthFormat() const;
    bool HasStencilComponent(const VkFormat& format) const;
-   ResourceManager* GetResourceManager() override;
+   [[nodiscard]] ResourceManager* GetResourceManager() const noexcept override;
    // TODO: Remove once scene impl complete
    // Functions to create textures
    // Testing mesh

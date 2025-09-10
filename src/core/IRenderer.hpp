@@ -11,21 +11,24 @@ class IRenderer {
 
    IRenderer(const IRenderer&) = delete;
    IRenderer& operator=(const IRenderer&) = delete;
+   IRenderer(IRenderer&&) noexcept = delete;
+   IRenderer& operator=(IRenderer&&) noexcept = delete;
 
    virtual void RenderFrame() = 0;
-   void SetActiveCamera(Camera* cam);
-   void SetActiveScene(Scene* scene);
 
-   virtual ResourceManager* GetResourceManager() = 0;
+   void SetActiveCamera(Camera* cam) noexcept;
+   void SetActiveScene(Scene* scene) noexcept;
+
+   [[nodiscard]] virtual ResourceManager* GetResourceManager() const noexcept = 0;
 
   protected:
-   IRenderer(Window* window);
+   explicit IRenderer(Window* window) noexcept;
    virtual void SetupImgui() = 0;
    virtual void RenderImgui() = 0;
    virtual void DestroyImgui() = 0;
 
   protected:
-   Window* m_window;
-   Camera* m_activeCamera;
-   Scene* m_activeScene;
+   Window* m_window{nullptr};
+   Camera* m_activeCamera{nullptr};
+   Scene* m_activeScene{nullptr};
 };
