@@ -221,21 +221,9 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
                vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame), m_pipelineLayout->Get(),
                                   VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ObjectData), &objData);
             }
-            // Render the mesh
-            if (renderer->IsMultiMesh()) {
-               for (const auto& subMeshRenderer : renderer->GetSubMeshRenderers()) {
-                  if (!subMeshRenderer.visible)
-                     continue;
-                  if (const IMesh* mesh = m_resourceManager->GetMesh(subMeshRenderer.mesh)) {
-                     const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
-                     vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
-                  }
-               }
-            } else {
-               if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
-                  const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
-                  vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
-               }
+            if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
+               const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
+               vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
             }
          }
       });
@@ -551,7 +539,9 @@ void VulkanRenderer::RenderFrame() {
    m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-ResourceManager* VulkanRenderer::GetResourceManager() const noexcept { return m_resourceManager.get(); }
+ResourceManager* VulkanRenderer::GetResourceManager() const noexcept {
+   return m_resourceManager.get();
+}
 
 void VulkanRenderer::CreateDefaultMaterial() {
    auto defaultMat = m_resourceManager->CreateMaterial("default_pbr", "PBR");

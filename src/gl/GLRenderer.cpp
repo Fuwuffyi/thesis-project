@@ -346,25 +346,10 @@ void GLRenderer::RenderFrame() {
                m_geometryPassShader->SetMat4("model", worldTransform->GetTransformMatrix());
             }
             // Render the mesh
-            if (renderer->IsMultiMesh()) {
-               for (const auto& subMeshRenderer : renderer->GetSubMeshRenderers()) {
-                  if (!subMeshRenderer.visible)
-                     continue;
-                  if (const IMesh* mesh = m_resourceManager->GetMesh(subMeshRenderer.mesh)) {
-                     if (IMaterial* material =
-                            m_resourceManager->GetMaterial(subMeshRenderer.material)) {
-                        material->Bind(2, *m_resourceManager.get());
-                        mesh->Draw();
-                     }
-                  }
-               }
-            } else {
-               if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
-                  if (IMaterial* material =
-                         m_resourceManager->GetMaterial(renderer->GetMaterial())) {
-                     material->Bind(2, *m_resourceManager.get());
-                     mesh->Draw();
-                  }
+            if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
+               if (IMaterial* material = m_resourceManager->GetMaterial(renderer->GetMaterial())) {
+                  material->Bind(2, *m_resourceManager.get());
+                  mesh->Draw();
                }
             }
          }

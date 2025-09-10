@@ -140,86 +140,36 @@ void MaterialEditor::DrawRendererComponentInspector(Node* node, RendererComponen
 
       ImGui::Separator();
 
-      // Material assignment for single mesh
-      if (!renderer->IsMultiMesh()) {
-         ImGui::Text("Material:");
+      // Material assignment
+      ImGui::Text("Material:");
 
-         // Current material display
-         MaterialHandle currentMat = renderer->GetMaterial();
-         std::string matName = "None";
-         if (currentMat.IsValid()) {
-            // Find material name (you might want to store this in ResourceManager)
-            const auto materials = m_resourceManager->GetAllMaterialsNamed();
-            for (const auto& [mat, name] : materials) {
-               if (m_resourceManager->GetMaterialHandle(name) == currentMat) {
-                  matName = name;
-                  break;
-               }
+      // Current material display
+      MaterialHandle currentMat = renderer->GetMaterial();
+      std::string matName = "None";
+      if (currentMat.IsValid()) {
+         // Find material name (you might want to store this in ResourceManager)
+         const auto materials = m_resourceManager->GetAllMaterialsNamed();
+         for (const auto& [mat, name] : materials) {
+            if (m_resourceManager->GetMaterialHandle(name) == currentMat) {
+               matName = name;
+               break;
             }
-         }
-
-         ImGui::SameLine();
-         ImGui::Button(matName.c_str(), ImVec2(150, 0));
-
-         // Drag drop target
-         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MATERIAL")) {
-               std::string materialName((char*)payload->Data);
-               MaterialHandle newMat = m_resourceManager->GetMaterialHandle(materialName);
-               if (newMat.IsValid()) {
-                  renderer->SetMaterial(newMat);
-               }
-            }
-            ImGui::EndDragDropTarget();
          }
       }
-      // Multi-mesh material assignment
-      else {
-         ImGui::Text("Sub-Meshes:");
 
-         auto& subMeshes = renderer->GetSubMeshRenderers();
-         for (size_t i = 0; i < subMeshes.size(); ++i) {
-            ImGui::PushID(static_cast<int>(i));
+      ImGui::SameLine();
+      ImGui::Button(matName.c_str(), ImVec2(150, 0));
 
-            // Sub-mesh visibility
-            bool subVisible = subMeshes[i].visible;
-            if (ImGui::Checkbox("##visible", &subVisible)) {
-               renderer->SetSubMeshVisible(i, subVisible);
+      // Drag drop target
+      if (ImGui::BeginDragDropTarget()) {
+         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MATERIAL")) {
+            std::string materialName((char*)payload->Data);
+            MaterialHandle newMat = m_resourceManager->GetMaterialHandle(materialName);
+            if (newMat.IsValid()) {
+               renderer->SetMaterial(newMat);
             }
-
-            ImGui::SameLine();
-            ImGui::Text("SubMesh %zu:", i);
-
-            // Material assignment
-            MaterialHandle subMat = subMeshes[i].material;
-            std::string subMatName = "None";
-            if (subMat.IsValid()) {
-               const auto materials = m_resourceManager->GetAllMaterialsNamed();
-               for (const auto& [mat, name] : materials) {
-                  if (m_resourceManager->GetMaterialHandle(name) == subMat) {
-                     subMatName = name;
-                     break;
-                  }
-               }
-            }
-
-            ImGui::SameLine();
-            ImGui::Button(subMatName.c_str(), ImVec2(120, 0));
-
-            // Drag drop target for sub-mesh
-            if (ImGui::BeginDragDropTarget()) {
-               if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MATERIAL")) {
-                  std::string materialName((char*)payload->Data);
-                  MaterialHandle newMat = m_resourceManager->GetMaterialHandle(materialName);
-                  if (newMat.IsValid()) {
-                     renderer->SetSubMeshMaterial(i, newMat);
-                  }
-               }
-               ImGui::EndDragDropTarget();
-            }
-
-            ImGui::PopID();
          }
+         ImGui::EndDragDropTarget();
       }
    }
 }

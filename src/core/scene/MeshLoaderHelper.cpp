@@ -58,42 +58,17 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
    if (!parentNode || !meshGroup.IsValid()) {
       return;
    }
-   if (options.createSeparateNodes) {
-      // Create separate nodes for each sub-mesh
-      for (size_t i = 0; i < meshGroup.subMeshes.size(); ++i) {
-         const MeshHandle& meshHandle = meshGroup.subMeshes[i];
-         const size_t materialIndex = meshGroup.materialIndices[i];
-         const std::string nodeName = GenerateNodeName(parentNode->GetName() + "_SubMesh", i);
-         std::unique_ptr<Node> childNode = std::make_unique<Node>(nodeName);
-         childNode->AddComponent<TransformComponent>();
-         // Create renderer component with single mesh
-         RendererComponent* renderer = childNode->AddComponent<RendererComponent>(
-            meshHandle, materials.size() > materialIndex ? materials[materialIndex] : defaultMat);
-         // Set material index for reference
-         RendererComponent::SubMeshRenderer subMeshRenderer;
-         subMeshRenderer.mesh = meshHandle;
-         subMeshRenderer.material =
-            materials.size() > materialIndex ? materials[materialIndex] : defaultMat;
-         renderer->AddSubMeshRenderer(subMeshRenderer);
-         parentNode->AddChild(std::move(childNode));
-      }
-   } else {
-      // Create single node with multiple sub-mesh renderers
-      auto* renderer = parentNode->GetComponent<RendererComponent>();
-      if (!renderer) {
-         renderer = parentNode->AddComponent<RendererComponent>();
-      }
-      // Clear existing sub-meshes and add new ones
-      renderer->ClearSubMeshes();
-      for (size_t i = 0; i < meshGroup.subMeshes.size(); ++i) {
-         const auto& meshHandle = meshGroup.subMeshes[i];
-         const size_t materialIndex = meshGroup.materialIndices[i];
-         RendererComponent::SubMeshRenderer subMeshRenderer;
-         subMeshRenderer.mesh = meshHandle;
-         subMeshRenderer.material =
-            materials.size() > materialIndex ? materials[materialIndex] : defaultMat;
-         renderer->AddSubMeshRenderer(subMeshRenderer);
-      }
+   // Create separate nodes for each sub-mesh
+   for (size_t i = 0; i < meshGroup.subMeshes.size(); ++i) {
+      const MeshHandle& meshHandle = meshGroup.subMeshes[i];
+      const size_t materialIndex = meshGroup.materialIndices[i];
+      const std::string nodeName = GenerateNodeName(parentNode->GetName() + "_SubMesh", i);
+      std::unique_ptr<Node> childNode = std::make_unique<Node>(nodeName);
+      childNode->AddComponent<TransformComponent>();
+      // Create renderer component with single mesh
+      RendererComponent* renderer = childNode->AddComponent<RendererComponent>(
+         meshHandle, materials.size() > materialIndex ? materials[materialIndex] : defaultMat);
+      parentNode->AddChild(std::move(childNode));
    }
 }
 

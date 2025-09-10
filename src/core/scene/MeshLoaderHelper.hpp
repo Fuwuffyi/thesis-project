@@ -7,8 +7,7 @@ class Scene;
 
 class MeshLoaderHelper final {
   public:
-   struct MeshLoadOptions {
-      bool createSeparateNodes = true;
+   struct MeshLoadOptions final {
       std::string nodePrefix = "";
    };
 

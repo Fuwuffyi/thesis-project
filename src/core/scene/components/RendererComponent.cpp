@@ -12,17 +12,6 @@ RendererComponent::RendererComponent(const MeshHandle mesh, const MaterialHandle
       m_castsShadows(true),
       m_receivesShadows(true) {}
 
-RendererComponent::RendererComponent(const std::vector<MeshHandle>& meshes,
-                                     const std::vector<MaterialHandle>& materials) {
-   m_subMeshRenderers.reserve(meshes.size());
-   for (size_t i = 0; i < meshes.size() && i < materials.size(); ++i) {
-      SubMeshRenderer renderer;
-      renderer.mesh = meshes[i];
-      renderer.material = materials[i];
-      m_subMeshRenderers.push_back(std::move(renderer));
-   }
-}
-
 void RendererComponent::DrawInspector(Node* node) {
    if (ImGui::CollapsingHeader(
           "Renderer", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
@@ -36,73 +25,21 @@ void RendererComponent::DrawInspector(Node* node) {
 
 void RendererComponent::SetMesh(const MeshHandle mesh) {
    m_mesh = std::move(mesh);
-   m_subMeshRenderers.clear();
 }
 
 [[nodiscard]] const MeshHandle& RendererComponent::GetMesh() const noexcept { return m_mesh; }
 
-[[nodiscard]] bool RendererComponent::HasMesh() const noexcept {
-   return m_mesh.IsValid() || !m_subMeshRenderers.empty();
-}
+[[nodiscard]] bool RendererComponent::HasMesh() const noexcept { return m_mesh.IsValid(); }
 
 void RendererComponent::SetMaterial(const MaterialHandle material) {
    m_material = std::move(material);
-   m_subMeshRenderers.clear();
 }
 
 [[nodiscard]] const MaterialHandle& RendererComponent::GetMaterial() const noexcept {
    return m_material;
 }
 
-[[nodiscard]] bool RendererComponent::HasMaterial() const noexcept {
-   return m_material.IsValid() || !m_subMeshRenderers.empty();
-}
-
-void RendererComponent::SetSubMeshRenderers(const std::vector<SubMeshRenderer>& renderers) {
-   m_subMeshRenderers = renderers;
-   m_mesh = MeshHandle{};
-}
-
-void RendererComponent::AddSubMeshRenderer(const SubMeshRenderer& renderer) {
-   m_subMeshRenderers.push_back(renderer);
-}
-
-void RendererComponent::RemoveSubMeshRenderer(const size_t index) {
-   if (index < m_subMeshRenderers.size()) {
-      m_subMeshRenderers.erase(m_subMeshRenderers.begin() + index);
-   }
-}
-
-const std::vector<RendererComponent::SubMeshRenderer>& RendererComponent::GetSubMeshRenderers()
-   const noexcept {
-   return m_subMeshRenderers;
-}
-
-std::vector<RendererComponent::SubMeshRenderer>& RendererComponent::GetSubMeshRenderers() noexcept {
-   return m_subMeshRenderers;
-}
-
-size_t RendererComponent::GetSubMeshCount() const noexcept { return m_subMeshRenderers.size(); }
-
-void RendererComponent::SetSubMeshVisible(const size_t index, const bool visible) {
-   if (index < m_subMeshRenderers.size()) {
-      m_subMeshRenderers[index].visible = visible;
-   }
-}
-
-bool RendererComponent::IsSubMeshVisible(const size_t index) const {
-   return index < m_subMeshRenderers.size() ? m_subMeshRenderers[index].visible : false;
-}
-
-void RendererComponent::SetSubMeshMaterial(const size_t index, const MaterialHandle& material) {
-   if (index < m_subMeshRenderers.size()) {
-      m_subMeshRenderers[index].material = material;
-   }
-}
-
-MaterialHandle RendererComponent::GetSubMeshMaterial(const size_t index) const {
-   return index < m_subMeshRenderers.size() ? m_subMeshRenderers[index].material : MaterialHandle{};
-}
+[[nodiscard]] bool RendererComponent::HasMaterial() const noexcept { return m_material.IsValid(); }
 
 void RendererComponent::SetVisible(const bool visible) noexcept { m_visible = visible; }
 
@@ -119,7 +56,3 @@ void RendererComponent::SetReceivesShadows(const bool receivesShadows) noexcept 
 }
 
 [[nodiscard]] bool RendererComponent::ReceivesShadows() const noexcept { return m_receivesShadows; }
-
-bool RendererComponent::IsMultiMesh() const noexcept { return !m_subMeshRenderers.empty(); }
-
-void RendererComponent::ClearSubMeshes() { m_subMeshRenderers.clear(); }
