@@ -1,8 +1,11 @@
-#include "GLFramebuffer.hpp"
-#include "resource/GLTexture.hpp"
+#include "gl/GLFramebuffer.hpp"
 
-#include <stdexcept>
+#include "gl/resource/GLTexture.hpp"
+
 #include <utility>
+#include <format>
+
+using namespace std::string_view_literals;
 
 GLFramebuffer::GLFramebuffer(const CreateInfo& info)
     : m_width(info.width),
@@ -11,48 +14,38 @@ GLFramebuffer::GLFramebuffer(const CreateInfo& info)
       m_depthAttachment(info.depthAttachment),
       m_stencilAttachment(info.stencilAttachment) {
    glGenFramebuffers(1, &m_fbo);
-   if (m_fbo == 0) {
+   if (m_fbo == 0) [[unlikely]] {
       throw std::runtime_error("Failed to create OpenGL framebuffer");
    }
-
-   glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-
+   const ScopedBinder binder(m_fbo);
    // Attach color attachments
    for (size_t i = 0; i < m_colorAttachments.size(); ++i) {
       AttachTexture(m_colorAttachments[i], GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(i));
    }
-
    // Attach depth attachment
    if (m_depthAttachment.texture) {
       AttachTexture(m_depthAttachment, GL_DEPTH_ATTACHMENT);
    }
-
    // Attach stencil attachment
    if (m_stencilAttachment.texture) {
       AttachTexture(m_stencilAttachment, GL_STENCIL_ATTACHMENT);
    }
-
    // Set draw buffers
    if (!m_colorAttachments.empty()) {
       std::vector<GLenum> drawBuffers;
       drawBuffers.reserve(m_colorAttachments.size());
       for (size_t i = 0; i < m_colorAttachments.size(); ++i) {
-         drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + static_cast<GLenum>(i));
+         drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
       }
-      glDrawBuffers(static_cast<GLsizei>(drawBuffers.size()), drawBuffers.data());
+      glDrawBuffers(drawBuffers.size(), drawBuffers.data());
    } else {
       glDrawBuffer(GL_NONE);
       glReadBuffer(GL_NONE);
    }
-
    // Check completeness
-   if (!IsComplete()) {
-      const std::string status = GetStatusString();
-      glBindFramebuffer(GL_FRAMEBUFFER, 0);
-      throw std::runtime_error("Framebuffer incomplete: " + status);
+   if (!IsComplete()) [[unlikely]] {
+      throw std::runtime_error(std::format("Framebuffer incomplete: {}", GetStatusString()));
    }
-
-   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 GLFramebuffer::~GLFramebuffer() {
@@ -84,66 +77,62 @@ GLFramebuffer& GLFramebuffer::operator=(GLFramebuffer&& other) noexcept {
    return *this;
 }
 
-void GLFramebuffer::Bind() const {
+void GLFramebuffer::Bind() const noexcept {
    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
    glViewport(0, 0, m_width, m_height);
 }
 
-void GLFramebuffer::Unbind() const { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
+void GLFramebuffer::Unbind() const noexcept { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
 
-bool GLFramebuffer::IsComplete() const {
-   const GLint currentFbo = []() {
-      GLint fbo;
-      glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fbo);
-      return fbo;
-   }();
+bool GLFramebuffer::IsComplete() const noexcept { return GetStatus() == Status::Complete; }
 
-   glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-   const bool complete = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
-   glBindFramebuffer(GL_FRAMEBUFFER, currentFbo);
-   return complete;
-}
-
-std::string GLFramebuffer::GetStatusString() const {
-   const GLint currentFbo = []() {
-      GLint fbo;
-      glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fbo);
-      return fbo;
-   }();
-
-   glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+GLFramebuffer::Status GLFramebuffer::GetStatus() const noexcept {
+   const ScopedBinder binder(m_fbo);
    const GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-   glBindFramebuffer(GL_FRAMEBUFFER, currentFbo);
-
    switch (status) {
       case GL_FRAMEBUFFER_COMPLETE:
-         return "Complete";
+         return Status::Complete;
       case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-         return "Incomplete attachment";
+         return Status::IncompleteAttachment;
       case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-         return "Missing attachment";
+         return Status::MissingAttachment;
       case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
-         return "Incomplete draw buffer";
+         return Status::IncompleteDrawBuffer;
       case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
-         return "Incomplete read buffer";
+         return Status::IncompleteReadBuffer;
       case GL_FRAMEBUFFER_UNSUPPORTED:
-         return "Unsupported";
+         return Status::Unsupported;
       case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+         return Status::IncompleteMultisample;
+      default:
+         return Status::Unknown;
+   }
+}
+
+std::string GLFramebuffer::GetStatusString() const noexcept {
+   switch (GetStatus()) {
+      case Status::Complete:
+         return "Complete";
+      case Status::IncompleteAttachment:
+         return "Incomplete attachment";
+      case Status::MissingAttachment:
+         return "Missing attachment";
+      case Status::IncompleteDrawBuffer:
+         return "Incomplete draw buffer";
+      case Status::IncompleteReadBuffer:
+         return "Incomplete read buffer";
+      case Status::Unsupported:
+         return "Unsupported";
+      case Status::IncompleteMultisample:
          return "Incomplete multisample";
       default:
          return "Unknown error";
    }
 }
 
-void GLFramebuffer::Clear(bool clearColor, bool clearDepth, bool clearStencil) const {
-   const GLint currentFbo = []() {
-      GLint fbo;
-      glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fbo);
-      return fbo;
-   }();
-
-   glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-
+void GLFramebuffer::Clear(const bool clearColor, const bool clearDepth,
+                          const bool clearStencil) const noexcept {
+   const ScopedBinder binder(m_fbo);
    GLbitfield mask = 0;
    if (clearColor)
       mask |= GL_COLOR_BUFFER_BIT;
@@ -151,73 +140,54 @@ void GLFramebuffer::Clear(bool clearColor, bool clearDepth, bool clearStencil) c
       mask |= GL_DEPTH_BUFFER_BIT;
    if (clearStencil)
       mask |= GL_STENCIL_BUFFER_BIT;
-
    glClear(mask);
-   glBindFramebuffer(GL_FRAMEBUFFER, currentFbo);
 }
 
-void GLFramebuffer::ClearColor(uint32_t attachment, float r, float g, float b, float a) const {
-   const GLint currentFbo = []() {
-      GLint fbo;
-      glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fbo);
-      return fbo;
-   }();
-
-   glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+void GLFramebuffer::ClearColor(const uint32_t attachment, const float r, const float g,
+                               const float b, const float a) const noexcept {
+   const ScopedBinder binder(m_fbo);
    const float clearColor[4] = {r, g, b, a};
    glClearBufferfv(GL_COLOR, static_cast<GLint>(attachment), clearColor);
-   glBindFramebuffer(GL_FRAMEBUFFER, currentFbo);
 }
 
-void GLFramebuffer::ClearDepth(float depth) const {
-   const GLint currentFbo = []() {
-      GLint fbo;
-      glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fbo);
-      return fbo;
-   }();
-
-   glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+void GLFramebuffer::ClearDepth(const float depth) const noexcept {
+   const ScopedBinder binder(m_fbo);
    glClearBufferfv(GL_DEPTH, 0, &depth);
-   glBindFramebuffer(GL_FRAMEBUFFER, currentFbo);
 }
 
-void GLFramebuffer::ClearStencil(int32_t stencil) const {
-   const GLint currentFbo = []() {
-      GLint fbo;
-      glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fbo);
-      return fbo;
-   }();
-
-   glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+void GLFramebuffer::ClearStencil(const int32_t stencil) const noexcept {
+   const ScopedBinder binder(m_fbo);
    glClearBufferiv(GL_STENCIL, 0, &stencil);
-   glBindFramebuffer(GL_FRAMEBUFFER, currentFbo);
 }
 
-void GLFramebuffer::BlitTo(const GLFramebuffer& target, uint32_t srcX0, uint32_t srcY0,
-                           uint32_t srcX1, uint32_t srcY1, uint32_t dstX0, uint32_t dstY0,
-                           uint32_t dstX1, uint32_t dstY1, GLbitfield mask, GLenum filter) const {
+void GLFramebuffer::BlitTo(const GLFramebuffer& target, const uint32_t srcX0, const uint32_t srcY0,
+                           const uint32_t srcX1, const uint32_t srcY1, const uint32_t dstX0,
+                           const uint32_t dstY0, const uint32_t dstX1, const uint32_t dstY1,
+                           const GLbitfield mask, const GLenum filter) const noexcept {
    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo);
    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.GetId());
-
-   glBlitFramebuffer(static_cast<GLint>(srcX0), static_cast<GLint>(srcY0),
-                     static_cast<GLint>(srcX1), static_cast<GLint>(srcY1),
-                     static_cast<GLint>(dstX0), static_cast<GLint>(dstY0),
-                     static_cast<GLint>(dstX1), static_cast<GLint>(dstY1), mask, filter);
+   glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 }
 
-void GLFramebuffer::BlitToScreen(uint32_t screenWidth, uint32_t screenHeight, GLbitfield mask,
-                                 GLenum filter) const {
+void GLFramebuffer::BlitToScreen(const uint32_t screenWidth, const uint32_t screenHeight,
+                                 const GLbitfield mask, const GLenum filter) const noexcept {
    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo);
    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-   glBlitFramebuffer(0, 0, static_cast<GLint>(m_width), static_cast<GLint>(m_height), 0, 0,
-                     static_cast<GLint>(screenWidth), static_cast<GLint>(screenHeight), mask,
-                     filter);
+   glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, screenWidth, screenHeight, mask, filter);
 }
 
-void GLFramebuffer::AttachTexture(const AttachmentDesc& attachment, GLenum attachmentType) {
+void GLFramebuffer::AttachTexture(const AttachmentDesc& attachment,
+                                  const uint32_t attachmentType) noexcept {
    if (!attachment.texture)
       return;
-   // TODO: Add other types of textures for proper support
+   // TODO: Add support for other texture types (3D, cube maps, etc.)
    glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentType, GL_TEXTURE_2D,
-                          attachment.texture->GetId(), static_cast<GLint>(attachment.mipLevel));
+                          attachment.texture->GetId(), attachment.mipLevel);
 }
+
+GLFramebuffer::ScopedBinder::ScopedBinder(const uint32_t fbo) noexcept {
+   glGetIntegerv(GL_FRAMEBUFFER_BINDING, &m_previousFbo);
+   glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+}
+
+GLFramebuffer::ScopedBinder::~ScopedBinder() { glBindFramebuffer(GL_FRAMEBUFFER, m_previousFbo); }
