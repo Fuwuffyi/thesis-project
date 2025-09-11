@@ -34,7 +34,7 @@ bool GLMesh::IsValid() const noexcept {
    return m_vao.IsValid() && m_vbo.IsValid() && m_ebo.IsValid();
 }
 
-void GLMesh::Draw() const noexcept { m_vao.DrawElements(GL_TRIANGLES, m_indexCount, m_indexType); }
+void GLMesh::Draw() const noexcept { Draw(GL_TRIANGLES); }
 
 void GLMesh::Draw(const uint32_t drawType) const {
    m_vao.DrawElements(drawType, m_indexCount, m_indexType);
