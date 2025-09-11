@@ -478,7 +478,7 @@ void VulkanRenderer::RenderImgui() {
    m_materialEditor->DrawMaterialProperties();
    m_materialEditor->DrawTextureBrowser();
    // FPS Overlay
-   PerformanceGUI::RenderPeformanceGUI(*m_resourceManager.get());
+   PerformanceGUI::RenderPeformanceGUI(*m_resourceManager.get(), *m_activeScene);
    // Imgui render end
    ImGui::Render();
 }

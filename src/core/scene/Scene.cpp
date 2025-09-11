@@ -27,7 +27,6 @@ void Scene::DrawInspector(MaterialEditor& matEditor) {
    ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + viewport->WorkSize.x - 300,
                                   viewport->WorkPos.y)); // 300 px width
    ImGui::SetNextWindowSize(ImVec2(300, viewport->WorkSize.y));
-   ImGui::SetNextWindowBgAlpha(0.35f);
    constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
                                       ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
                                       ImGuiWindowFlags_NoSavedSettings |
@@ -69,7 +68,6 @@ void Scene::DrawInspector(MaterialEditor& matEditor) {
    }
    ImGui::End();
    if (selectedNode) {
-      ImGui::SetNextWindowBgAlpha(0.35f);
       ImGui::Begin("Inspector");
       if (const auto* comp = selectedNode->GetComponent<TransformComponent>())
          const_cast<TransformComponent*>(comp)->DrawInspector(selectedNode);
