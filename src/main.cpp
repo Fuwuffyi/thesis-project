@@ -12,6 +12,7 @@
 #include <GLFW/glfw3.h>
 
 #include <memory>
+#include <random>
 #include <print>
 #include <chrono>
 
@@ -44,12 +45,32 @@ void CreateFullScene(Scene& scene, ResourceManager& resourceManager, const Graph
       scene, scene.GetRootNode(), resourceManager, "sponza", "resources/meshes/sponza.fbx", {}, {});
    sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
 
-   // Create a testing light
-   Node* lightNode = scene.CreateNode("Light node");
-   lightNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 3.0f, 0.0f));
-   LightComponent* light = lightNode->AddComponent<LightComponent>();
-   light->SetType(LightComponent::LightType::Point);
-   light->SetIntensity(3.0f);
+   // Setup light node
+   Node* lightsNode = scene.CreateNode("lights");
+   lightsNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 7.0f, 0.0f));
+
+   // Create testing lights
+   std::random_device rd;
+   std::mt19937 gen(rd());
+   std::uniform_real_distribution<float> unitDist(0.0f, 1.0f);
+   std::uniform_real_distribution<float> posDist(-7.0f, 7.0f);
+   std::uniform_real_distribution<float> angleDist(40.0f, 65.0f);
+   std::uniform_real_distribution<float> angleDistTransform(0.0f, 180.0f);
+   for (uint32_t i = 0; i < 50; ++i) {
+      Node* lightNode = scene.CreateChildNode(lightsNode, "light_" + std::to_string(i));
+      TransformComponent* transform = lightNode->GetComponent<TransformComponent>();
+      transform->SetPosition(glm::vec3(posDist(gen), posDist(gen) + 7.0f, posDist(gen)));
+      transform->SetRotation(
+         glm::vec3(angleDistTransform(gen), angleDistTransform(gen), angleDistTransform(gen)));
+      transform->SetScale(glm::vec3(0.2f));
+      LightComponent* light = lightNode->AddComponent<LightComponent>();
+      light->SetType(LightComponent::LightType::Spot);
+      light->SetColor(glm::vec3(unitDist(gen), unitDist(gen), unitDist(gen)));
+      light->SetIntensity(1.75f);
+      const float outer = angleDist(gen);
+      light->SetOuterCone(glm::radians(outer));
+      light->SetInnerCone(glm::radians(5.0f + outer));
+   }
 }
 
 int main(int argc, char* argv[]) {
