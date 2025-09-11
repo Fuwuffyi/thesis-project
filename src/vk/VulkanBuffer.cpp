@@ -5,6 +5,7 @@
 
 #include <stdexcept>
 #include <cstring>
+#include <utility>
 #include <algorithm>
 
 VulkanBuffer::VulkanBuffer(const VulkanDevice& device, const VkDeviceSize size, const Usage usage,
@@ -37,38 +38,37 @@ VulkanBuffer::~VulkanBuffer() {
 }
 
 VulkanBuffer::VulkanBuffer(VulkanBuffer&& other) noexcept
-    : m_device(other.m_device),
-      m_buffer(other.m_buffer),
-      m_memory(other.m_memory),
-      m_size(other.m_size),
-      m_usage(other.m_usage),
-      m_memoryProperties(other.m_memoryProperties),
-      m_mapped(other.m_mapped),
-      m_persistentlyMapped(other.m_persistentlyMapped) {
-   other.m_device = nullptr;
-   other.m_buffer = VK_NULL_HANDLE;
-   other.m_memory = VK_NULL_HANDLE;
-   other.m_size = 0;
-   other.m_mapped = nullptr;
-   other.m_persistentlyMapped = false;
-}
+    : m_device(std::exchange(other.m_device, nullptr)),
+      m_buffer(std::exchange(other.m_buffer, VK_NULL_HANDLE)),
+      m_memory(std::exchange(other.m_memory, VK_NULL_HANDLE)),
+      m_size(std::exchange(other.m_size, 0)),
+      m_usage(std::exchange(other.m_usage, Usage::Vertex)),
+      m_memoryProperties(std::exchange(other.m_memoryProperties, 0)),
+      m_mapped(std::exchange(other.m_mapped, nullptr)),
+      m_persistentlyMapped(std::exchange(other.m_persistentlyMapped, false)) {}
 
 VulkanBuffer& VulkanBuffer::operator=(VulkanBuffer&& other) noexcept {
    if (this != &other) {
-      m_device = other.m_device;
-      m_buffer = other.m_buffer;
-      m_memory = other.m_memory;
-      m_size = other.m_size;
-      m_usage = other.m_usage;
-      m_memoryProperties = other.m_memoryProperties;
-      m_mapped = other.m_mapped;
-      m_persistentlyMapped = other.m_persistentlyMapped;
-      other.m_device = nullptr;
-      other.m_buffer = VK_NULL_HANDLE;
-      other.m_memory = VK_NULL_HANDLE;
-      other.m_size = 0;
-      other.m_mapped = nullptr;
-      other.m_persistentlyMapped = false;
+      if (m_mapped) {
+         vkUnmapMemory(m_device->Get(), m_memory);
+         m_mapped = nullptr;
+      }
+      if (m_buffer != VK_NULL_HANDLE) {
+         vkDestroyBuffer(m_device->Get(), m_buffer, nullptr);
+         m_buffer = VK_NULL_HANDLE;
+      }
+      if (m_memory != VK_NULL_HANDLE) {
+         vkFreeMemory(m_device->Get(), m_memory, nullptr);
+         m_memory = VK_NULL_HANDLE;
+      }
+      m_device = std::exchange(other.m_device, nullptr);
+      m_buffer = std::exchange(other.m_buffer, VK_NULL_HANDLE);
+      m_memory = std::exchange(other.m_memory, VK_NULL_HANDLE);
+      m_size = std::exchange(other.m_size, 0);
+      m_usage = std::exchange(other.m_usage, Usage::Vertex);
+      m_memoryProperties = std::exchange(other.m_memoryProperties, 0);
+      m_mapped = std::exchange(other.m_mapped, nullptr);
+      m_persistentlyMapped = std::exchange(other.m_persistentlyMapped, false);
    }
    return *this;
 }
@@ -208,7 +208,7 @@ void VulkanBuffer::AllocateMemory() {
    allocInfo.allocationSize = memRequirements.size;
    allocInfo.memoryTypeIndex = VulkanBuffer::FindMemoryType(
       m_device->GetPhysicalDevice(), memRequirements.memoryTypeBits, m_memoryProperties);
-   VkResult result = vkAllocateMemory(m_device->Get(), &allocInfo, nullptr, &m_memory);
+   const VkResult result = vkAllocateMemory(m_device->Get(), &allocInfo, nullptr, &m_memory);
    if (result != VK_SUCCESS) {
       throw std::runtime_error("Failed to allocate buffer memory");
    }

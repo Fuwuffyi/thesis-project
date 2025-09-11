@@ -10,27 +10,34 @@ GLMesh::GLMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>&
       m_vertexCount(vertices.size()) {
    if (!vertices.empty())
       m_vbo.UploadData(std::span(vertices.data(), vertices.size()));
-   if (!indices.empty())
-      m_ebo.UploadData(std::span(indices.data(), indices.size()));
+   if (!indices.empty()) {
+      if (indices.size() <= std::numeric_limits<uint16_t>::max()) {
+         m_indexType = GL_UNSIGNED_SHORT;
+         const std::vector<uint16_t> indices16(indices.begin(), indices.end());
+         m_ebo.UploadData(indices16.data(), indices16.size() * sizeof(uint16_t));
+      } else {
+         m_indexType = GL_UNSIGNED_INT;
+         m_ebo.UploadData(indices.data(), indices.size() * sizeof(uint32_t));
+      }
+   }
    m_vao.AttachVertexBuffer(m_vbo, 0, 0, sizeof(Vertex));
    m_vao.AttachElementBuffer(m_ebo);
    m_vao.SetupVertexAttributes();
 }
 
 size_t GLMesh::GetMemoryUsage() const noexcept {
-   return (m_vertexCount * sizeof(Vertex)) + (m_indexCount * sizeof(uint32_t));
+   return (m_vertexCount * sizeof(Vertex)) +
+          (m_indexCount * (m_indexType == GL_UNSIGNED_INT ? sizeof(uint32_t) : sizeof(uint16_t)));
 }
 
 bool GLMesh::IsValid() const noexcept {
    return m_vao.IsValid() && m_vbo.IsValid() && m_ebo.IsValid();
 }
 
-void GLMesh::Draw() const noexcept {
-   m_vao.DrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_indexCount), GL_UNSIGNED_INT);
-}
+void GLMesh::Draw() const noexcept { m_vao.DrawElements(GL_TRIANGLES, m_indexCount, m_indexType); }
 
 void GLMesh::Draw(const uint32_t drawType) const {
-   m_vao.DrawElements(drawType, static_cast<GLsizei>(m_indexCount), GL_UNSIGNED_INT);
+   m_vao.DrawElements(drawType, m_indexCount, m_indexType);
 }
 
 void* GLMesh::GetNativeHandle() const noexcept {

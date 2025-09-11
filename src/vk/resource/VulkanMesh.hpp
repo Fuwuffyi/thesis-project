@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../core/Vertex.hpp"
+#include "core/Vertex.hpp"
 #include "core/resource/IMesh.hpp"
 
 #include "vk/VulkanBuffer.hpp"
@@ -33,12 +33,14 @@ class VulkanMesh : public IMesh {
   private:
    static VulkanBuffer CreateVertexBuffer(const std::vector<Vertex>& vertices,
                                           const VulkanDevice& device);
-   static VulkanBuffer CreateIndexBuffer(const std::vector<uint32_t>& indices,
+   template<typename T>
+   static VulkanBuffer CreateIndexBuffer(const std::vector<T>& indices,
                                          const VulkanDevice& device);
 
   private:
    VulkanBuffer m_vertexBuffer;
    VulkanBuffer m_indexBuffer;
+   VkIndexType m_indexType{VK_INDEX_TYPE_UINT32};
 
    size_t m_indexCount;
    size_t m_vertexCount;

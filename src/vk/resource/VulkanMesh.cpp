@@ -1,6 +1,6 @@
 #include "VulkanMesh.hpp"
 
-#include "../VulkanDevice.hpp"
+#include "vk/VulkanDevice.hpp"
 
 #include <glad/gl.h>
 #include <stdexcept>
@@ -8,16 +8,29 @@
 VulkanMesh::VulkanMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices,
                        const VulkanDevice& device)
     : m_vertexBuffer(VulkanMesh::CreateVertexBuffer(vertices, device)),
-      m_indexBuffer(VulkanMesh::CreateIndexBuffer(indices, device)),
+      m_indexBuffer(VulkanMesh::CreateIndexBuffer(
+         std::vector<uint32_t>{0},
+         device)), // HACK: bad, dummy buffer creation, better than heap though
       m_indexCount(indices.size()),
-      m_vertexCount(vertices.size()) {}
+      m_vertexCount(vertices.size()) {
+   if (indices.size() <= std::numeric_limits<uint16_t>::max()) {
+      m_indexType = VK_INDEX_TYPE_UINT16;
+      const std::vector<uint16_t> indices16(indices.begin(), indices.end());
+      m_indexBuffer = CreateIndexBuffer(indices16, device);
+   } else {
+      m_indexType = VK_INDEX_TYPE_UINT32;
+      m_indexBuffer = CreateIndexBuffer(indices, device);
+   }
+}
 
 VulkanMesh::~VulkanMesh() = default;
 
 ResourceType VulkanMesh::GetType() const noexcept { return ResourceType::Mesh; }
 
 size_t VulkanMesh::GetMemoryUsage() const noexcept {
-   return (m_vertexCount * sizeof(Vertex)) + (m_indexCount * sizeof(uint32_t));
+   return (m_vertexCount * sizeof(Vertex)) +
+          (m_indexCount *
+           (m_indexType == VK_INDEX_TYPE_UINT32 ? sizeof(uint32_t) : sizeof(uint16_t)));
 }
 
 bool VulkanMesh::IsValid() const noexcept {
@@ -41,9 +54,10 @@ VulkanBuffer VulkanMesh::CreateVertexBuffer(const std::vector<Vertex>& vertices,
    return vertexBuffer;
 }
 
-VulkanBuffer VulkanMesh::CreateIndexBuffer(const std::vector<uint32_t>& indices,
+template <typename T>
+VulkanBuffer VulkanMesh::CreateIndexBuffer(const std::vector<T>& indices,
                                            const VulkanDevice& device) {
-   const VkDeviceSize bufferSize = sizeof(uint32_t) * indices.size();
+   const VkDeviceSize bufferSize = sizeof(T) * indices.size();
    VulkanBuffer stagingBuffer(device, bufferSize, VulkanBuffer::Usage::TransferSrc,
                               VulkanBuffer::MemoryType::HostVisible);
    stagingBuffer.Update(indices.data(), bufferSize);
@@ -63,7 +77,7 @@ void VulkanMesh::Draw(const VkCommandBuffer& cmd) const {
    const VkBuffer vertexBuffers[] = {m_vertexBuffer.Get()};
    const VkDeviceSize offsets[] = {0};
    vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
-   vkCmdBindIndexBuffer(cmd, m_indexBuffer.Get(), 0, VK_INDEX_TYPE_UINT32);
+   vkCmdBindIndexBuffer(cmd, m_indexBuffer.Get(), 0, m_indexType);
    vkCmdDrawIndexed(cmd, static_cast<uint32_t>(m_indexCount), 1, 0, 0, 0);
 }
 
