@@ -40,16 +40,16 @@ void CreateFullScene(Scene& scene, ResourceManager& resourceManager, const Graph
                                false);
    resourceManager.LoadTexture("testing_ao", "resources/textures/bricks_ao.jpg", true, false);
 
-   Node* sponzaNode = MeshLoaderHelper::LoadMeshAsChildNode(scene.GetRootNode(), resourceManager,
-                                                            "sponza", "resources/meshes/sponza.fbx",
-                                                            {.createSeparateNodes = true}, {});
+   Node* sponzaNode = MeshLoaderHelper::LoadMeshAsChildNode(
+      scene, scene.GetRootNode(), resourceManager, "sponza", "resources/meshes/sponza.fbx", {}, {});
    sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
 
    // Create a testing light
    Node* lightNode = scene.CreateNode("Light node");
-   lightNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 1.0f, 0.0f));
+   lightNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 3.0f, 0.0f));
    LightComponent* light = lightNode->AddComponent<LightComponent>();
-   light->SetType(LightComponent::LightType::Spot);
+   light->SetType(LightComponent::LightType::Point);
+   light->SetIntensity(3.0f);
 }
 
 int main(int argc, char* argv[]) {

@@ -20,11 +20,12 @@ Node* MeshLoaderHelper::LoadMeshIntoScene(Scene& scene, ResourceManager& resourc
    const std::string parentName =
       options.nodePrefix.empty() ? meshName : options.nodePrefix + meshName;
    Node* parentNode = scene.CreateNode(parentName);
-   CreateNodesForMeshGroup(parentNode, resourceManager, meshGroup, options, materials);
+   CreateNodesForMeshGroup(scene, parentNode, resourceManager, meshGroup, options, materials);
    return parentNode;
 }
 
-Node* MeshLoaderHelper::LoadMeshAsChildNode(Node* parent, ResourceManager& resourceManager,
+Node* MeshLoaderHelper::LoadMeshAsChildNode(Scene& scene, Node* parent,
+                                            ResourceManager& resourceManager,
                                             const std::string& meshName,
                                             const std::string& filepath,
                                             const MeshLoadOptions& options,
@@ -38,19 +39,17 @@ Node* MeshLoaderHelper::LoadMeshAsChildNode(Node* parent, ResourceManager& resou
    if (!meshGroup.IsValid()) {
       return nullptr;
    }
-   Node* groupNode = nullptr;
    // Create a child node to group all sub-meshes
    const std::string groupName =
       options.nodePrefix.empty() ? meshName : options.nodePrefix + meshName;
-   auto childNode = std::make_unique<Node>(groupName);
+   Node* childNode = scene.CreateChildNode(parent, groupName);
    childNode->AddComponent<TransformComponent>();
-   groupNode = childNode.get();
-   parent->AddChild(std::move(childNode));
-   CreateNodesForMeshGroup(groupNode, resourceManager, meshGroup, options, materials);
-   return groupNode;
+   CreateNodesForMeshGroup(scene, childNode, resourceManager, meshGroup, options, materials);
+   return childNode;
 }
 
-void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager& resourceManager,
+void MeshLoaderHelper::CreateNodesForMeshGroup(Scene& scene, Node* parentNode,
+                                               ResourceManager& resourceManager,
                                                const ResourceManager::LoadedMeshGroup& meshGroup,
                                                const MeshLoadOptions& options,
                                                const std::vector<MaterialHandle>& materials) {
@@ -63,12 +62,11 @@ void MeshLoaderHelper::CreateNodesForMeshGroup(Node* parentNode, ResourceManager
       const MeshHandle& meshHandle = meshGroup.subMeshes[i];
       const size_t materialIndex = meshGroup.materialIndices[i];
       const std::string nodeName = GenerateNodeName(parentNode->GetName() + "_SubMesh", i);
-      std::unique_ptr<Node> childNode = std::make_unique<Node>(nodeName);
+      Node* childNode = scene.CreateChildNode(parentNode, nodeName);
       childNode->AddComponent<TransformComponent>();
       // Create renderer component with single mesh
       RendererComponent* renderer = childNode->AddComponent<RendererComponent>(
          meshHandle, materials.size() > materialIndex ? materials[materialIndex] : defaultMat);
-      parentNode->AddChild(std::move(childNode));
    }
 }
 

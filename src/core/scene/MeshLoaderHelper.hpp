@@ -15,13 +15,13 @@ class MeshLoaderHelper final {
                                   const std::string& meshName, const std::string& filepath,
                                   const MeshLoadOptions& options,
                                   const std::vector<MaterialHandle>& materials);
-   static Node* LoadMeshAsChildNode(Node* parent, ResourceManager& resourceManager,
+   static Node* LoadMeshAsChildNode(Scene& scene, Node* parent, ResourceManager& resourceManager,
                                     const std::string& meshName, const std::string& filepath,
                                     const MeshLoadOptions& options,
                                     const std::vector<MaterialHandle>& materials);
 
   private:
-   static void CreateNodesForMeshGroup(Node* parentNode, ResourceManager& resourceManager,
+   static void CreateNodesForMeshGroup(Scene& scene, Node* parentNode, ResourceManager& resourceManager,
                                        const ResourceManager::LoadedMeshGroup& meshGroup,
                                        const MeshLoadOptions& options,
                                        const std::vector<MaterialHandle>& materials);
