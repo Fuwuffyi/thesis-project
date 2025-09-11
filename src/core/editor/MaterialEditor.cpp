@@ -1,5 +1,4 @@
 #include "core/editor/MaterialEditor.hpp"
-#include <imgui.h>
 
 #include "core/GraphicsAPI.hpp"
 #include "core/resource/ResourceManager.hpp"
@@ -11,32 +10,29 @@
 #include "gl/resource/GLTexture.hpp"
 #include "vk/resource/VulkanTexture.hpp"
 
-MaterialEditor::MaterialEditor(ResourceManager* resourceManager, const GraphicsAPI api)
+#include <imgui.h>
+
+MaterialEditor::MaterialEditor(ResourceManager* const resourceManager,
+                               const GraphicsAPI api) noexcept
     : m_resourceManager(resourceManager), m_api(api) {}
 
 void MaterialEditor::DrawMaterialBrowser() {
-   if (!m_showMaterialBrowser)
+   if (!m_showMaterialBrowser) [[unlikely]]
       return;
-
    if (ImGui::Begin("Material Browser", &m_showMaterialBrowser)) {
       // Create new material button
       if (ImGui::Button("Create New Material")) {
          m_showMaterialCreation = true;
       }
-
       ImGui::Separator();
-
       // List all materials
       const auto materials = m_resourceManager->GetAllMaterialsNamed();
-
       for (const auto& [material, name] : materials) {
-         bool isSelected = (material == m_selectedMaterial);
-
+         const bool isSelected = (material == m_selectedMaterial);
          if (ImGui::Selectable(name.c_str(), isSelected)) {
             m_selectedMaterial = material;
             m_selectedMaterialName = name;
          }
-
          // Drag source for material
          if (ImGui::BeginDragDropSource()) {
             ImGui::SetDragDropPayload("MATERIAL", name.c_str(), name.size() + 1);
@@ -46,7 +42,6 @@ void MaterialEditor::DrawMaterialBrowser() {
       }
    }
    ImGui::End();
-
    // Draw material creation dialog
    if (m_showMaterialCreation) {
       DrawMaterialCreationDialog();
@@ -54,47 +49,33 @@ void MaterialEditor::DrawMaterialBrowser() {
 }
 
 void MaterialEditor::DrawMaterialProperties() {
-   if (!m_selectedMaterial)
+   if (!m_selectedMaterial) [[unlikely]]
       return;
-
    ImGui::Begin("Material Properties");
-
    ImGui::Text("Material: %s", m_selectedMaterialName.c_str());
-   ImGui::Text("Template: %s", m_selectedMaterial->GetTemplateName());
-
+   ImGui::Text("Template: %s", m_selectedMaterial->GetTemplateName().data());
    ImGui::Separator();
-
    DrawMaterialParameterEditor(m_selectedMaterial);
-
    ImGui::End();
 }
 
 void MaterialEditor::DrawTextureBrowser() {
-   if (!m_showTextureBrowser)
+   if (!m_showTextureBrowser) [[unlikely]]
       return;
 
    if (ImGui::Begin("Texture Browser", &m_showTextureBrowser)) {
-      const uint32_t columns = 4;
-      const uint32_t imgSize = 96;
-
+      constexpr uint32_t columns = 4;
+      constexpr uint32_t imgSize = 96;
       ImGui::BeginChild("TextureScrollRegion", ImVec2(0, 0), false,
                         ImGuiWindowFlags_HorizontalScrollbar);
       ImGui::Columns(columns, nullptr, false);
-
       const auto textures = m_resourceManager->GetAllTexturesNamed();
-
       for (const auto& [texture, name] : textures) {
          if (texture) {
-            uint32_t texId = GetTextureId(texture);
-
-            // Give each image a unique ID so ImGui knows which item is being interacted with
+            const uint32_t texId = GetTextureId(texture);
             ImGui::PushID(name.c_str());
-
-            // Use ImageButton so the preview is an active widget and receives mouse events.
-            // frame_padding = 0 to remove the visible button frame; adjust as you like.
             ImGui::ImageButton(name.c_str(), static_cast<ImTextureID>(texId),
-                               ImVec2((float)imgSize, (float)imgSize));
-
+                               ImVec2(static_cast<float>(imgSize), static_cast<float>(imgSize)));
             // Now begin the drag source while the image button is the last active item.
             if (ImGui::BeginDragDropSource()) {
                ImGui::SetDragDropPayload("TEXTURE", name.c_str(), name.size() + 1); // include null
@@ -116,10 +97,10 @@ void MaterialEditor::DrawTextureBrowser() {
    ImGui::End();
 }
 
-void MaterialEditor::DrawRendererComponentInspector(Node* node, RendererComponent* renderer) {
-   if (!renderer)
+void MaterialEditor::DrawRendererComponentInspector(Node* const node,
+                                                    RendererComponent* const renderer) {
+   if (!renderer) [[unlikely]]
       return;
-
    if (ImGui::CollapsingHeader(
           "Renderer", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
       // Basic renderer properties
@@ -127,24 +108,19 @@ void MaterialEditor::DrawRendererComponentInspector(Node* node, RendererComponen
       if (ImGui::Checkbox("Visible", &visible)) {
          renderer->SetVisible(visible);
       }
-
       bool castsShadows = renderer->CastsShadows();
       if (ImGui::Checkbox("Casts Shadows", &castsShadows)) {
          renderer->SetCastsShadows(castsShadows);
       }
-
       bool receivesShadows = renderer->ReceivesShadows();
       if (ImGui::Checkbox("Receives Shadows", &receivesShadows)) {
          renderer->SetReceivesShadows(receivesShadows);
       }
-
       ImGui::Separator();
-
       // Material assignment
       ImGui::Text("Material:");
-
       // Current material display
-      MaterialHandle currentMat = renderer->GetMaterial();
+      const MaterialHandle currentMat = renderer->GetMaterial();
       std::string matName = "None";
       if (currentMat.IsValid()) {
          // Find material name (you might want to store this in ResourceManager)
@@ -156,15 +132,13 @@ void MaterialEditor::DrawRendererComponentInspector(Node* node, RendererComponen
             }
          }
       }
-
       ImGui::SameLine();
       ImGui::Button(matName.c_str(), ImVec2(150, 0));
-
       // Drag drop target
       if (ImGui::BeginDragDropTarget()) {
-         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MATERIAL")) {
-            std::string materialName((char*)payload->Data);
-            MaterialHandle newMat = m_resourceManager->GetMaterialHandle(materialName);
+         if (const ImGuiPayload* const payload = ImGui::AcceptDragDropPayload("MATERIAL")) {
+            const std::string materialName(static_cast<const char*>(payload->Data));
+            const MaterialHandle newMat = m_resourceManager->GetMaterialHandle(materialName);
             if (newMat.IsValid()) {
                renderer->SetMaterial(newMat);
             }
@@ -175,59 +149,55 @@ void MaterialEditor::DrawRendererComponentInspector(Node* node, RendererComponen
 }
 
 void MaterialEditor::DrawMaterialCreationDialog() {
-   if (!m_showMaterialCreation)
+   if (!m_showMaterialCreation) [[unlikely]]
       return;
-
    ImGui::OpenPopup("Create Material");
-
    if (ImGui::BeginPopupModal("Create Material", &m_showMaterialCreation)) {
       ImGui::InputText("Material Name", m_newMaterialName, sizeof(m_newMaterialName));
-
-      // Template selection (you'd get this from ResourceManager)
-      const char* templates[] = {"PBR"}; // Add more as available
-      int currentTemplate = 0;
-      ImGui::Combo("Template", &currentTemplate, templates, IM_ARRAYSIZE(templates));
-      m_selectedTemplate = templates[currentTemplate];
-
+      // Template selection
+      auto realTemplates = m_resourceManager->GetAllMaterialTemplatesNamed();
+      std::vector<std::string> templateNames;
+      for (auto& [t, n] : realTemplates) {
+         templateNames.push_back(n);
+      }
+      std::vector<const char*> templateNamePtrs;
+      templateNamePtrs.reserve(templateNames.size());
+      for (auto& s : templateNames) {
+         templateNamePtrs.push_back(s.c_str());
+      }
+      static int32_t currentTemplate = 0;
+      ImGui::Combo("Template", &currentTemplate, templateNamePtrs.data(),
+                   static_cast<int32_t>(templateNamePtrs.size()));
+      m_selectedTemplate = templateNames[currentTemplate];
       if (ImGui::Button("Create")) {
          if (strlen(m_newMaterialName) > 0) {
-            try {
-               MaterialHandle newMat =
-                  m_resourceManager->CreateMaterial(m_newMaterialName, m_selectedTemplate);
-               if (newMat.IsValid()) {
-                  m_selectedMaterial = m_resourceManager->GetMaterial(newMat);
-                  m_selectedMaterialName = m_newMaterialName;
-               }
-            } catch (const std::exception& e) {
-               // Handle creation error
+            const MaterialHandle newMat =
+               m_resourceManager->CreateMaterial(m_newMaterialName, m_selectedTemplate);
+            if (newMat.IsValid()) {
+               m_selectedMaterial = m_resourceManager->GetMaterial(newMat);
+               m_selectedMaterialName = m_newMaterialName;
             }
-
             // Clear form
             m_newMaterialName[0] = '\0';
             m_showMaterialCreation = false;
          }
       }
-
       ImGui::SameLine();
       if (ImGui::Button("Cancel")) {
          m_newMaterialName[0] = '\0';
          m_showMaterialCreation = false;
       }
-
       ImGui::EndPopup();
    }
 }
 
-void MaterialEditor::DrawMaterialParameterEditor(IMaterial* material) {
-   if (!material)
+void MaterialEditor::DrawMaterialParameterEditor(IMaterial* const material) {
+   if (!material) [[unlikely]]
       return;
-
-   // This is a simplified version - you'd need to introspect the material template
-   // to get the actual parameters. For PBR materials:
-
+   // TODO: Read material template params
    // Albedo
    if (material->HasParameter("albedo")) {
-      MaterialParam albedoParam = material->GetParameter("albedo");
+      const MaterialParam albedoParam = material->GetParameter("albedo");
       if (std::holds_alternative<glm::vec3>(albedoParam)) {
          glm::vec3 albedo = std::get<glm::vec3>(albedoParam);
          if (ImGui::ColorEdit3("Albedo", &albedo.x)) {
@@ -236,10 +206,9 @@ void MaterialEditor::DrawMaterialParameterEditor(IMaterial* material) {
          }
       }
    }
-
    // Metallic
    if (material->HasParameter("metallic")) {
-      MaterialParam metallicParam = material->GetParameter("metallic");
+      const MaterialParam metallicParam = material->GetParameter("metallic");
       if (std::holds_alternative<float>(metallicParam)) {
          float metallic = std::get<float>(metallicParam);
          if (ImGui::SliderFloat("Metallic", &metallic, 0.0f, 1.0f)) {
@@ -248,10 +217,9 @@ void MaterialEditor::DrawMaterialParameterEditor(IMaterial* material) {
          }
       }
    }
-
    // Roughness
    if (material->HasParameter("roughness")) {
-      MaterialParam roughnessParam = material->GetParameter("roughness");
+      const MaterialParam roughnessParam = material->GetParameter("roughness");
       if (std::holds_alternative<float>(roughnessParam)) {
          float roughness = std::get<float>(roughnessParam);
          if (ImGui::SliderFloat("Roughness", &roughness, 0.0f, 1.0f)) {
@@ -260,10 +228,9 @@ void MaterialEditor::DrawMaterialParameterEditor(IMaterial* material) {
          }
       }
    }
-
    // AO
    if (material->HasParameter("ao")) {
-      MaterialParam aoParam = material->GetParameter("ao");
+      const MaterialParam aoParam = material->GetParameter("ao");
       if (std::holds_alternative<float>(aoParam)) {
          float ao = std::get<float>(aoParam);
          if (ImGui::SliderFloat("AO", &ao, 0.0f, 1.0f)) {
@@ -272,10 +239,8 @@ void MaterialEditor::DrawMaterialParameterEditor(IMaterial* material) {
          }
       }
    }
-
    ImGui::Separator();
    ImGui::Text("Textures:");
-
    // Texture slots
    DrawTextureSlotEditor(material, "albedoTexture", "Albedo");
    DrawTextureSlotEditor(material, "normalTexture", "Normal");
@@ -284,26 +249,41 @@ void MaterialEditor::DrawMaterialParameterEditor(IMaterial* material) {
    DrawTextureSlotEditor(material, "aoTexture", "AO");
 }
 
-void MaterialEditor::DrawTextureSlotEditor(IMaterial* material, const std::string& textureName,
-                                           const std::string& displayName) {
-   if (!material->HasTexture(textureName))
+void MaterialEditor::DrawTextureSlotEditor(IMaterial* const material,
+                                           const std::string_view textureName,
+                                           const std::string_view displayName) {
+   if (!material->HasTexture(textureName)) [[unlikely]]
       return;
-
-   TextureHandle currentTex = material->GetTexture(textureName);
-   ITexture* texture = m_resourceManager->GetTexture(currentTex);
-
-   ImGui::Text("%s:", displayName.c_str());
-   ImGui::SameLine();
-
+   const TextureHandle currentTex = material->GetTexture(textureName);
+   const ITexture* const texture = m_resourceManager->GetTexture(currentTex);
+   ImGui::Text("%s:", displayName.data());
+   // Show texture information if available
    if (texture) {
-      uint32_t texId = GetTextureId(texture);
-
-      // Use the texture slot name as the ID so Push/Pop are stable
-      ImGui::PushID(textureName.c_str());
-
-      // Make the preview an ImageButton so it captures mouse input (clicks/drag)
-      ImGui::ImageButton(textureName.c_str(), static_cast<ImTextureID>(texId), ImVec2(32, 32));
-
+      ImGui::SameLine();
+      ImGui::Text("(%ux%u)", texture->GetWidth(), texture->GetHeight());
+   }
+   if (texture) {
+      const uint32_t texId = GetTextureId(texture);
+      ImGui::PushID(textureName.data());
+      ImGui::ImageButton(textureName.data(), static_cast<ImTextureID>(texId), ImVec2(64, 64));
+      // Show tooltip with texture details
+      if (ImGui::IsItemHovered()) {
+         ImGui::BeginTooltip();
+         // Find the texture's resource name
+         std::string texNameForTooltip = "Unknown";
+         const auto textures = m_resourceManager->GetAllTexturesNamed();
+         for (const auto& [tex, name] : textures) {
+            if (m_resourceManager->GetTextureHandle(name) == currentTex) {
+               texNameForTooltip = name;
+               break;
+            }
+         }
+         ImGui::Text("Texture: %s", texNameForTooltip.c_str());
+         ImGui::Text("Size: %ux%u", texture->GetWidth(), texture->GetHeight());
+         ImGui::Image(static_cast<ImTextureID>(texId), ImVec2(128, 128), ImVec2(0, 1),
+                      ImVec2(1, 0));
+         ImGui::EndTooltip();
+      }
       // Find the texture's resource name to use as the payload (reverse lookup)
       std::string texNameForPayload = "Unknown";
       const auto textures = m_resourceManager->GetAllTexturesNamed();
@@ -313,7 +293,6 @@ void MaterialEditor::DrawTextureSlotEditor(IMaterial* material, const std::strin
             break;
          }
       }
-
       if (ImGui::BeginDragDropSource()) {
          ImGui::SetDragDropPayload("TEXTURE", texNameForPayload.c_str(),
                                    texNameForPayload.size() + 1);
@@ -321,17 +300,31 @@ void MaterialEditor::DrawTextureSlotEditor(IMaterial* material, const std::strin
          ImGui::Image((ImTextureID)(intptr_t)texId, ImVec2(48, 48), ImVec2(0, 1), ImVec2(1, 0));
          ImGui::EndDragDropSource();
       }
-
+      // Button to clear texture (reset to default)
+      ImGui::SameLine();
+      if (ImGui::Button("Clear")) {
+         // Get default texture from template
+         const auto availableTemplates = m_resourceManager->GetAllMaterialTemplatesNamed();
+         for (const auto& [templateRef, name] : availableTemplates) {
+            if (name == material->GetTemplateName()) {
+               const auto& textureDescs = templateRef.GetTextures();
+               const std::string textureNameStr{textureName};
+               if (const auto it = textureDescs.find(textureNameStr); it != textureDescs.end()) {
+                  material->SetTexture(textureName, it->second.defaultTexture);
+                  break;
+               }
+            }
+         }
+      }
       ImGui::PopID();
    } else {
-      ImGui::Button("None", ImVec2(32, 32));
+      ImGui::Button("None", ImVec2(64, 64));
    }
-
    // Accept drops here
    if (ImGui::BeginDragDropTarget()) {
-      if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TEXTURE")) {
-         std::string textureNameStr((char*)payload->Data);
-         TextureHandle newTex = m_resourceManager->GetTextureHandle(textureNameStr);
+      if (const ImGuiPayload* const payload = ImGui::AcceptDragDropPayload("TEXTURE")) {
+         const std::string textureNameStr(static_cast<const char*>(payload->Data));
+         const TextureHandle newTex = m_resourceManager->GetTextureHandle(textureNameStr);
          if (newTex.IsValid()) {
             material->SetTexture(textureName, newTex);
          }
@@ -340,25 +333,25 @@ void MaterialEditor::DrawTextureSlotEditor(IMaterial* material, const std::strin
    }
 }
 
-void MaterialEditor::DrawTexturePreview(ITexture* texture, const ImVec2& size) {
-   if (!texture)
+void MaterialEditor::DrawTexturePreview(const ITexture* const texture,
+                                        const glm::vec2& size) const {
+   if (!texture) [[unlikely]]
       return;
-
-   uint32_t textureId = GetTextureId(texture);
+   const uint32_t textureId = GetTextureId(texture);
    if (textureId != 0) {
-      ImGui::Image((ImTextureID)(intptr_t)textureId, size, ImVec2(0, 1), ImVec2(1, 0));
+      ImGui::Image((ImTextureID)(intptr_t)textureId, ImVec2(size.x, size.y), ImVec2(0, 1),
+                   ImVec2(1, 0));
    }
 }
 
-uint32_t MaterialEditor::GetTextureId(ITexture* texture) {
-   if (!texture)
+uint32_t MaterialEditor::GetTextureId(const ITexture* const texture) const noexcept {
+   if (!texture) [[unlikely]]
       return 0;
-
    if (m_api == GraphicsAPI::OpenGL) {
-      GLTexture* glTexture = static_cast<GLTexture*>(texture);
+      const GLTexture* const glTexture = static_cast<const GLTexture*>(texture);
       return glTexture->GetId();
    } else {
-      VulkanTexture* vkTexture = static_cast<VulkanTexture*>(texture);
-      return (ImTextureID)vkTexture->GetDescriptorSet();
+      const VulkanTexture* const vkTexture = static_cast<const VulkanTexture*>(texture);
+      return static_cast<uint32_t>(reinterpret_cast<uintptr_t>(vkTexture->GetDescriptorSet()));
    }
 }

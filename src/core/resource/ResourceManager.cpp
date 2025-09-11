@@ -381,7 +381,15 @@ std::vector<std::pair<IMaterial*, std::string>> ResourceManager::GetAllMaterials
 
 std::vector<std::pair<const MaterialTemplate&, std::string>>
 ResourceManager::GetAllMaterialTemplatesNamed() {
-   // TODO: Implement
+   std::shared_lock lock(m_mutex);
+   std::vector<std::pair<const MaterialTemplate&, std::string>> templates;
+   templates.reserve(m_materialTemplates.size());
+   for (const auto& [name, templatePtr] : m_materialTemplates) {
+      if (templatePtr && templatePtr->IsFinalized()) {
+         templates.emplace_back(*templatePtr, name);
+      }
+   }
+   return templates;
 }
 
 std::vector<std::pair<IMesh*, std::string>> ResourceManager::GetAllMeshesNamed() {
@@ -400,11 +408,16 @@ std::vector<std::pair<IMesh*, std::string>> ResourceManager::GetAllMeshesNamed()
 
 void ResourceManager::SetupMaterialTemplates() {
    // Create default textures
-   const auto defAlbedo = CreateTextureColor("default_albedo", ITexture::Format::RGBA8, glm::vec4(1.0f));
-   const auto defNormal = CreateTextureColor("default_normal", ITexture::Format::RGB8, glm::vec4(0.5f, 0.5f, 1.0f, 0.0f));
-   const auto defDispl = CreateTextureColor("default_displacement", ITexture::Format::R8, glm::vec4(0.0f));
-   const auto defRough = CreateTextureColor("default_roughness", ITexture::Format::R8, glm::vec4(1.0f));
-   const auto defMetal = CreateTextureColor("default_metallic", ITexture::Format::R8, glm::vec4(0.0f));
+   const auto defAlbedo =
+      CreateTextureColor("default_albedo", ITexture::Format::RGBA8, glm::vec4(1.0f));
+   const auto defNormal = CreateTextureColor("default_normal", ITexture::Format::RGB8,
+                                             glm::vec4(0.5f, 0.5f, 1.0f, 0.0f));
+   const auto defDispl =
+      CreateTextureColor("default_displacement", ITexture::Format::R8, glm::vec4(0.0f));
+   const auto defRough =
+      CreateTextureColor("default_roughness", ITexture::Format::R8, glm::vec4(1.0f));
+   const auto defMetal =
+      CreateTextureColor("default_metallic", ITexture::Format::R8, glm::vec4(0.0f));
    const auto defAO = CreateTextureColor("default_ao", ITexture::Format::R8, glm::vec4(1.0f));
    std::unique_ptr<MaterialTemplate> pbrTemplate = std::make_unique<MaterialTemplate>("PBR");
    // PBR Params
