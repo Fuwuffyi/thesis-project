@@ -365,6 +365,8 @@ void GLRenderer::RenderFrame() {
    lightsData.lightCount = 0;
    if (m_activeScene) {
       m_activeScene->ForEachNode([&](Node* node) {
+         if (!node->IsActive())
+            return;
          if (const LightComponent* lightComp = node->GetComponent<LightComponent>();
              lightComp && lightsData.lightCount < MAX_LIGHTS) {
             if (const TransformComponent* transformComp =
@@ -406,6 +408,8 @@ void GLRenderer::RenderFrame() {
    m_gizmoPass->Begin();
    if (m_activeScene) {
       m_activeScene->ForEachNode([&](Node* node) {
+         if (!node->IsActive())
+            return;
          if (const LightComponent* lightComp = node->GetComponent<LightComponent>();
              lightComp && lightsData.lightCount < MAX_LIGHTS) {
             if (const TransformComponent* transformComp =
