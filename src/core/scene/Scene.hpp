@@ -4,13 +4,14 @@
 #include <unordered_map>
 #include <vector>
 #include <memory>
+#include <string_view>
 
 class Node;
 class MaterialEditor;
 
 class Scene final {
   public:
-   Scene(std::string name = "Scene");
+   explicit Scene(const std::string name = "Scene");
    ~Scene();
 
    Scene(const Scene&) = delete;
@@ -20,19 +21,20 @@ class Scene final {
 
    void DrawInspector(MaterialEditor& matEditor);
 
-   [[nodiscard]] Node* GetRootNode() const noexcept;
+   [[nodiscard]] constexpr Node* GetRootNode() const noexcept { return m_rootNode.get(); }
 
    // Node management with names for quick lookup
-   Node* CreateNode(std::string_view name = {});
-   Node* CreateChildNode(Node* parent, std::string_view name = {});
-   Node* CreateChildNode(std::string_view parentName, std::string_view childName = {});
-   bool AddNode(std::unique_ptr<Node> node, Node* parent = nullptr);
-   bool RemoveNode(Node* node);
-   bool RemoveNode(std::string_view name);
+   [[nodiscard]] Node* CreateNode(const std::string_view name = {});
+   [[nodiscard]] Node* CreateChildNode(Node* parent, const std::string_view name = {});
+   [[nodiscard]] Node* CreateChildNode(const std::string_view parentName,
+                                       const std::string_view childName = {});
+   [[nodiscard]] bool AddNode(const std::unique_ptr<Node> node, Node* parent = nullptr);
+   [[nodiscard]] bool RemoveNode(const Node* node);
+   [[nodiscard]] bool RemoveNode(const std::string_view name);
 
-   // Fast node lookup
-   [[nodiscard]] Node* FindNode(std::string_view name) const;
-   [[nodiscard]] std::vector<Node*> FindNodes(std::string_view name) const;
+   // Node lookup
+   [[nodiscard]] Node* FindNode(const std::string_view name) const;
+   [[nodiscard]] std::vector<Node*> FindNodes(const std::string_view name) const;
 
    // Scene traversal and operations
    void ForEachNode(const std::function<void(Node*)>& func);
@@ -44,15 +46,15 @@ class Scene final {
 
    // Scene management
    void Clear();
-   [[nodiscard]] size_t GetNodeCount() const noexcept;
+   [[nodiscard]] constexpr size_t GetNodeCount() const noexcept { return m_nodeRegistry.size(); }
 
    // Utility
-   [[nodiscard]] const std::string& GetName() const noexcept;
-   void SetName(std::string name);
+   [[nodiscard]] constexpr const std::string& GetName() const noexcept { return m_name; }
+   void SetName(const std::string name);
 
   private:
-   void RegisterNode(Node* node);
-   void UnregisterNode(Node* node);
+   void RegisterNode(const Node* node);
+   void UnregisterNode(const Node* node);
    [[nodiscard]] size_t CalculateMaxDepth(const Node* node, const size_t currentDepth = 0) const;
 
   private:

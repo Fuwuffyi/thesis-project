@@ -13,7 +13,7 @@ class Component {
    Component(Component&&) = default;
    Component& operator=(Component&&) = default;
 
-   virtual void DrawInspector(Node* node) = 0;
+   virtual void DrawInspector(Node* const node) = 0;
 
   protected:
    Component() = default;

@@ -13,16 +13,16 @@ LightComponent::LightComponent()
       m_quadratic(0.032f),
       m_castsShadows(false) {}
 
-void LightComponent::DrawInspector(Node* node) {
+void LightComponent::DrawInspector(Node* const node) {
    if (ImGui::CollapsingHeader(
           "Light", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
       // Light type selection
-      const char* lightTypes[] = {"Directional", "Point", "Spot"};
+      constexpr const char* lightTypes[] = {"Directional", "Point", "Spot"};
       int32_t currentType = static_cast<int32_t>(m_type);
       if (ImGui::Combo("Light Type", &currentType, lightTypes, IM_ARRAYSIZE(lightTypes))) {
          SetType(static_cast<LightType>(currentType));
       }
-      // Color & intensity
+      // Color and intensity
       ImGui::ColorEdit3("Color", &m_color.x);
       ImGui::SliderFloat("Intensity", &m_intensity, 0.0f, 10.0f);
       // Attenuation for point/spot lights
@@ -42,37 +42,20 @@ void LightComponent::DrawInspector(Node* node) {
 
 void LightComponent::SetType(const LightType type) noexcept { m_type = type; }
 
-LightComponent::LightType LightComponent::GetType() const noexcept { return m_type; }
-
 void LightComponent::SetColor(const glm::vec3& color) noexcept { m_color = color; }
-
-const glm::vec3& LightComponent::GetColor() const noexcept { return m_color; }
 
 void LightComponent::SetIntensity(const float intensity) noexcept { m_intensity = intensity; }
 
-float LightComponent::GetIntensity() const noexcept { return m_intensity; }
-
 void LightComponent::SetConstant(const float constant) noexcept { m_constant = constant; }
-
-float LightComponent::GetConstant() const noexcept { return m_constant; }
 
 void LightComponent::SetLinear(const float linear) noexcept { m_linear = linear; }
 
-float LightComponent::GetLinear() const noexcept { return m_linear; }
-
 void LightComponent::SetQuadratic(const float quadratic) noexcept { m_quadratic = quadratic; }
-
-float LightComponent::GetQuadratic() const noexcept { return m_quadratic; }
 
 void LightComponent::SetInnerCone(const float innerCone) noexcept { m_innerCone = innerCone; }
 
-float LightComponent::GetInnerCone() const noexcept { return m_innerCone; }
-
 void LightComponent::SetOuterCone(const float outerCone) noexcept { m_outerCone = outerCone; }
-
-float LightComponent::GetOuterCone() const noexcept { return m_outerCone; }
 
 void LightComponent::SetCastsShadows(const bool castsShadows) noexcept {
    m_castsShadows = castsShadows;
 }
-bool LightComponent::GetCastsShadows() const noexcept { return m_castsShadows; }

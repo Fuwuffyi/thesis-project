@@ -3,17 +3,16 @@
 #include "core/scene/components/TransformComponent.hpp"
 
 #include <functional>
-#include <ranges>
 #include <typeindex>
-#include <vector>
 #include <memory>
+#include <ranges>
 
 class Transform;
 class Component;
 
 class Node final {
   public:
-   explicit Node(std::string name = "");
+   explicit Node(const std::string name = "");
    ~Node();
 
    Node(const Node&) = delete;
@@ -22,19 +21,21 @@ class Node final {
    Node& operator=(Node&&) = default;
 
    // Hierarchy management
-   void AddChild(const std::unique_ptr<Node> child);
-   bool RemoveChild(const Node* child);
+   void AddChild(std::unique_ptr<Node> child);
+   [[nodiscard]] bool RemoveChild(const Node* child);
    void RemoveAllChildren();
 
    // Parent-child relationships
-   [[nodiscard]] Node* GetParent() const noexcept;
-   [[nodiscard]] const std::vector<std::unique_ptr<Node>>& GetChildren() const noexcept;
+   [[nodiscard]] constexpr Node* GetParent() const noexcept { return m_parent; }
+   [[nodiscard]] constexpr const std::vector<std::unique_ptr<Node>>& GetChildren() const noexcept {
+      return m_children;
+   }
    [[nodiscard]] std::vector<Node*> GetChildrenRaw() const;
 
    // Tree traversal
-   [[nodiscard]] Node* FindChild(const std::string_view& name, const bool recursive = false) const;
+   [[nodiscard]] Node* FindChild(const std::string_view name, const bool recursive = false) const;
    [[nodiscard]] Node* FindChildByIndex(const size_t index) const noexcept;
-   [[nodiscard]] size_t GetChildCount() const noexcept;
+   [[nodiscard]] constexpr size_t GetChildCount() const noexcept { return m_children.size(); }
    [[nodiscard]] size_t GetDepth() const noexcept;
 
    // Hierarchy queries
@@ -42,15 +43,14 @@ class Node final {
    [[nodiscard]] const Node* GetRoot() const noexcept;
 
    // Tree iteration
-   void ForEachChild(const std::function<void(Node*)>& func, const bool recursive = false);
-   void ForEachChild(const std::function<void(const Node*)>& func,
-                     const bool recursive = false) const;
+   void ForEachChild(const std::function<void(Node*)>& func, bool recursive = false);
+   void ForEachChild(const std::function<void(const Node*)>& func, bool recursive = false) const;
 
    // Component management
    template <ComponentType T, typename... Args>
-   T* AddComponent(Args&&... args) {
+   [[nodiscard]] T* AddComponent(Args&&... args) {
       auto component = std::make_unique<T>(std::forward<Args>(args)...);
-      T* ptr = component.get();
+      T* const ptr = component.get();
       m_components.emplace_back(std::move(component));
       UpdateComponentLookup();
       // Cache transform component for quick access
@@ -61,12 +61,12 @@ class Node final {
       return ptr;
    }
 
-   bool RemoveComponent(const Component* component);
+   [[nodiscard]] bool RemoveComponent(const Component* component);
 
    template <ComponentType T>
    [[nodiscard]] T* GetComponent() const noexcept {
-      const auto typeIndex = std::type_index(typeid(T));
-      if (auto it = m_componentLookup.find(typeIndex); it != m_componentLookup.end()) {
+      const std::type_index typeIndex(typeid(T));
+      if (const auto it = m_componentLookup.find(typeIndex); it != m_componentLookup.end()) {
          return static_cast<T*>(it->second);
       }
       return nullptr;
@@ -75,11 +75,11 @@ class Node final {
    template <ComponentType T>
    [[nodiscard]] std::vector<T*> GetComponents() const {
       std::vector<T*> result;
-      auto componentView =
+      const auto componentView =
          m_components | std::ranges::views::transform([](const auto& comp) { return comp.get(); }) |
          std::ranges::views::filter(
-            [](Component* comp) { return dynamic_cast<T*>(comp) != nullptr; }) |
-         std::views::transform([](Component* comp) { return static_cast<T*>(comp); });
+            [](const Component* const comp) { return dynamic_cast<const T*>(comp) != nullptr; }) |
+         std::ranges::views::transform([](Component* const comp) { return static_cast<T*>(comp); });
       std::ranges::copy(componentView, std::back_inserter(result));
       return result;
    }
@@ -96,10 +96,10 @@ class Node final {
    void MarkTransformDirty();
 
    // Utility
-   [[nodiscard]] const std::string& GetName() const noexcept;
-   void SetName(std::string name);
+   [[nodiscard]] constexpr const std::string& GetName() const noexcept { return m_name; }
+   void SetName(const std::string name);
 
-   [[nodiscard]] bool IsActive() const noexcept;
+   [[nodiscard]] constexpr bool IsActive() const noexcept { return m_active; }
    void SetActive(const bool active) noexcept;
 
   private:

@@ -10,34 +10,34 @@ class LightComponent final : public Component {
 
    LightComponent();
 
-   void DrawInspector(Node* node) override;
+   void DrawInspector(Node* const node) override;
 
    void SetType(const LightType type) noexcept;
-   [[nodiscard]] LightType GetType() const noexcept;
+   [[nodiscard]] constexpr LightType GetType() const noexcept { return m_type; }
 
    void SetColor(const glm::vec3& color) noexcept;
-   [[nodiscard]] const glm::vec3& GetColor() const noexcept;
+   [[nodiscard]] constexpr const glm::vec3& GetColor() const noexcept { return m_color; }
 
    void SetIntensity(const float intensity) noexcept;
-   [[nodiscard]] float GetIntensity() const noexcept;
+   [[nodiscard]] constexpr float GetIntensity() const noexcept { return m_intensity; }
 
    void SetConstant(const float constant) noexcept;
-   [[nodiscard]] float GetConstant() const noexcept;
+   [[nodiscard]] constexpr float GetConstant() const noexcept { return m_constant; }
 
    void SetLinear(const float linear) noexcept;
-   [[nodiscard]] float GetLinear() const noexcept;
+   [[nodiscard]] constexpr float GetLinear() const noexcept { return m_linear; }
 
    void SetQuadratic(const float quadratic) noexcept;
-   [[nodiscard]] float GetQuadratic() const noexcept;
+   [[nodiscard]] constexpr float GetQuadratic() const noexcept { return m_quadratic; }
 
    void SetInnerCone(const float innerCone) noexcept;
-   [[nodiscard]] float GetInnerCone() const noexcept;
+   [[nodiscard]] constexpr float GetInnerCone() const noexcept { return m_innerCone; }
 
    void SetOuterCone(const float outerCone) noexcept;
-   [[nodiscard]] float GetOuterCone() const noexcept;
+   [[nodiscard]] constexpr float GetOuterCone() const noexcept { return m_outerCone; }
 
    void SetCastsShadows(const bool castsShadows) noexcept;
-   [[nodiscard]] bool GetCastsShadows() const noexcept;
+   [[nodiscard]] constexpr bool GetCastsShadows() const noexcept { return m_castsShadows; }
 
   private:
    // Generic data

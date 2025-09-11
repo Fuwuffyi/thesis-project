@@ -12,7 +12,7 @@ RendererComponent::RendererComponent(const MeshHandle mesh, const MaterialHandle
       m_castsShadows(true),
       m_receivesShadows(true) {}
 
-void RendererComponent::DrawInspector(Node* node) {
+void RendererComponent::DrawInspector(Node* const node) {
    if (ImGui::CollapsingHeader(
           "Renderer", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
       ImGui::Text("Material id: %zu", m_material.GetId());
@@ -23,36 +23,22 @@ void RendererComponent::DrawInspector(Node* node) {
    }
 }
 
-void RendererComponent::SetMesh(const MeshHandle mesh) {
-   m_mesh = std::move(mesh);
-}
+void RendererComponent::SetMesh(const MeshHandle mesh) { m_mesh = std::move(mesh); }
 
-[[nodiscard]] const MeshHandle& RendererComponent::GetMesh() const noexcept { return m_mesh; }
-
-[[nodiscard]] bool RendererComponent::HasMesh() const noexcept { return m_mesh.IsValid(); }
+bool RendererComponent::HasMesh() const noexcept { return m_mesh.IsValid(); }
 
 void RendererComponent::SetMaterial(const MaterialHandle material) {
    m_material = std::move(material);
 }
 
-[[nodiscard]] const MaterialHandle& RendererComponent::GetMaterial() const noexcept {
-   return m_material;
-}
-
-[[nodiscard]] bool RendererComponent::HasMaterial() const noexcept { return m_material.IsValid(); }
+bool RendererComponent::HasMaterial() const noexcept { return m_material.IsValid(); }
 
 void RendererComponent::SetVisible(const bool visible) noexcept { m_visible = visible; }
-
-[[nodiscard]] bool RendererComponent::IsVisible() const noexcept { return m_visible; }
 
 void RendererComponent::SetCastsShadows(const bool castsShadows) noexcept {
    m_castsShadows = castsShadows;
 }
 
-[[nodiscard]] bool RendererComponent::CastsShadows() const noexcept { return m_castsShadows; }
-
 void RendererComponent::SetReceivesShadows(const bool receivesShadows) noexcept {
    m_receivesShadows = receivesShadows;
 }
-
-[[nodiscard]] bool RendererComponent::ReceivesShadows() const noexcept { return m_receivesShadows; }
