@@ -2,21 +2,22 @@
 
 #include <glad/gl.h>
 
-#include <string>
+#include <string_view>
 #include <vector>
 #include <cstdint>
+#include <span>
 
 class GLTexture;
 
 class GLFramebuffer final {
   public:
    struct AttachmentDesc final {
-      GLTexture* texture{nullptr};
+      const GLTexture* texture{nullptr};
       uint32_t mipLevel{0};
       uint32_t layer{0};
 
       constexpr AttachmentDesc() noexcept = default;
-      constexpr AttachmentDesc(GLTexture* tex, const uint32_t mip = 0,
+      constexpr AttachmentDesc(const GLTexture* tex, const uint32_t mip = 0,
                                const uint32_t lyr = 0) noexcept
           : texture(tex), mipLevel(mip), layer(lyr) {}
    };
@@ -40,8 +41,10 @@ class GLFramebuffer final {
       Unknown = 0
    };
 
+   [[nodiscard]] static GLFramebuffer Create(const CreateInfo& info) noexcept;
+
    explicit GLFramebuffer(const CreateInfo& info);
-   ~GLFramebuffer();
+   ~GLFramebuffer() noexcept;
 
    // Non-copyable, movable
    GLFramebuffer(const GLFramebuffer&) = delete;
@@ -50,17 +53,16 @@ class GLFramebuffer final {
    GLFramebuffer& operator=(GLFramebuffer&& other) noexcept;
 
    void Bind() const noexcept;
-   void Unbind() const noexcept;
+   static void Unbind() noexcept;
 
-   [[nodiscard]] bool IsComplete() const noexcept;
-   [[nodiscard]] Status GetStatus() const noexcept;
-   [[nodiscard]] std::string GetStatusString() const noexcept;
+   [[nodiscard]] constexpr bool IsComplete() const noexcept { return m_status == Status::Complete; }
+   [[nodiscard]] constexpr Status GetStatus() const noexcept { return m_status; }
+   [[nodiscard]] std::string_view GetStatusString() const noexcept;
 
-   // Clear operations with better defaults
+   // Clear operations
    void Clear(const bool clearColor = true, const bool clearDepth = true,
               const bool clearStencil = false) const noexcept;
-   void ClearColor(const uint32_t attachment, const float r, const float g, const float b,
-                   const float a = 1.0f) const noexcept;
+   void ClearColor(const uint32_t attachment, const std::span<const float, 4> color) const noexcept;
    void ClearDepth(const float depth = 1.0f) const noexcept;
    void ClearStencil(const int32_t stencil = 0) const noexcept;
 
@@ -77,6 +79,7 @@ class GLFramebuffer final {
    [[nodiscard]] constexpr bool HasStencilAttachment() const noexcept {
       return m_stencilAttachment.texture != nullptr;
    }
+   [[nodiscard]] constexpr bool IsValid() const noexcept { return m_fbo != 0; }
 
    // Blit operations with better parameter organization
    void BlitTo(const GLFramebuffer& target, const uint32_t srcX0, const uint32_t srcY0,
@@ -90,24 +93,28 @@ class GLFramebuffer final {
                      const uint32_t filter = GL_LINEAR) const noexcept;
 
   private:
-   void AttachTexture(const AttachmentDesc& attachment, const uint32_t attachmentType) noexcept;
+   void AttachTexture(const AttachmentDesc& attachment,
+                      const uint32_t attachmentType) const noexcept;
+   [[nodiscard]] Status CheckStatus() const noexcept;
 
    class ScopedBinder final {
      public:
       explicit ScopedBinder(const uint32_t fbo) noexcept;
-      ~ScopedBinder();
+      ~ScopedBinder() noexcept;
+
       ScopedBinder(const ScopedBinder&) = delete;
       ScopedBinder& operator=(const ScopedBinder&) = delete;
       ScopedBinder(ScopedBinder&&) = delete;
       ScopedBinder& operator=(ScopedBinder&&) = delete;
 
      private:
-      int32_t m_previousFbo;
+      uint32_t m_previousFbo;
    };
 
    uint32_t m_fbo{0};
    uint32_t m_width{0};
    uint32_t m_height{0};
+   Status m_status{Status::Unknown};
    std::vector<AttachmentDesc> m_colorAttachments;
    AttachmentDesc m_depthAttachment{};
    AttachmentDesc m_stencilAttachment{};

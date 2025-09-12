@@ -87,7 +87,7 @@ void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) 
    if (m_activeCamera) {
       m_activeCamera->SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
    }
-   // Setup render passes here (as FBOs need to be recreated on screen resize)
+   // Recreate framebuffers and render passes
    CreateGeometryFBO();
    CreateGeometryPass();
    CreateLightingFBO();
@@ -99,16 +99,18 @@ ResourceManager* GLRenderer::GetResourceManager() const noexcept { return m_reso
 
 void GLRenderer::CreateUtilityMeshes() {
    // Quad for lighting pass
-   const std::vector<Vertex> quadVerts = {
+   constexpr std::array<Vertex, 4> quadVerts = {{
       {glm::vec3(-1.0f, -1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(0.0f, 0.0f)},
       {glm::vec3(1.0f, -1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(1.0f, 0.0f)},
       {glm::vec3(1.0f, 1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(1.0f, 1.0f)},
       {glm::vec3(-1.0f, 1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(0.0f, 1.0f)},
-   };
-   const std::vector<uint32_t> quadInds = {0, 1, 2, 2, 3, 0};
-   m_fullscreenQuad = m_resourceManager->LoadMesh("quad", quadVerts, quadInds);
+   }};
+   constexpr std::array<uint32_t, 6> quadInds = {0, 1, 2, 2, 3, 0};
+   const std::vector<Vertex> quadVertVec(quadVerts.begin(), quadVerts.end());
+   const std::vector<uint32_t> quadIndVec(quadInds.begin(), quadInds.end());
+   m_fullscreenQuad = m_resourceManager->LoadMesh("quad", quadVertVec, quadIndVec);
    // Cube for gizmos
-   const std::vector<Vertex> cubeVerts = {
+   constexpr std::array<Vertex, 8> cubeVerts = {{
       // Front face
       {glm::vec3(-0.5f, -0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(0, 0)},
       {glm::vec3(0.5f, -0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(1, 0)},
@@ -119,10 +121,12 @@ void GLRenderer::CreateUtilityMeshes() {
       {glm::vec3(0.5f, -0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(1, 0)},
       {glm::vec3(0.5f, 0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(1, 1)},
       {glm::vec3(-0.5f, 0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(0, 1)},
-   };
-   const std::vector<uint32_t> cubeInds = {0, 1, 1, 5, 5, 4, 4, 0, 3, 2, 2, 6,
-                                           6, 7, 7, 3, 0, 3, 1, 2, 5, 6, 4, 7};
-   m_lineCube = m_resourceManager->LoadMesh("unit_cube", cubeVerts, cubeInds);
+   }};
+   constexpr std::array<uint32_t, 24> cubeInds = {0, 1, 1, 5, 5, 4, 4, 0, 3, 2, 2, 6,
+                                                  6, 7, 7, 3, 0, 3, 1, 2, 5, 6, 4, 7};
+   const std::vector<Vertex> cubeVertVec(cubeVerts.begin(), cubeVerts.end());
+   const std::vector<uint32_t> cubeIndVec(cubeInds.begin(), cubeInds.end());
+   m_lineCube = m_resourceManager->LoadMesh("unit_cube", cubeVertVec, cubeIndVec);
 }
 
 void GLRenderer::CreateDefaultMaterial() {
@@ -160,9 +164,7 @@ void GLRenderer::LoadShaders() {
 }
 
 void GLRenderer::CreateGeometryFBO() {
-   if (m_gBuffer) {
-      m_gBuffer.reset();
-   }
+   m_gBuffer.reset();
    m_gAlbedoTexture = m_resourceManager->CreateRenderTarget(
       "gbuffer_color", m_window->GetWidth(), m_window->GetHeight(), ITexture::Format::RGBA8);
    m_gNormalTexture = m_resourceManager->CreateRenderTarget(
@@ -170,65 +172,62 @@ void GLRenderer::CreateGeometryFBO() {
    m_gDepthTexture = m_resourceManager->CreateDepthTexture("gbuffer_depth", m_window->GetWidth(),
                                                            m_window->GetHeight());
    auto* colorTexPtr =
-      reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_gAlbedoTexture));
+      reinterpret_cast<const GLTexture*>(m_resourceManager->GetTexture(m_gAlbedoTexture));
    auto* normalTexPtr =
-      reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_gNormalTexture));
-   auto* depthTexPtr = reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_gDepthTexture));
-   GLFramebuffer::CreateInfo gbufferInfo;
-   gbufferInfo.width = m_window->GetWidth();
-   gbufferInfo.height = m_window->GetHeight();
-   gbufferInfo.colorAttachments = {
-      {colorTexPtr, 0, 0},
-      {normalTexPtr, 0, 0},
-   };
-   gbufferInfo.depthAttachment = {depthTexPtr};
-   m_gBuffer = std::make_unique<GLFramebuffer>(gbufferInfo);
-   if (!m_gBuffer->IsComplete()) {
-      throw std::runtime_error("G-Buffer creation incomplete:\n" + m_gBuffer->GetStatusString());
-   }
+      reinterpret_cast<const GLTexture*>(m_resourceManager->GetTexture(m_gNormalTexture));
+   auto* depthTexPtr =
+      reinterpret_cast<const GLTexture*>(m_resourceManager->GetTexture(m_gDepthTexture));
+   GLFramebuffer::CreateInfo gbufferInfo{
+      .colorAttachments = {{colorTexPtr, 0, 0}, {normalTexPtr, 0, 0}},
+      .depthAttachment = {depthTexPtr},
+      .stencilAttachment = {},
+      .width = m_window->GetWidth(),
+      .height = m_window->GetHeight()};
+   m_gBuffer = std::make_unique<GLFramebuffer>(GLFramebuffer::Create(gbufferInfo));
 }
 
 void GLRenderer::CreateLightingFBO() {
-   if (m_lightingFbo) {
-      m_lightingFbo.reset();
-   }
+   m_lightingFbo.reset();
    m_lightingColorTexture = m_resourceManager->CreateRenderTarget(
       "lighting_color", m_window->GetWidth(), m_window->GetHeight(), ITexture::Format::RGBA8);
    m_lightingDepthTexture = m_resourceManager->CreateDepthTexture(
       "lighting_depth", m_window->GetWidth(), m_window->GetHeight());
    auto* colorTexPtr =
-      reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_lightingColorTexture));
+      reinterpret_cast<const GLTexture*>(m_resourceManager->GetTexture(m_lightingColorTexture));
    auto* depthTexPtr =
-      reinterpret_cast<GLTexture*>(m_resourceManager->GetTexture(m_lightingDepthTexture));
-   GLFramebuffer::CreateInfo fboInfo{};
-   fboInfo.width = m_window->GetWidth();
-   fboInfo.height = m_window->GetHeight();
-   fboInfo.colorAttachments = {{colorTexPtr, 0, 0}};
-   fboInfo.depthAttachment = {depthTexPtr};
-   m_lightingFbo = std::make_unique<GLFramebuffer>(fboInfo);
-   if (!m_lightingFbo->IsComplete()) {
-      throw std::runtime_error("Lighting FBO creation incomplete:\n" +
-                               m_lightingFbo->GetStatusString());
-   }
+      reinterpret_cast<const GLTexture*>(m_resourceManager->GetTexture(m_lightingDepthTexture));
+   GLFramebuffer::CreateInfo fboInfo{.colorAttachments = {{colorTexPtr, 0, 0}},
+                                     .depthAttachment = {depthTexPtr},
+                                     .stencilAttachment = {},
+                                     .width = m_window->GetWidth(),
+                                     .height = m_window->GetHeight()};
+   m_lightingFbo = std::make_unique<GLFramebuffer>(GLFramebuffer::Create(fboInfo));
 }
 
 void GLRenderer::CreateGeometryPass() {
-   GLRenderPass::CreateInfo geometryPassInfo;
-   geometryPassInfo.framebuffer = m_gBuffer.get();
-   geometryPassInfo.colorAttachments = {
-      {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
-      {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.5f, 0.5f, 1.0f, 0.0f}},
-   };
-   geometryPassInfo.depthStencilAttachment = {GLRenderPass::LoadOp::Clear,
-                                              GLRenderPass::StoreOp::Store,
-                                              GLRenderPass::LoadOp::DontCare,
-                                              GLRenderPass::StoreOp::DontCare,
-                                              1.0f,
-                                              0};
-   geometryPassInfo.renderState.depthTest = GLRenderPass::DepthTest::Less;
-   geometryPassInfo.renderState.cullMode = GLRenderPass::CullMode::Back;
-   geometryPassInfo.renderState.primitiveType = GLRenderPass::PrimitiveType::Triangles;
-   geometryPassInfo.shader = m_geometryPassShader.get();
+   GLRenderPass::CreateInfo geometryPassInfo{
+      .framebuffer = m_gBuffer.get(),
+      .colorAttachments =
+         {
+            {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
+            {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.5f, 0.5f, 1.0f, 0.0f}},
+         },
+      .depthStencilAttachment = {.depthLoadOp = GLRenderPass::LoadOp::Clear,
+                                 .depthStoreOp = GLRenderPass::StoreOp::Store,
+                                 .stencilLoadOp = GLRenderPass::LoadOp::DontCare,
+                                 .stencilStoreOp = GLRenderPass::StoreOp::DontCare,
+                                 .depthClearValue = 1.0f,
+                                 .stencilClearValue = 0},
+      .renderState = {.depthTest = GLRenderPass::DepthTest::Less,
+                      .depthWrite = true,
+                      .cullMode = GLRenderPass::CullMode::Back,
+                      .frontFaceCCW = true,
+                      .blendMode = GLRenderPass::BlendMode::None,
+                      .customSrcFactor = GL_SRC_ALPHA,
+                      .customDstFactor = GL_ONE_MINUS_SRC_ALPHA,
+                      .customBlendEquation = GL_FUNC_ADD,
+                      .primitiveType = GLRenderPass::PrimitiveType::Triangles},
+      .shader = m_geometryPassShader.get()};
    m_geometryPass = std::make_unique<GLRenderPass>(geometryPassInfo);
 }
 

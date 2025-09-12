@@ -66,7 +66,7 @@ void CreateFullScene(Scene& scene, ResourceManager& resourceManager, const Graph
       LightComponent* light = lightNode->AddComponent<LightComponent>();
       light->SetType(LightComponent::LightType::Spot);
       light->SetColor(glm::vec3(unitDist(gen), unitDist(gen), unitDist(gen)));
-      light->SetIntensity(1.75f);
+      light->SetIntensity(2.5f);
       const float outer = angleDist(gen);
       light->SetOuterCone(glm::radians(outer));
       light->SetInnerCone(glm::radians(5.0f + outer));

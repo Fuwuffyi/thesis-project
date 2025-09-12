@@ -3,18 +3,18 @@
 #include <glad/gl.h>
 #include <vector>
 #include <cstdint>
+#include <array>
 #include <glm/glm.hpp>
 
 class GLFramebuffer;
 class GLShader;
 
-class GLRenderPass {
+class GLRenderPass final {
   public:
-   enum class LoadOp { Load, Clear, DontCare };
+   enum class LoadOp : uint8_t { Load, Clear, DontCare };
+   enum class StoreOp : uint8_t { Store, DontCare };
 
-   enum class StoreOp { Store, DontCare };
-
-   enum class DepthTest {
+   enum class DepthTest : uint8_t {
       Disabled,
       Less,
       LessEqual,
@@ -26,9 +26,8 @@ class GLRenderPass {
       Never
    };
 
-   enum class CullMode { None, Front, Back, FrontAndBack };
-
-   enum class BlendMode { None, Alpha, Additive, Multiply, Custom };
+   enum class CullMode : uint8_t { None, Front, Back, FrontAndBack };
+   enum class BlendMode : uint8_t { None, Alpha, Additive, Multiply, Custom };
 
    enum class PrimitiveType : uint32_t {
       Points = GL_POINTS,
@@ -40,65 +39,63 @@ class GLRenderPass {
       TriangleFan = GL_TRIANGLE_FAN
    };
 
-   struct ColorAttachmentDesc {
-      LoadOp loadOp = LoadOp::Clear;
-      StoreOp storeOp = StoreOp::Store;
-      glm::vec4 clearValue = {0.0f, 0.0f, 0.0f, 0.0f};
+   struct ColorAttachmentDesc final {
+      LoadOp loadOp{LoadOp::Clear};
+      StoreOp storeOp{StoreOp::Store};
+      glm::vec4 clearValue{0.0f, 0.0f, 0.0f, 0.0f};
    };
 
-   struct DepthStencilAttachmentDesc {
-      LoadOp depthLoadOp = LoadOp::Clear;
-      StoreOp depthStoreOp = StoreOp::Store;
-      LoadOp stencilLoadOp = LoadOp::DontCare;
-      StoreOp stencilStoreOp = StoreOp::DontCare;
-      float depthClearValue = 1.0f;
-      int32_t stencilClearValue = 0;
+   struct DepthStencilAttachmentDesc final {
+      LoadOp depthLoadOp{LoadOp::Clear};
+      StoreOp depthStoreOp{StoreOp::Store};
+      LoadOp stencilLoadOp{LoadOp::DontCare};
+      StoreOp stencilStoreOp{StoreOp::DontCare};
+      float depthClearValue{1.0f};
+      int32_t stencilClearValue{0};
    };
 
-   struct RenderState {
+   struct RenderState final {
       // Depth testing
-      DepthTest depthTest = DepthTest::Less;
-      bool depthWrite = true;
+      DepthTest depthTest{DepthTest::Less};
+      bool depthWrite{true};
       // Face culling
-      CullMode cullMode = CullMode::Back;
-      bool frontFaceCCW = true;
+      CullMode cullMode{CullMode::Back};
+      bool frontFaceCCW{true};
       // Blending
-      BlendMode blendMode = BlendMode::None;
-      GLenum customSrcFactor = GL_SRC_ALPHA;
-      GLenum customDstFactor = GL_ONE_MINUS_SRC_ALPHA;
-      GLenum customBlendEquation = GL_FUNC_ADD;
+      BlendMode blendMode{BlendMode::None};
+      uint32_t customSrcFactor{GL_SRC_ALPHA};
+      uint32_t customDstFactor{GL_ONE_MINUS_SRC_ALPHA};
+      uint32_t customBlendEquation{GL_FUNC_ADD};
       // Primitive type
-      PrimitiveType primitiveType = PrimitiveType::Triangles;
+      PrimitiveType primitiveType{PrimitiveType::Triangles};
       // Viewport
-      bool useFramebufferViewport = true;
-      uint32_t viewportX = 0;
-      uint32_t viewportY = 0;
-      uint32_t viewportWidth = 0;
-      uint32_t viewportHeight = 0;
-      // Line width (for line primitives)
-      float lineWidth = 1.0f;
-      // Point size (for point primitives)
-      float pointSize = 1.0f;
-      // Polygon mode
-      GLenum polygonMode = GL_FILL;
+      bool useFramebufferViewport{true};
+      uint32_t viewportX{0};
+      uint32_t viewportY{0};
+      uint32_t viewportWidth{0};
+      uint32_t viewportHeight{0};
+      // Rendering parameters
+      float lineWidth{1.0f};
+      float pointSize{1.0f};
+      uint32_t polygonMode{GL_FILL};
       // Scissor test
-      bool enableScissor = false;
-      uint32_t scissorX = 0;
-      uint32_t scissorY = 0;
-      uint32_t scissorWidth = 0;
-      uint32_t scissorHeight = 0;
+      bool enableScissor{false};
+      uint32_t scissorX{0};
+      uint32_t scissorY{0};
+      uint32_t scissorWidth{0};
+      uint32_t scissorHeight{0};
    };
 
-   struct CreateInfo {
-      GLFramebuffer* framebuffer = nullptr;
+   struct CreateInfo final {
+      const GLFramebuffer* framebuffer{nullptr};
       std::vector<ColorAttachmentDesc> colorAttachments;
       DepthStencilAttachmentDesc depthStencilAttachment;
       RenderState renderState;
-      GLShader* shader = nullptr;
+      const GLShader* shader{nullptr};
    };
 
-   GLRenderPass(const CreateInfo& info);
-   ~GLRenderPass() = default;
+   explicit GLRenderPass(const CreateInfo& info);
+   ~GLRenderPass() noexcept = default;
 
    GLRenderPass(const GLRenderPass&) = delete;
    GLRenderPass& operator=(const GLRenderPass&) = delete;
@@ -114,48 +111,55 @@ class GLRenderPass {
    void UpdateRenderState(const RenderState& state);
 
    // Getters
-   GLFramebuffer* GetFramebuffer() const { return m_framebuffer; }
-   const RenderState& GetRenderState() const { return m_renderState; }
-   const GLShader* GetShader() const { return m_shader; }
-   uint32_t GetPrimitiveType() const;
-   bool IsActive() const { return m_isActive; }
+   [[nodiscard]] constexpr const GLFramebuffer* GetFramebuffer() const noexcept {
+      return m_framebuffer;
+   }
+   [[nodiscard]] constexpr const RenderState& GetRenderState() const noexcept {
+      return m_renderState;
+   }
+   [[nodiscard]] constexpr const GLShader* GetShader() const noexcept { return m_shader; }
+   [[nodiscard]] constexpr uint32_t GetPrimitiveType() const noexcept {
+      return static_cast<uint32_t>(m_primitiveType);
+   }
+   [[nodiscard]] constexpr bool IsActive() const noexcept { return m_isActive; }
 
    // Utility methods
-   uint32_t GetViewportWidth() const;
-   uint32_t GetViewportHeight() const;
+   [[nodiscard]] uint32_t GetViewportWidth() const noexcept;
+   [[nodiscard]] uint32_t GetViewportHeight() const noexcept;
 
   private:
-   void ApplyRenderState();
-   void ClearAttachments();
-   void SetDepthTest(const DepthTest test);
-   void SetCullMode(const CullMode mode);
-   void SetBlendMode(const BlendMode mode);
+   void ApplyRenderState() const;
+   void ClearAttachments() const;
 
-  private:
-   GLFramebuffer* m_framebuffer;
+   static void SetDepthTest(const DepthTest test) noexcept;
+   static void SetCullMode(const CullMode mode) noexcept;
+   static void SetBlendMode(const BlendMode mode, const RenderState& state) noexcept;
+
+   struct PreviousState final {
+      std::array<int32_t, 4> viewport;
+      bool depthTest;
+      bool depthMask;
+      uint32_t depthFunc;
+      bool cullFace;
+      uint32_t cullFaceMode;
+      uint32_t frontFace;
+      bool blend;
+      uint32_t blendSrc, blendDst;
+      uint32_t blendEquation;
+      float lineWidth;
+      float pointSize;
+      std::array<uint32_t, 2> polygonMode;
+      bool scissorTest;
+      std::array<int32_t, 4> scissorBox;
+   };
+
+   const GLFramebuffer* m_framebuffer;
    std::vector<ColorAttachmentDesc> m_colorAttachments;
    DepthStencilAttachmentDesc m_depthStencilAttachment;
    RenderState m_renderState;
    PrimitiveType m_primitiveType;
    const GLShader* m_shader;
 
-   bool m_isActive = false;
-
-   struct PreviousState {
-      GLint viewport[4];
-      GLboolean depthTest;
-      GLboolean depthMask;
-      GLenum depthFunc;
-      GLboolean cullFace;
-      GLenum cullFaceMode;
-      GLenum frontFace;
-      GLboolean blend;
-      GLenum blendSrc, blendDst;
-      GLenum blendEquation;
-      GLfloat lineWidth;
-      GLfloat pointSize;
-      GLenum polygonMode[2];
-      GLboolean scissorTest;
-      GLint scissorBox[4];
-   } m_previousState;
+   bool m_isActive{false};
+   PreviousState m_previousState{};
 };
