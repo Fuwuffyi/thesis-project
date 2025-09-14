@@ -1,36 +1,25 @@
-#include "GLRenderer.hpp"
+#include "gl/GLRenderer.hpp"
 
-#include "core/GraphicsAPI.hpp"
-#include "core/editor/MaterialEditor.hpp"
-#include "core/resource/ResourceManager.hpp"
-#include "gl/resource/GLMesh.hpp"
-
-#include "core/Window.hpp"
 #include "core/Camera.hpp"
-
-#include "core/scene/Scene.hpp"
+#include "core/Window.hpp"
 #include "core/scene/Node.hpp"
-
-#include "core/scene/components/TransformComponent.hpp"
+#include "core/scene/Scene.hpp"
 #include "core/scene/components/RendererComponent.hpp"
 #include "core/scene/components/LightComponent.hpp"
-
+#include "core/editor/MaterialEditor.hpp"
 #include "core/editor/PerformanceGUI.hpp"
+#include "core/resource/ResourceManager.hpp"
 
 #include "gl/GLFramebuffer.hpp"
 #include "gl/GLRenderPass.hpp"
 #include "gl/GLShader.hpp"
-
+#include "gl/resource/GLMesh.hpp"
 #include "gl/resource/GLResourceFactory.hpp"
-#include "gl/resource/GLTexture.hpp"
 
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-
-#include <glad/gl.h>
-#include <imgui.h>
 #include <GLFW/glfw3.h>
-#include <vector>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
 // Structs for UBOs
 struct CameraData {
@@ -52,10 +41,9 @@ struct LightData {
    alignas(4) float outerCone;
 };
 
-constexpr size_t MAX_LIGHTS = 256;
 struct LightsData {
    alignas(4) uint32_t lightCount;
-   LightData lights[MAX_LIGHTS];
+   std::array<LightData, GLRenderer::MAX_LIGHTS> lights;
 };
 
 GLRenderer::GLRenderer(Window* window) : IRenderer(window) {

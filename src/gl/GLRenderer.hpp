@@ -55,6 +55,9 @@ class GLRenderer : public IRenderer {
 
    [[nodiscard]] ResourceManager* GetResourceManager() const noexcept override;
 
+  public:
+   static constexpr size_t MAX_LIGHTS = 256;
+
   private:
    MaterialHandle m_defaultMaterial;
    MeshHandle m_fullscreenQuad;
