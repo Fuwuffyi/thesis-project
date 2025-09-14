@@ -10,7 +10,6 @@ Window::Window(const GraphicsAPI api, const WindowDesc& desc) : m_api(api) {
    glfwSetErrorCallback(Window::ErrorCallback);
 #endif
    if (!glfwInit()) {
-      std::println("GLFW initialization failed");
       throw std::runtime_error("GLFW init failed");
    }
    switch (api) {
@@ -22,6 +21,9 @@ Window::Window(const GraphicsAPI api, const WindowDesc& desc) : m_api(api) {
          glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
 #endif
          glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
+#ifndef NDEBUG
+         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+#endif
          break;
       case GraphicsAPI::Vulkan:
          glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -30,6 +32,7 @@ Window::Window(const GraphicsAPI api, const WindowDesc& desc) : m_api(api) {
          glfwTerminate();
          throw std::runtime_error("Unsupported Graphics API");
    }
+
    glfwWindowHint(GLFW_RESIZABLE, desc.resizable ? GLFW_TRUE : GLFW_FALSE);
    m_window = glfwCreateWindow(static_cast<int32_t>(desc.width), static_cast<int32_t>(desc.height),
                                desc.title.c_str(), nullptr, nullptr);

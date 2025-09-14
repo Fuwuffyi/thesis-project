@@ -20,6 +20,7 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <print>
 
 // Structs for UBOs
 struct CameraData {
@@ -51,6 +52,15 @@ GLRenderer::GLRenderer(Window* window) : IRenderer(window) {
    if (!gladLoadGL(reinterpret_cast<GLADloadfunc>(glfwGetProcAddress))) [[unlikely]] {
       throw std::runtime_error("GLAD initialization failed");
    }
+   // Setup gl validation layers
+#ifndef NDEBUG
+   glEnable(GL_DEBUG_OUTPUT);
+   glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+   glDebugMessageCallback(
+      [](uint32_t source, uint32_t type, uint32_t id, uint32_t severity, int32_t length,
+         const char* message, const void* userParam) { std::println("GL Debug: {}", message); },
+      nullptr);
+#endif
    // Initialize resource manager
    m_resourceManager = std::make_unique<ResourceManager>(std::make_unique<GLResourceFactory>());
    m_materialEditor =
