@@ -1,9 +1,9 @@
 #include "GLRenderer.hpp"
 
 #include "core/GraphicsAPI.hpp"
+#include "core/editor/MaterialEditor.hpp"
+#include "core/resource/ResourceManager.hpp"
 #include "gl/resource/GLMesh.hpp"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
 
 #include "core/Window.hpp"
 #include "core/Camera.hpp"
@@ -23,6 +23,9 @@
 
 #include "gl/resource/GLResourceFactory.hpp"
 #include "gl/resource/GLTexture.hpp"
+
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 
 #include <glad/gl.h>
 #include <imgui.h>
@@ -56,35 +59,32 @@ struct LightsData {
 };
 
 GLRenderer::GLRenderer(Window* window) : IRenderer(window) {
-   // Load OpenGL function pointers
-   if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
-      throw std::runtime_error("GLAD init failed.");
+   // Load OpenGL function pointers with error checking
+   if (!gladLoadGL(reinterpret_cast<GLADloadfunc>(glfwGetProcAddress))) [[unlikely]] {
+      throw std::runtime_error("GLAD initialization failed");
    }
-   // Setup resource manager
+   // Initialize resource manager
    m_resourceManager = std::make_unique<ResourceManager>(std::make_unique<GLResourceFactory>());
    m_materialEditor =
       std::make_unique<MaterialEditor>(m_resourceManager.get(), GraphicsAPI::OpenGL);
-   // Setup imgui
+   // Initialize subsystems
    SetupImgui();
-   // Create the fullscreen quad for lighting pass
    CreateUtilityMeshes();
-   // Create a default material
    CreateDefaultMaterial();
-   // Load shaders
    LoadShaders();
-   // Create shader ubos
    CreateUBOs();
-   // Set initial viewport (sets up g-buffer too)
-   FramebufferCallback(static_cast<int32_t>(m_window->GetWidth()),
-                       static_cast<int32_t>(m_window->GetHeight()));
-   // Setup framebuffer callback
-   window->SetResizeCallback(
-      [this](int32_t width, int32_t height) { FramebufferCallback(width, height); });
+   // Setup initial viewport and framebuffers
+   FramebufferCallback(m_window->GetWidth(), m_window->GetHeight());
+   // Setup resize callback with lambda capture
+   m_window->SetResizeCallback(
+      [this](int32_t width, int32_t height) noexcept { FramebufferCallback(width, height); });
 }
 
-void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) {
+GLRenderer::~GLRenderer() { DestroyImgui(); }
+
+void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) noexcept {
    glViewport(0, 0, width, height);
-   if (m_activeCamera) {
+   if (m_activeCamera) [[likely]] {
       m_activeCamera->SetAspectRatio(static_cast<float>(width) / static_cast<float>(height));
    }
    // Recreate framebuffers and render passes
@@ -95,10 +95,8 @@ void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) 
    CreateGizmoPass();
 }
 
-ResourceManager* GLRenderer::GetResourceManager() const noexcept { return m_resourceManager.get(); }
-
 void GLRenderer::CreateUtilityMeshes() {
-   // Quad for lighting pass
+   // Create fullscreen quad for lighting pass
    constexpr std::array<Vertex, 4> quadVerts = {{
       {glm::vec3(-1.0f, -1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(0.0f, 0.0f)},
       {glm::vec3(1.0f, -1.0f, 0.0f), glm::vec3(0.0f), glm::vec2(1.0f, 0.0f)},
@@ -109,7 +107,7 @@ void GLRenderer::CreateUtilityMeshes() {
    const std::vector<Vertex> quadVertVec(quadVerts.begin(), quadVerts.end());
    const std::vector<uint32_t> quadIndVec(quadInds.begin(), quadInds.end());
    m_fullscreenQuad = m_resourceManager->LoadMesh("quad", quadVertVec, quadIndVec);
-   // Cube for gizmos
+   // Create wireframe cube for gizmos
    constexpr std::array<Vertex, 8> cubeVerts = {{
       // Front face
       {glm::vec3(-0.5f, -0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(0, 0)},
@@ -131,7 +129,7 @@ void GLRenderer::CreateUtilityMeshes() {
 
 void GLRenderer::CreateDefaultMaterial() {
    m_defaultMaterial = m_resourceManager->CreateMaterial("default_pbr", "PBR");
-   if (IMaterial* material = m_resourceManager->GetMaterial(m_defaultMaterial)) {
+   if (auto* material = m_resourceManager->GetMaterial(m_defaultMaterial); material) [[likely]] {
       material->SetParameter("albedo", glm::vec3(0.8f, 0.8f, 0.8f));
       material->SetParameter("metallic", 0.0f);
       material->SetParameter("roughness", 0.8f);
@@ -140,44 +138,40 @@ void GLRenderer::CreateDefaultMaterial() {
 }
 
 void GLRenderer::LoadShaders() {
-   // Setup geometry pass shader
-   m_geometryPassShader = std::make_unique<GLShader>();
-   m_geometryPassShader->AttachShaderFromFile(GLShader::Type::Vertex,
-                                              "resources/shaders/gl/geometry_pass.vert");
-   m_geometryPassShader->AttachShaderFromFile(GLShader::Type::Fragment,
-                                              "resources/shaders/gl/geometry_pass.frag");
-   m_geometryPassShader->Link();
-   // Setup lighting pass shader
-   m_lightingPassShader = std::make_unique<GLShader>();
-   m_lightingPassShader->AttachShaderFromFile(GLShader::Type::Vertex,
-                                              "resources/shaders/gl/lighting_pass.vert");
-   m_lightingPassShader->AttachShaderFromFile(GLShader::Type::Fragment,
-                                              "resources/shaders/gl/lighting_pass.frag");
-   m_lightingPassShader->Link();
-   // Setup gizmo pass shader
-   m_gizmoPassShader = std::make_unique<GLShader>();
-   m_gizmoPassShader->AttachShaderFromFile(GLShader::Type::Vertex,
-                                           "resources/shaders/gl/gizmo_pass.vert");
-   m_gizmoPassShader->AttachShaderFromFile(GLShader::Type::Fragment,
-                                           "resources/shaders/gl/gizmo_pass.frag");
-   m_gizmoPassShader->Link();
+   const auto createShader = [](const char* vertPath, const char* fragPath) {
+      auto shader = std::make_unique<GLShader>();
+      shader->AttachShaderFromFile(GLShader::Type::Vertex, vertPath);
+      shader->AttachShaderFromFile(GLShader::Type::Fragment, fragPath);
+      shader->Link();
+      return shader;
+   };
+   m_geometryPassShader = createShader("resources/shaders/gl/geometry_pass.vert",
+                                       "resources/shaders/gl/geometry_pass.frag");
+
+   m_lightingPassShader = createShader("resources/shaders/gl/lighting_pass.vert",
+                                       "resources/shaders/gl/lighting_pass.frag");
+   m_gizmoPassShader =
+      createShader("resources/shaders/gl/gizmo_pass.vert", "resources/shaders/gl/gizmo_pass.frag");
 }
 
 void GLRenderer::CreateGeometryFBO() {
    m_gBuffer.reset();
+   // Create G-buffer textures
    m_gAlbedoTexture = m_resourceManager->CreateRenderTarget(
       "gbuffer_color", m_window->GetWidth(), m_window->GetHeight(), ITexture::Format::RGBA8);
    m_gNormalTexture = m_resourceManager->CreateRenderTarget(
       "gbuffer_normals", m_window->GetWidth(), m_window->GetHeight(), ITexture::Format::RGBA16F);
    m_gDepthTexture = m_resourceManager->CreateDepthTexture("gbuffer_depth", m_window->GetWidth(),
                                                            m_window->GetHeight());
-   auto* colorTexPtr =
+   // Get texture pointers
+   const auto* colorTexPtr =
       reinterpret_cast<const GLTexture*>(m_resourceManager->GetTexture(m_gAlbedoTexture));
-   auto* normalTexPtr =
+   const auto* normalTexPtr =
       reinterpret_cast<const GLTexture*>(m_resourceManager->GetTexture(m_gNormalTexture));
-   auto* depthTexPtr =
+   const auto* depthTexPtr =
       reinterpret_cast<const GLTexture*>(m_resourceManager->GetTexture(m_gDepthTexture));
-   GLFramebuffer::CreateInfo gbufferInfo{
+   // Create framebuffer
+   const GLFramebuffer::CreateInfo gbufferInfo{
       .colorAttachments = {{colorTexPtr, 0, 0}, {normalTexPtr, 0, 0}},
       .depthAttachment = {depthTexPtr},
       .stencilAttachment = {},
@@ -192,20 +186,20 @@ void GLRenderer::CreateLightingFBO() {
       "lighting_color", m_window->GetWidth(), m_window->GetHeight(), ITexture::Format::RGBA8);
    m_lightingDepthTexture = m_resourceManager->CreateDepthTexture(
       "lighting_depth", m_window->GetWidth(), m_window->GetHeight());
-   auto* colorTexPtr =
+   const auto* colorTexPtr =
       reinterpret_cast<const GLTexture*>(m_resourceManager->GetTexture(m_lightingColorTexture));
-   auto* depthTexPtr =
+   const auto* depthTexPtr =
       reinterpret_cast<const GLTexture*>(m_resourceManager->GetTexture(m_lightingDepthTexture));
-   GLFramebuffer::CreateInfo fboInfo{.colorAttachments = {{colorTexPtr, 0, 0}},
-                                     .depthAttachment = {depthTexPtr},
-                                     .stencilAttachment = {},
-                                     .width = m_window->GetWidth(),
-                                     .height = m_window->GetHeight()};
+   const GLFramebuffer::CreateInfo fboInfo{.colorAttachments = {{colorTexPtr, 0, 0}},
+                                           .depthAttachment = {depthTexPtr},
+                                           .stencilAttachment = {},
+                                           .width = m_window->GetWidth(),
+                                           .height = m_window->GetHeight()};
    m_lightingFbo = std::make_unique<GLFramebuffer>(GLFramebuffer::Create(fboInfo));
 }
 
 void GLRenderer::CreateGeometryPass() {
-   GLRenderPass::CreateInfo geometryPassInfo{
+   const GLRenderPass::CreateInfo geometryPassInfo{
       .framebuffer = m_gBuffer.get(),
       .colorAttachments =
          {
@@ -223,50 +217,49 @@ void GLRenderer::CreateGeometryPass() {
                       .cullMode = GLRenderPass::CullMode::Back,
                       .frontFaceCCW = true,
                       .blendMode = GLRenderPass::BlendMode::None,
-                      .customSrcFactor = GL_SRC_ALPHA,
-                      .customDstFactor = GL_ONE_MINUS_SRC_ALPHA,
-                      .customBlendEquation = GL_FUNC_ADD,
                       .primitiveType = GLRenderPass::PrimitiveType::Triangles},
       .shader = m_geometryPassShader.get()};
    m_geometryPass = std::make_unique<GLRenderPass>(geometryPassInfo);
 }
 
 void GLRenderer::CreateLightingPass() {
-   GLRenderPass::CreateInfo lightingPassInfo;
-   lightingPassInfo.framebuffer = m_lightingFbo.get();
-   lightingPassInfo.colorAttachments = {
-      {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
-   };
-   lightingPassInfo.depthStencilAttachment = {GLRenderPass::LoadOp::DontCare,
-                                              GLRenderPass::StoreOp::DontCare,
-                                              GLRenderPass::LoadOp::DontCare,
-                                              GLRenderPass::StoreOp::DontCare,
-                                              1.0f,
-                                              0};
-   lightingPassInfo.renderState.depthTest = GLRenderPass::DepthTest::Disabled;
-   lightingPassInfo.renderState.cullMode = GLRenderPass::CullMode::Back;
-   lightingPassInfo.renderState.primitiveType = GLRenderPass::PrimitiveType::Triangles;
-   lightingPassInfo.shader = m_lightingPassShader.get();
+   const GLRenderPass::CreateInfo lightingPassInfo{
+      .framebuffer = m_lightingFbo.get(),
+      .colorAttachments =
+         {
+            {GLRenderPass::LoadOp::Clear, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
+         },
+      .depthStencilAttachment = {.depthLoadOp = GLRenderPass::LoadOp::DontCare,
+                                 .depthStoreOp = GLRenderPass::StoreOp::DontCare,
+                                 .stencilLoadOp = GLRenderPass::LoadOp::DontCare,
+                                 .stencilStoreOp = GLRenderPass::StoreOp::DontCare,
+                                 .depthClearValue = 1.0f,
+                                 .stencilClearValue = 0},
+      .renderState = {.depthTest = GLRenderPass::DepthTest::Disabled,
+                      .cullMode = GLRenderPass::CullMode::Back,
+                      .primitiveType = GLRenderPass::PrimitiveType::Triangles},
+      .shader = m_lightingPassShader.get()};
    m_lightingPass = std::make_unique<GLRenderPass>(lightingPassInfo);
 }
 
 void GLRenderer::CreateGizmoPass() {
-   GLRenderPass::CreateInfo gizmoPassInfo;
-   gizmoPassInfo.framebuffer = m_lightingFbo.get();
-   gizmoPassInfo.colorAttachments = {
-      {GLRenderPass::LoadOp::Load, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
-   };
-   gizmoPassInfo.depthStencilAttachment = {GLRenderPass::LoadOp::Load,
-                                           GLRenderPass::StoreOp::Store,
-                                           GLRenderPass::LoadOp::DontCare,
-                                           GLRenderPass::StoreOp::DontCare,
-                                           1.0f,
-                                           0};
-   gizmoPassInfo.renderState.depthTest = GLRenderPass::DepthTest::LessEqual;
-   gizmoPassInfo.renderState.cullMode = GLRenderPass::CullMode::None;
-   gizmoPassInfo.renderState.primitiveType = GLRenderPass::PrimitiveType::Lines;
-   gizmoPassInfo.renderState.lineWidth = 3;
-   gizmoPassInfo.shader = m_gizmoPassShader.get();
+   const GLRenderPass::CreateInfo gizmoPassInfo{
+      .framebuffer = m_lightingFbo.get(),
+      .colorAttachments =
+         {
+            {GLRenderPass::LoadOp::Load, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
+         },
+      .depthStencilAttachment = {.depthLoadOp = GLRenderPass::LoadOp::Load,
+                                 .depthStoreOp = GLRenderPass::StoreOp::Store,
+                                 .stencilLoadOp = GLRenderPass::LoadOp::DontCare,
+                                 .stencilStoreOp = GLRenderPass::StoreOp::DontCare,
+                                 .depthClearValue = 1.0f,
+                                 .stencilClearValue = 0},
+      .renderState = {.depthTest = GLRenderPass::DepthTest::LessEqual,
+                      .cullMode = GLRenderPass::CullMode::None,
+                      .primitiveType = GLRenderPass::PrimitiveType::Lines,
+                      .lineWidth = 3.0f},
+      .shader = m_gizmoPassShader.get()};
    m_gizmoPass = std::make_unique<GLRenderPass>(gizmoPassInfo);
 }
 
@@ -275,24 +268,22 @@ void GLRenderer::CreateUBOs() {
    m_cameraUbo = std::make_unique<GLBuffer>(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
    const CameraData camData{};
    m_cameraUbo->UploadData(&camData, sizeof(CameraData));
-   m_cameraUbo->BindBase(0);
-   // Create lighting UBO
+   m_cameraUbo->BindBase(CAMERA_UBO_BINDING);
+   // Create lights UBO
    m_lightsUbo = std::make_unique<GLBuffer>(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
-   const LightData lightData{};
+   const LightsData lightData{};
    m_lightsUbo->UploadData(&lightData, sizeof(LightsData));
-   m_lightsUbo->BindBase(1);
+   m_lightsUbo->BindBase(LIGHTS_UBO_BINDING);
 }
-
-GLRenderer::~GLRenderer() { DestroyImgui(); }
 
 void GLRenderer::SetupImgui() {
    IMGUI_CHECKVERSION();
    ImGui::CreateContext();
-   if (!ImGui_ImplGlfw_InitForOpenGL(m_window->GetNativeWindow(), true)) {
-      throw std::runtime_error("ImGUI initialization failed.");
+   if (!ImGui_ImplGlfw_InitForOpenGL(m_window->GetNativeWindow(), true)) [[unlikely]] {
+      throw std::runtime_error("ImGui GLFW initialization failed");
    }
-   if (!ImGui_ImplOpenGL3_Init("#version 460")) {
-      throw std::runtime_error("ImGUI initialization failed.");
+   if (!ImGui_ImplOpenGL3_Init("#version 460")) [[unlikely]] {
+      throw std::runtime_error("ImGui OpenGL3 initialization failed");
    }
 }
 
@@ -306,8 +297,9 @@ void GLRenderer::RenderImgui() {
    ImGui_ImplOpenGL3_NewFrame();
    ImGui_ImplGlfw_NewFrame();
    ImGui::NewFrame();
-   const ImGuiViewport* viewport = ImGui::GetMainViewport();
-   m_activeScene->DrawInspector(*m_materialEditor);
+   if (m_activeScene) [[likely]] {
+      m_activeScene->DrawInspector(*m_materialEditor);
+   }
    // Draw material editor
    m_materialEditor->DrawMaterialBrowser();
    m_materialEditor->DrawMaterialProperties();
@@ -319,117 +311,135 @@ void GLRenderer::RenderImgui() {
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void GLRenderer::RenderFrame() {
-   // Update the camera
-   const CameraData camData = {
-      m_activeCamera->GetViewMatrix(),
-      m_activeCamera->GetProjectionMatrix(),
-      m_activeCamera->GetTransform().GetPosition(),
-   };
+void GLRenderer::UpdateCameraUBO() noexcept {
+   if (!m_activeCamera) [[unlikely]]
+      return;
+   const CameraData camData{.view = m_activeCamera->GetViewMatrix(),
+                            .proj = m_activeCamera->GetProjectionMatrix(),
+                            .viewPos = m_activeCamera->GetTransform().GetPosition()};
    m_cameraUbo->UpdateData(&camData, sizeof(CameraData));
+}
+
+void GLRenderer::UpdateLightsUBO() noexcept {
+   if (!m_activeScene) [[unlikely]]
+      return;
+   LightsData lightsData{};
+   lightsData.lightCount = 0;
+   m_activeScene->ForEachNode([&](const Node* node) {
+      if (!node->IsActive() || lightsData.lightCount >= MAX_LIGHTS) [[unlikely]]
+         return;
+      const auto* lightComp = node->GetComponent<LightComponent>();
+      const auto* transformComp = node->GetComponent<TransformComponent>();
+      if (lightComp && transformComp) [[likely]] {
+         auto& light = lightsData.lights[lightsData.lightCount];
+         light.lightType = static_cast<uint32_t>(lightComp->GetType());
+         light.color = lightComp->GetColor();
+         light.intensity = lightComp->GetIntensity();
+         light.constant = lightComp->GetConstant();
+         light.linear = lightComp->GetLinear();
+         light.quadratic = lightComp->GetQuadratic();
+         const auto& transform = transformComp->GetTransform();
+         light.position = transform.GetPosition();
+         light.direction = transform.GetForward();
+         light.innerCone = lightComp->GetInnerCone();
+         light.outerCone = lightComp->GetOuterCone();
+         ++lightsData.lightCount;
+      }
+   });
+   m_lightsUbo->UpdateData(&lightsData, sizeof(LightsData));
+}
+
+void GLRenderer::BindGBufferTextures() const noexcept {
+   if (const auto* tex = m_resourceManager->GetTexture(m_gAlbedoTexture); tex) [[likely]] {
+      tex->Bind(GBUFFER_ALBEDO_SLOT);
+   }
+   if (const auto* tex = m_resourceManager->GetTexture(m_gNormalTexture); tex) [[likely]] {
+      tex->Bind(GBUFFER_NORMAL_SLOT);
+   }
+   if (const auto* tex = m_resourceManager->GetTexture(m_gDepthTexture); tex) [[likely]] {
+      tex->Bind(GBUFFER_DEPTH_SLOT);
+   }
+}
+
+void GLRenderer::RenderGeometry() const noexcept {
+   if (!m_activeScene) [[unlikely]]
+      return;
+   m_activeScene->ForEachNode([this](const Node* node) {
+      if (!node->IsActive()) [[unlikely]]
+         return;
+      const auto* renderer = node->GetComponent<RendererComponent>();
+      if (!renderer || !renderer->IsVisible() || !renderer->HasMesh()) [[unlikely]]
+         return;
+      // Set transformation matrix
+      if (const auto* worldTransform = node->GetWorldTransform(); worldTransform) [[likely]] {
+         m_geometryPassShader->SetMat4("model", worldTransform->GetTransformMatrix());
+      }
+      // Render mesh with material
+      const auto* mesh = m_resourceManager->GetMesh(renderer->GetMesh());
+      auto* material = m_resourceManager->GetMaterial(renderer->GetMaterial());
+      if (mesh && material) [[likely]] {
+         material->Bind(MATERIAL_BINDING_SLOT, *m_resourceManager);
+         mesh->Draw();
+      }
+   });
+}
+
+void GLRenderer::RenderLighting() const noexcept {
+   BindGBufferTextures();
+   if (const auto* quadMesh = m_resourceManager->GetMesh(m_fullscreenQuad); quadMesh) [[likely]] {
+      quadMesh->Draw();
+   }
+}
+
+void GLRenderer::RenderGizmos() const noexcept {
+   if (!m_activeScene) [[unlikely]]
+      return;
+   const auto* cubeMesh = m_resourceManager->GetMesh(m_lineCube);
+   const auto* glCubeMesh = dynamic_cast<const GLMesh*>(cubeMesh);
+   if (!glCubeMesh) [[unlikely]]
+      return;
+   m_activeScene->ForEachNode([&](const Node* node) {
+      if (!node->IsActive()) [[unlikely]]
+         return;
+      const auto* lightComp = node->GetComponent<LightComponent>();
+      const auto* transformComp = node->GetComponent<TransformComponent>();
+      if (lightComp && transformComp) [[likely]] {
+         m_gizmoPassShader->SetMat4("model", transformComp->GetTransform().GetTransformMatrix());
+         m_gizmoPassShader->SetVec3("gizmoColor", lightComp->GetColor());
+         glCubeMesh->Draw(m_gizmoPass->GetPrimitiveType());
+      }
+   });
+}
+
+void GLRenderer::RenderFrame() {
+   // Update UBOs
+   UpdateCameraUBO();
+   UpdateLightsUBO();
+   // Geometry pass
    m_geometryPass->Begin();
-   // Draw the scene
-   if (m_activeScene) {
+   if (m_activeScene) [[likely]] {
       m_activeScene->UpdateTransforms();
-      m_activeScene->ForEachNode([&](const Node* node) {
-         // Skip inactive nodes
-         if (!node->IsActive())
-            return;
-         if (const auto* renderer = node->GetComponent<RendererComponent>()) {
-            // If not visible, do not render
-            if (!renderer->IsVisible() || !renderer->HasMesh())
-               return;
-            // If has position, load it in
-            if (const Transform* worldTransform = node->GetWorldTransform()) {
-               // Set up transformation matrix for rendering
-               m_geometryPassShader->SetMat4("model", worldTransform->GetTransformMatrix());
-            }
-            // Render the mesh
-            if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
-               if (IMaterial* material = m_resourceManager->GetMaterial(renderer->GetMaterial())) {
-                  material->Bind(2, *m_resourceManager.get());
-                  mesh->Draw();
-               }
-            }
-         }
-      });
+      RenderGeometry();
    }
    m_geometryPass->End();
-   // Copy gbuffer depth to lighting fbo
+   // Copy depth buffer from G-buffer to lighting framebuffer
    m_gBuffer->BlitTo(*m_lightingFbo, 0, 0, m_window->GetWidth(), m_window->GetHeight(), 0, 0,
                      m_window->GetWidth(), m_window->GetHeight(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
    // Lighting pass
    m_lightingPass->Begin();
-   LightsData lightsData{};
-   lightsData.lightCount = 0;
-   if (m_activeScene) {
-      m_activeScene->ForEachNode([&](Node* node) {
-         if (!node->IsActive())
-            return;
-         if (const LightComponent* lightComp = node->GetComponent<LightComponent>();
-             lightComp && lightsData.lightCount < MAX_LIGHTS) {
-            if (const TransformComponent* transformComp =
-                   node->GetComponent<TransformComponent>()) {
-               LightData& light = lightsData.lights[lightsData.lightCount];
-               light.lightType = static_cast<uint32_t>(lightComp->GetType());
-               light.color = lightComp->GetColor();
-               light.intensity = lightComp->GetIntensity();
-               light.constant = lightComp->GetConstant();
-               light.linear = lightComp->GetLinear();
-               light.quadratic = lightComp->GetQuadratic();
-               const Transform transform = transformComp->GetTransform();
-               light.position = transform.GetPosition();
-               light.direction = transform.GetForward();
-               // Spot light cone angles
-               light.innerCone = lightComp->GetInnerCone();
-               light.outerCone = lightComp->GetOuterCone();
-               ++lightsData.lightCount;
-            }
-         }
-      });
-   }
-   m_lightsUbo->UpdateData(&lightsData, sizeof(LightsData));
-   // Bind g buffer textures
-   if (const ITexture* tex = m_resourceManager->GetTexture(m_gAlbedoTexture)) {
-      tex->Bind(3);
-   }
-   if (const ITexture* tex = m_resourceManager->GetTexture(m_gNormalTexture)) {
-      tex->Bind(4);
-   }
-   if (const ITexture* tex = m_resourceManager->GetTexture(m_gDepthTexture)) {
-      tex->Bind(5);
-   }
-   // Draw fullscreen mesh
-   if (const IMesh* quadMesh = m_resourceManager->GetMesh(m_fullscreenQuad)) {
-      quadMesh->Draw();
-   }
+   RenderLighting();
    m_lightingPass->End();
+   // Gizmo pass
    m_gizmoPass->Begin();
-   if (m_activeScene) {
-      m_activeScene->ForEachNode([&](Node* node) {
-         if (!node->IsActive())
-            return;
-         if (const LightComponent* lightComp = node->GetComponent<LightComponent>();
-             lightComp && lightsData.lightCount < MAX_LIGHTS) {
-            if (const TransformComponent* transformComp =
-                   node->GetComponent<TransformComponent>()) {
-               if (const IMesh* cubeMesh = m_resourceManager->GetMesh(m_lineCube)) {
-                  m_gizmoPassShader->SetMat4("model",
-                                             transformComp->GetTransform().GetTransformMatrix());
-                  m_gizmoPassShader->SetVec3("gizmoColor", lightComp->GetColor());
-                  if (const GLMesh* glCubeMesh = dynamic_cast<const GLMesh*>(cubeMesh)) {
-                     glCubeMesh->Draw(m_gizmoPass->GetPrimitiveType());
-                  }
-               }
-            }
-         }
-      });
-   }
+   RenderGizmos();
    m_gizmoPass->End();
+   // Blit final result to screen
    m_lightingFbo->BlitToScreen(m_window->GetWidth(), m_window->GetHeight(), GL_COLOR_BUFFER_BIT,
                                GL_NEAREST);
-   // Render Ui
+   // Render UI
    RenderImgui();
    // Swap buffers
    glfwSwapBuffers(m_window->GetNativeWindow());
 }
+
+ResourceManager* GLRenderer::GetResourceManager() const noexcept { return m_resourceManager.get(); }
