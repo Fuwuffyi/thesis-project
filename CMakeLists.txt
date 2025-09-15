@@ -220,12 +220,12 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
    # GCC settings
    set(CMAKE_CXX_FLAGS_DEBUG "-g3 -O0 -fno-omit-frame-pointer")
    set(CMAKE_C_FLAGS_DEBUG "-g3 -O0 -fno-omit-frame-pointer")
-   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native -ffast-math -funroll-loops")
-   set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native -ffast-math -funroll-loops")
-   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG -march=native -mtune=native")
-   set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG -march=native -mtune=native")
-   set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -DNDEBUG -march=native -mtune=native")
-   set(CMAKE_C_FLAGS_MINSIZEREL "-Os -DNDEBUG -march=native -mtune=native")
+   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -ffast-math -funroll-loops")
+   set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -ffast-math -funroll-loops")
+   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG")
+   set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG")
+   set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -DNDEBUG")
+   set(CMAKE_C_FLAGS_MINSIZEREL "-Os -DNDEBUG")
    # Enable sanitizers for GCC debug builds
    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
       include(CheckCXXCompilerFlag)
@@ -278,8 +278,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
    set(CMAKE_CXX_FLAGS_DEBUG "-g3 -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
    set(CMAKE_C_FLAGS_DEBUG "-g3 -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
    if(NOT WIN32)
-      set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native -ffast-math -funroll-loops -flto=thin")
-      set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native -ffast-math -funroll-loops -flto=thin")
+      set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -ffast-math -funroll-loops -flto=thin")
+      set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -ffast-math -funroll-loops -flto=thin")
    else()
       set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -ffast-math -funroll-loops")
       set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -ffast-math -funroll-loops")
@@ -421,11 +421,22 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(stb)
 
+# vk bootstrap
+FetchContent_Declare(
+   vk-bootstrap
+   GIT_REPOSITORY https://github.com/charles-lunarg/vk-bootstrap.git
+   GIT_TAG v1.4.311
+)
+set(VKB_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(VKB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(VKB_BUILD_DOCUMENTATION OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(vk-bootstrap)
+
 # ImGui
 FetchContent_Declare(
    imgui
    GIT_REPOSITORY https://github.com/ocornut/imgui.git
-   GIT_TAG v1.91.5
+   GIT_TAG v1.92.2b
 )
 FetchContent_MakeAvailable(imgui)
 
@@ -467,6 +478,7 @@ target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
    Vulkan::Vulkan
+   vk-bootstrap::vk-bootstrap
    OpenGL::GL
    glad_gl_core_46
    glfw
@@ -613,8 +625,9 @@ _disable_warnings_for(glm::glm)
 _disable_warnings_for(assimp)
 _disable_warnings_for(stb)
 _disable_warnings_for(imgui)
-_disable_warnings_for(Vulkan::Vulkan)
 _disable_warnings_for(OpenGL::GL)
+_disable_warnings_for(Vulkan::Vulkan)
+_disable_warnings_for(vk-bootstrap::vk-bootstrap)
 
 if(WIN32 AND CMAKE_GENERATOR MATCHES "Visual Studio")
    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})

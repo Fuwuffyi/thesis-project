@@ -39,12 +39,9 @@ const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NA
 
 VulkanRenderer::VulkanRenderer(Window* windowHandle)
     : IRenderer(windowHandle),
-      m_instance(deviceExtensions, validationLayers, enableValidationLayers),
-#ifndef NDEBUG
-      m_debugMessenger(m_instance),
-#endif
+      m_instance(),
       m_surface(m_instance, m_window->GetNativeWindow()),
-      m_device(m_instance, m_surface, deviceExtensions, validationLayers, enableValidationLayers),
+      m_device(m_instance, m_surface),
       m_swapchain(m_device, m_surface, *m_window),
       m_renderPass(m_device, m_swapchain.GetFormat(), FindDepthFormat()) {
    m_resourceManager =
@@ -313,7 +310,7 @@ void VulkanRenderer::CreateDepthResources() {
 
 void VulkanRenderer::CreateTestResources() {
    m_texture = m_resourceManager->LoadTexture(
-      "test_texture", "resources/textures/arch_stone_wall_01_BaseColor.png", true, true);
+      "test_texture", "resources/textures/wood_tile_01_BaseColor.png", true, true);
 }
 
 void VulkanRenderer::CreateUniformBuffer() {

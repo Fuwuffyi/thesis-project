@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include <vector>
+#include <VkBootstrap.h>
 #include <optional>
 
 class VulkanInstance;
@@ -11,69 +11,41 @@ struct QueueFamilyIndices {
    std::optional<uint32_t> graphicsFamily;
    std::optional<uint32_t> presentFamily;
 
-   bool HasAllValues() { return graphicsFamily.has_value() && presentFamily.has_value(); }
-};
-
-struct SwapChainSupportDetails {
-   VkSurfaceCapabilitiesKHR capabilities;
-   std::vector<VkSurfaceFormatKHR> formats;
-   std::vector<VkPresentModeKHR> presentModes;
+   bool HasAllValues() const { return graphicsFamily.has_value() && presentFamily.has_value(); }
 };
 
 class VulkanDevice {
   public:
-   VulkanDevice(const VulkanInstance& instance, const VulkanSurface& surface,
-                const std::vector<const char*>& requiredExtensions,
-                const std::vector<const char*>& validationLayers, const bool enableValidation);
+   VulkanDevice(const VulkanInstance& instance, const VulkanSurface& surface);
    ~VulkanDevice();
 
-   VulkanDevice(const VulkanDevice&) = delete;
-   VulkanDevice& operator=(const VulkanDevice&) = delete;
+   // Move semantics
    VulkanDevice(VulkanDevice&& other) noexcept;
    VulkanDevice& operator=(VulkanDevice&& other) noexcept;
 
-   const VkPhysicalDevice& GetPhysicalDevice() const;
+   // Delete copy semantics
+   VulkanDevice(const VulkanDevice&) = delete;
+   VulkanDevice& operator=(const VulkanDevice&) = delete;
+
+   // Getters
    const VkDevice& Get() const;
-   const VkCommandPool& GetCommandPool() const;
+   const VkPhysicalDevice& GetPhysicalDevice() const;
    const VkQueue& GetGraphicsQueue() const;
    const VkQueue& GetPresentQueue() const;
+   const VkCommandPool& GetCommandPool() const;
    const QueueFamilyIndices& GetQueueFamilies() const;
    uint32_t GetGraphicsQueueFamily() const;
    uint32_t GetPresentQueueFamily() const;
 
   private:
-   // Object creation
-   void CreatePhysicalDevice(const std::vector<const char*>& requiredExtensions);
-   void CreateLogicalDevice(const std::vector<const char*>& requiredExtensions,
-                            const std::vector<const char*>& validationLayers,
-                            const bool enableValidation);
-   void FindQueueFamilies();
-   void GetDeviceQueues();
    void CreateCommandPool();
 
-   // Device evaluation
-   static uint32_t RateDevice(const VkPhysicalDevice& device);
-   static bool IsDeviceSuitable(const VkPhysicalDevice& device, const VkSurfaceKHR& surface,
-                                const std::vector<const char*>& requiredExtensions);
-   static bool CheckDeviceExtensionSupport(const VkPhysicalDevice& device,
-                                           const std::vector<const char*>& requiredExtensions);
-
-  public:
-   // TODO: Move to private? when swapchain fixed maybe, unsure.
-   static SwapChainSupportDetails QuerySwapChainSupport(const VkPhysicalDevice& device,
-                                                        const VkSurfaceKHR& surface);
-
-  private:
-   // Dependencies
-   const VulkanInstance* m_instance = nullptr;
-   const VulkanSurface* m_surface = nullptr;
-   // Core objects
-   VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-   VkDevice m_device = VK_NULL_HANDLE;
-   // Generic command pool
-   VkCommandPool m_commandPool = VK_NULL_HANDLE;
-   // Queue management
+   vkb::Device m_vkbDevice;
+   VkDevice m_device{VK_NULL_HANDLE};
+   VkPhysicalDevice m_physicalDevice{VK_NULL_HANDLE};
+   VkQueue m_graphicsQueue{VK_NULL_HANDLE};
+   VkQueue m_presentQueue{VK_NULL_HANDLE};
+   VkCommandPool m_commandPool{VK_NULL_HANDLE};
    QueueFamilyIndices m_queueFamilies{};
-   VkQueue m_graphicsQueue = VK_NULL_HANDLE;
-   VkQueue m_presentQueue = VK_NULL_HANDLE;
+   bool m_ownsDevice{false};
 };

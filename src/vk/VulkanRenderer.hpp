@@ -2,7 +2,6 @@
 
 #include "../core/IRenderer.hpp"
 #include "VulkanInstance.hpp"
-#include "VulkanDebugMessenger.hpp"
 #include "VulkanSurface.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanSwapchain.hpp"
@@ -78,9 +77,6 @@ class VulkanRenderer : public IRenderer {
    constexpr static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
    uint32_t m_currentFrame = 0;
    VulkanInstance m_instance;
-#ifndef NDEBUG
-   VulkanDebugMessenger m_debugMessenger;
-#endif
    VulkanSurface m_surface;
    VulkanDevice m_device;
    VulkanSwapchain m_swapchain;

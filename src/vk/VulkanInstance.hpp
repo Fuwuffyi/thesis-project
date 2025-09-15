@@ -1,24 +1,23 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include <vector>
+#include <VkBootstrap.h>
 
 class VulkanInstance {
   public:
-   VulkanInstance(const std::vector<const char*>& extensions,
-                  const std::vector<const char*>& validationLayers, const bool enableValidation);
+   VulkanInstance();
    ~VulkanInstance();
 
-   VulkanInstance(const VulkanInstance&) = delete;
-   VulkanInstance& operator=(const VulkanInstance&) = delete;
    VulkanInstance(VulkanInstance&& other) noexcept;
    VulkanInstance& operator=(VulkanInstance&& other) noexcept;
+   VulkanInstance(const VulkanInstance&) = delete;
+   VulkanInstance& operator=(const VulkanInstance&) = delete;
 
    VkInstance Get() const;
+   const vkb::Instance& GetVkbInstance() const;
 
   private:
-   VkInstance m_instance = VK_NULL_HANDLE;
-
-   std::vector<const char*> GetRequiredExtensions(const bool enableValidation) const;
-   bool CheckValidationLayerSupport(const std::vector<const char*>& validationLayers) const;
+   vkb::Instance m_vkbInstance;
+   VkInstance m_instance{VK_NULL_HANDLE};
+   bool m_ownsInstance{false};
 };
