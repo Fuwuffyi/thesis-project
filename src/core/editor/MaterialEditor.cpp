@@ -17,9 +17,9 @@ MaterialEditor::MaterialEditor(ResourceManager* const resourceManager,
     : m_resourceManager(resourceManager), m_api(api) {}
 
 void MaterialEditor::DrawMaterialBrowser() {
-   if (!m_showMaterialBrowser) [[unlikely]]
-      return;
-   if (ImGui::Begin("Material Browser", &m_showMaterialBrowser)) {
+   ImGuiWindowFlags flags = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
+                            ImGuiWindowFlags_NoNav;
+   if (ImGui::Begin("Material Browser", nullptr, flags)) {
       // Create new material button
       if (ImGui::Button("Create New Material")) {
          m_showMaterialCreation = true;
@@ -51,7 +51,9 @@ void MaterialEditor::DrawMaterialBrowser() {
 void MaterialEditor::DrawMaterialProperties() {
    if (!m_selectedMaterial) [[unlikely]]
       return;
-   ImGui::Begin("Material Properties");
+   ImGuiWindowFlags flags = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
+                            ImGuiWindowFlags_NoNav;
+   ImGui::Begin("Material Properties", nullptr, flags);
    ImGui::Text("Material: %s", m_selectedMaterialName.c_str());
    ImGui::Text("Template: %s", m_selectedMaterial->GetTemplateName().data());
    ImGui::Separator();
@@ -60,10 +62,9 @@ void MaterialEditor::DrawMaterialProperties() {
 }
 
 void MaterialEditor::DrawTextureBrowser() {
-   if (!m_showTextureBrowser) [[unlikely]]
-      return;
-
-   if (ImGui::Begin("Texture Browser", &m_showTextureBrowser)) {
+   ImGuiWindowFlags flags = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
+                            ImGuiWindowFlags_NoNav;
+   if (ImGui::Begin("Texture Browser", nullptr, flags)) {
       constexpr uint32_t columns = 4;
       constexpr uint32_t imgSize = 96;
       ImGui::BeginChild("TextureScrollRegion", ImVec2(0, 0), false,
@@ -194,59 +195,115 @@ void MaterialEditor::DrawMaterialCreationDialog() {
 void MaterialEditor::DrawMaterialParameterEditor(IMaterial* const material) {
    if (!material) [[unlikely]]
       return;
-   // TODO: Read material template params
-   // Albedo
-   if (material->HasParameter("albedo")) {
-      const MaterialParam albedoParam = material->GetParameter("albedo");
-      if (std::holds_alternative<glm::vec3>(albedoParam)) {
-         glm::vec3 albedo = std::get<glm::vec3>(albedoParam);
-         if (ImGui::ColorEdit3("Albedo", &albedo.x)) {
-            material->SetParameter("albedo", albedo);
-            material->UpdateUBO();
+   const auto matTempl = m_resourceManager->GetMaterialTemplate(material->GetTemplateName());
+   if (!matTempl) [[unlikely]]
+      return;
+   for (const auto& [paramName, desc] : matTempl->GetParameters()) {
+      const MaterialParam param = material->GetParameter(paramName);
+      switch (desc.type) {
+         case ParameterDescriptor::Type::Float: {
+            float val = std::get<float>(param);
+            if (ImGui::SliderFloat(paramName.c_str(), &val, 0.0f, 1.0f)) {
+               material->SetParameter(paramName, val);
+               material->UpdateUBO();
+            }
+            break;
          }
-      }
-   }
-   // Metallic
-   if (material->HasParameter("metallic")) {
-      const MaterialParam metallicParam = material->GetParameter("metallic");
-      if (std::holds_alternative<float>(metallicParam)) {
-         float metallic = std::get<float>(metallicParam);
-         if (ImGui::SliderFloat("Metallic", &metallic, 0.0f, 1.0f)) {
-            material->SetParameter("metallic", metallic);
-            material->UpdateUBO();
+         case ParameterDescriptor::Type::Int: {
+            int32_t val = std::get<int32_t>(param);
+            if (ImGui::InputInt(paramName.c_str(), &val)) {
+               material->SetParameter(paramName, val);
+               material->UpdateUBO();
+            }
+            break;
          }
-      }
-   }
-   // Roughness
-   if (material->HasParameter("roughness")) {
-      const MaterialParam roughnessParam = material->GetParameter("roughness");
-      if (std::holds_alternative<float>(roughnessParam)) {
-         float roughness = std::get<float>(roughnessParam);
-         if (ImGui::SliderFloat("Roughness", &roughness, 0.0f, 1.0f)) {
-            material->SetParameter("roughness", roughness);
-            material->UpdateUBO();
+         case ParameterDescriptor::Type::UInt: {
+            uint32_t val = std::get<uint32_t>(param);
+            if (ImGui::InputScalar(paramName.c_str(), ImGuiDataType_U32, &val)) {
+               material->SetParameter(paramName, val);
+               material->UpdateUBO();
+            }
+            break;
          }
-      }
-   }
-   // AO
-   if (material->HasParameter("ao")) {
-      const MaterialParam aoParam = material->GetParameter("ao");
-      if (std::holds_alternative<float>(aoParam)) {
-         float ao = std::get<float>(aoParam);
-         if (ImGui::SliderFloat("AO", &ao, 0.0f, 1.0f)) {
-            material->SetParameter("ao", ao);
-            material->UpdateUBO();
+         case ParameterDescriptor::Type::Vec2: {
+            glm::vec2 val = std::get<glm::vec2>(param);
+            if (ImGui::DragFloat2(paramName.c_str(), &val.x, 0.01f)) {
+               material->SetParameter(paramName, val);
+               material->UpdateUBO();
+            }
+            break;
          }
+         case ParameterDescriptor::Type::Vec3: {
+            glm::vec3 val = std::get<glm::vec3>(param);
+            if (ImGui::ColorEdit3(paramName.c_str(), &val.x)) {
+               material->SetParameter(paramName, val);
+               material->UpdateUBO();
+            }
+            break;
+         }
+         case ParameterDescriptor::Type::Vec4: {
+            glm::vec4 val = std::get<glm::vec4>(param);
+            if (ImGui::ColorEdit4(paramName.c_str(), &val.x)) {
+               material->SetParameter(paramName, val);
+               material->UpdateUBO();
+            }
+            break;
+         }
+         case ParameterDescriptor::Type::Mat2: {
+            glm::mat2 val = std::get<glm::mat2>(param);
+            float matValues[4] = {val[0][0], val[0][1], val[1][0], val[1][1]};
+            if (ImGui::InputFloat4(paramName.c_str(), matValues)) {
+               val[0][0] = matValues[0];
+               val[0][1] = matValues[1];
+               val[1][0] = matValues[2];
+               val[1][1] = matValues[3];
+               material->SetParameter(paramName, val);
+               material->UpdateUBO();
+            }
+            break;
+         }
+         case ParameterDescriptor::Type::Mat3: {
+            glm::mat3 val = std::get<glm::mat3>(param);
+            float matValues[9] = {val[0][0], val[0][1], val[0][2], val[1][0], val[1][1],
+                                  val[1][2], val[2][0], val[2][1], val[2][2]};
+            if (ImGui::InputFloat3(paramName.c_str(), matValues) &&
+                ImGui::InputFloat3((paramName + "_row2").c_str(), matValues + 3) &&
+                ImGui::InputFloat3((paramName + "_row3").c_str(), matValues + 6)) {
+               for (int row = 0; row < 3; ++row)
+                  for (int col = 0; col < 3; ++col)
+                     val[row][col] = matValues[row * 3 + col];
+               material->SetParameter(paramName, val);
+               material->UpdateUBO();
+            }
+            break;
+         }
+         case ParameterDescriptor::Type::Mat4: {
+            glm::mat4 val = std::get<glm::mat4>(param);
+            float matValues[16];
+            for (int row = 0; row < 4; ++row)
+               for (int col = 0; col < 4; ++col)
+                  matValues[row * 4 + col] = val[row][col];
+            if (ImGui::InputFloat4(paramName.c_str(), matValues) &&
+                ImGui::InputFloat4((paramName + "_row2").c_str(), matValues + 4) &&
+                ImGui::InputFloat4((paramName + "_row3").c_str(), matValues + 8) &&
+                ImGui::InputFloat4((paramName + "_row4").c_str(), matValues + 12)) {
+               for (int row = 0; row < 4; ++row)
+                  for (int col = 0; col < 4; ++col)
+                     val[row][col] = matValues[row * 4 + col];
+               material->SetParameter(paramName, val);
+               material->UpdateUBO();
+            }
+            break;
+         }
+         default:
+            break;
       }
    }
    ImGui::Separator();
-   ImGui::Text("Textures:");
    // Texture slots
-   DrawTextureSlotEditor(material, "albedoTexture", "Albedo");
-   DrawTextureSlotEditor(material, "normalTexture", "Normal");
-   DrawTextureSlotEditor(material, "roughnessTexture", "Roughness");
-   DrawTextureSlotEditor(material, "metallicTexture", "Metallic");
-   DrawTextureSlotEditor(material, "aoTexture", "AO");
+   for (const auto& [texName, texDesc] : matTempl->GetTextures()) {
+      DrawTextureSlotEditor(material, texName, texDesc.name);
+   }
 }
 
 void MaterialEditor::DrawTextureSlotEditor(IMaterial* const material,

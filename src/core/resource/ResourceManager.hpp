@@ -51,6 +51,7 @@ class ResourceManager final {
    // Resource access by name
    ITexture* GetTexture(const std::string_view name) const;
    IMaterial* GetMaterial(const std::string_view name) const;
+   MaterialTemplate* GetMaterialTemplate(const std::string_view name) const;
    IMesh* GetMesh(const std::string_view name) const;
    TextureHandle GetTextureHandle(const std::string_view name) const;
    MaterialHandle GetMaterialHandle(const std::string_view name) const;

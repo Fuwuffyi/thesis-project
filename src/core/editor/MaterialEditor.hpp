@@ -57,8 +57,6 @@ class MaterialEditor final {
    // UI State
    IMaterial* m_selectedMaterial{nullptr};
    std::string m_selectedMaterialName;
-   bool m_showMaterialBrowser{true};
-   bool m_showTextureBrowser{true};
    bool m_showMaterialCreation{false};
 
    // Material creation state

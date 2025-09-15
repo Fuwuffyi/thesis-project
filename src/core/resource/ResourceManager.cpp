@@ -221,6 +221,16 @@ IMaterial* ResourceManager::GetMaterial(const std::string_view name) const {
    return nullptr;
 }
 
+MaterialTemplate* ResourceManager::GetMaterialTemplate(const std::string_view name) const {
+   std::shared_lock lock(m_mutex);
+   const std::string nameStr{name};
+   if (auto templateIt = m_materialTemplates.find(nameStr);
+       templateIt != m_materialTemplates.end()) {
+      return static_cast<MaterialTemplate*>(templateIt->second.get());
+   }
+   return nullptr;
+}
+
 IMesh* ResourceManager::GetMesh(const std::string_view name) const {
    std::shared_lock lock(m_mutex);
    const std::string nameStr{name};
