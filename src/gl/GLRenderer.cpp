@@ -303,7 +303,7 @@ void GLRenderer::RenderImgui() {
    m_materialEditor->DrawMaterialProperties();
    m_materialEditor->DrawTextureBrowser();
    // FPS Overlay
-   PerformanceGUI::RenderPeformanceGUI(*m_resourceManager.get(), *m_activeScene);
+   PerformanceGUI::RenderPerformanceGUI(*m_resourceManager.get(), *m_activeScene);
    // Render end
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

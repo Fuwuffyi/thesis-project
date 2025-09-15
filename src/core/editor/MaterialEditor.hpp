@@ -1,10 +1,13 @@
 #pragma once
 
-#include <string>
+#include "core/GraphicsAPI.hpp"
+
+#include "core/resource/IMaterial.hpp"
+#include "core/resource/ITexture.hpp"
 
 #include <glm/glm.hpp>
-
-#include "core/GraphicsAPI.hpp"
+#include <array>
+#include <string_view>
 
 class Node;
 class IMaterial;
@@ -14,41 +17,34 @@ class ResourceManager;
 
 class MaterialEditor final {
   public:
-   explicit MaterialEditor(ResourceManager* const resourceManager, const GraphicsAPI api) noexcept;
+   explicit constexpr MaterialEditor(ResourceManager* const resourceManager,
+                                     const GraphicsAPI api) noexcept
+       : m_resourceManager(resourceManager), m_api(api) {}
 
    MaterialEditor(const MaterialEditor&) = delete;
    MaterialEditor& operator=(const MaterialEditor&) = delete;
    MaterialEditor(MaterialEditor&&) = delete;
    MaterialEditor& operator=(MaterialEditor&&) = delete;
+   ~MaterialEditor() = default;
 
-   // Main material browser/editor window
    void DrawMaterialBrowser();
-   void DrawMaterialProperties();
-   void DrawTextureBrowser();
-   void DrawRendererComponentInspector(Node* const node, RendererComponent* const renderer);
+   void DrawMaterialProperties() const;
+   void DrawTextureBrowser() const;
+   void DrawRendererComponentInspector(Node* const node, RendererComponent* const renderer) const;
 
-   // Handle drag/drop operations
-   void HandleMaterialDragDrop(RendererComponent* const renderer,
-                               const size_t subMeshIndex = SIZE_MAX);
-   void HandleTextureDragDrop(IMaterial* const material, const std::string_view textureSlot);
-
-   // Material creation dialog
    void DrawMaterialCreationDialog();
 
   private:
-   // Helper functions
-   void DrawMaterialParameterEditor(IMaterial* const material);
+   void DrawMaterialParameterEditor(IMaterial* const material) const;
    void DrawTextureSlotEditor(IMaterial* const material, const std::string_view textureName,
-                              const std::string_view displayName);
-   [[nodiscard]] bool DrawDragDropSource(const std::string_view type, const std::string_view name,
-                                         const std::string_view displayText);
-   [[nodiscard]] bool DrawDragDropTarget(const std::string_view type);
-   [[nodiscard]] std::string GetDragDropPayload() const;
+                              const std::string_view displayName) const;
 
-   // Texture preview helpers
    void DrawTexturePreview(const ITexture* const texture,
-                           const glm::vec2& size = glm::vec2(64, 64)) const;
-   [[nodiscard]] uint32_t GetTextureId(const ITexture* const texture) const noexcept;
+                           const glm::vec2& size = glm::vec2{64.0f, 64.0f}) const;
+   [[nodiscard]] constexpr uint32_t GetTextureId(const ITexture* const texture) const noexcept;
+
+   [[nodiscard]] std::string FindMaterialName(const MaterialHandle& handle) const;
+   [[nodiscard]] std::string FindTextureName(const TextureHandle& handle) const;
 
   private:
    ResourceManager* const m_resourceManager;
@@ -60,6 +56,6 @@ class MaterialEditor final {
    bool m_showMaterialCreation{false};
 
    // Material creation state
-   char m_newMaterialName[256]{};
+   std::array<char, 256> m_newMaterialName{};
    std::string m_selectedTemplate{"PBR"};
 };
