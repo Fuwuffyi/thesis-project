@@ -314,34 +314,11 @@ void MaterialEditor::DrawTextureSlotEditor(IMaterial* const material,
    const TextureHandle currentTex = material->GetTexture(textureName);
    const ITexture* const texture = m_resourceManager->GetTexture(currentTex);
    ImGui::Text("%s:", displayName.data());
-   // Show texture information if available
-   if (texture) {
-      ImGui::SameLine();
-      ImGui::Text("(%ux%u)", texture->GetWidth(), texture->GetHeight());
-   }
+   ImGui::PushID(textureName.data());
    if (texture) {
       const uint32_t texId = GetTextureId(texture);
-      ImGui::PushID(textureName.data());
-      ImGui::ImageButton(textureName.data(), static_cast<ImTextureID>(texId), ImVec2(64, 64));
-      // Show tooltip with texture details
-      if (ImGui::IsItemHovered()) {
-         ImGui::BeginTooltip();
-         // Find the texture's resource name
-         std::string texNameForTooltip = "Unknown";
-         const auto textures = m_resourceManager->GetAllTexturesNamed();
-         for (const auto& [tex, name] : textures) {
-            if (m_resourceManager->GetTextureHandle(name) == currentTex) {
-               texNameForTooltip = name;
-               break;
-            }
-         }
-         ImGui::Text("Texture: %s", texNameForTooltip.c_str());
-         ImGui::Text("Size: %ux%u", texture->GetWidth(), texture->GetHeight());
-         ImGui::Image(static_cast<ImTextureID>(texId), ImVec2(128, 128), ImVec2(0, 1),
-                      ImVec2(1, 0));
-         ImGui::EndTooltip();
-      }
-      // Find the texture's resource name to use as the payload (reverse lookup)
+      if (ImGui::ImageButton(textureName.data(), (ImTextureID)(intptr_t)texId, ImVec2(64, 64)));
+      // Drag source
       std::string texNameForPayload = "Unknown";
       const auto textures = m_resourceManager->GetAllTexturesNamed();
       for (const auto& [tex, name] : textures) {
@@ -357,10 +334,28 @@ void MaterialEditor::DrawTextureSlotEditor(IMaterial* const material,
          ImGui::Image((ImTextureID)(intptr_t)texId, ImVec2(48, 48), ImVec2(0, 1), ImVec2(1, 0));
          ImGui::EndDragDropSource();
       }
-      // Button to clear texture (reset to default)
+      // Drag target
+      if (ImGui::BeginDragDropTarget()) {
+         if (const ImGuiPayload* const payload = ImGui::AcceptDragDropPayload("TEXTURE")) {
+            const std::string textureNameStr(static_cast<const char*>(payload->Data));
+            const TextureHandle newTex = m_resourceManager->GetTextureHandle(textureNameStr);
+            if (newTex.IsValid()) {
+               material->SetTexture(textureName, newTex);
+            }
+         }
+         ImGui::EndDragDropTarget();
+      }
+      // Tooltip
+      if (ImGui::IsItemHovered()) {
+         ImGui::BeginTooltip();
+         ImGui::Text("Texture: %s", texNameForPayload.c_str());
+         ImGui::Text("Size: %ux%u", texture->GetWidth(), texture->GetHeight());
+         ImGui::Image((ImTextureID)(intptr_t)texId, ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+         ImGui::EndTooltip();
+      }
       ImGui::SameLine();
+      // Clear button
       if (ImGui::Button("Clear")) {
-         // Get default texture from template
          const auto availableTemplates = m_resourceManager->GetAllMaterialTemplatesNamed();
          for (const auto& [templateRef, name] : availableTemplates) {
             if (name == material->GetTemplateName()) {
@@ -373,21 +368,10 @@ void MaterialEditor::DrawTextureSlotEditor(IMaterial* const material,
             }
          }
       }
-      ImGui::PopID();
    } else {
       ImGui::Button("None", ImVec2(64, 64));
    }
-   // Accept drops here
-   if (ImGui::BeginDragDropTarget()) {
-      if (const ImGuiPayload* const payload = ImGui::AcceptDragDropPayload("TEXTURE")) {
-         const std::string textureNameStr(static_cast<const char*>(payload->Data));
-         const TextureHandle newTex = m_resourceManager->GetTextureHandle(textureNameStr);
-         if (newTex.IsValid()) {
-            material->SetTexture(textureName, newTex);
-         }
-      }
-      ImGui::EndDragDropTarget();
-   }
+   ImGui::PopID();
 }
 
 void MaterialEditor::DrawTexturePreview(const ITexture* const texture,
