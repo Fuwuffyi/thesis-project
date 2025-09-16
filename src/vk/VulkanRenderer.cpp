@@ -1,10 +1,5 @@
 #include "VulkanRenderer.hpp"
 
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_vulkan.h"
-
-#include "core/Vertex.hpp"
 #include "core/Window.hpp"
 #include "core/Camera.hpp"
 
@@ -18,14 +13,26 @@
 #include "vk/resource/VulkanMesh.hpp"
 #include "vk/resource/VulkanResourceFactory.hpp"
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
+
 #include <GLFW/glfw3.h>
-#include <chrono>
 #include <memory>
 #include <print>
 #include <stdexcept>
 #include <vector>
 #include <stb_image.h>
 #include <vulkan/vulkan_core.h>
+
+struct CameraData {
+   alignas(16) glm::mat4 view;
+   alignas(16) glm::mat4 proj;
+};
+
+struct ObjectData {
+   alignas(16) glm::mat4 model;
+};
 
 #ifdef NDEBUG
 constexpr bool enableValidationLayers = false;
@@ -42,76 +49,34 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
       m_instance(),
       m_surface(m_instance, m_window->GetNativeWindow()),
       m_device(m_instance, m_surface),
-      m_swapchain(m_device, m_surface, *m_window),
-      m_renderPass(m_device, m_swapchain.GetFormat(), FindDepthFormat()) {
+      m_swapchain(m_device, m_surface, *m_window) {
    m_resourceManager =
       std::make_unique<ResourceManager>(std::make_unique<VulkanResourceFactory>(m_device));
    m_materialEditor =
       std::make_unique<MaterialEditor>(m_resourceManager.get(), GraphicsAPI::Vulkan);
-   CreateDescriptorSetLayout();
-   CreateGraphicsPipeline();
+
+   CreateGeometryDescriptorSetLayout();
+   CreateGeometryPass();
+   CreateGeometryFBO();
+   CreateGeometryPipeline();
+
+   CreateCommandBuffers();
+
    CreateDepthResources();
-   CreateFramebuffers();
+
    SetupImgui();
    CreateTestResources();
    CreateUniformBuffer();
    CreateDescriptorPool();
    CreateDescriptorSets();
-   CreateCommandBuffers();
    CreateSynchronizationObjects();
+
+   CreateDefaultMaterial();
 
    m_window->SetResizeCallback([this](int32_t width, int32_t height) { RecreateSwapchain(); });
 }
 
-void VulkanRenderer::CreateGraphicsPipeline() {
-   const VulkanShaderModule vertShader(m_device, "resources/shaders/vk/test.vert.spv");
-   const VulkanShaderModule fragShader(m_device, "resources/shaders/vk/test.frag.spv");
-   VkPushConstantRange pushConstantRange{};
-   pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-   pushConstantRange.offset = 0;
-   pushConstantRange.size = sizeof(glm::mat4);
-   m_pipelineLayout = std::make_unique<VulkanPipelineLayout>(
-      m_device, std::vector<VkDescriptorSetLayout>{m_descriptorSetLayout},
-      std::vector<VkPushConstantRange>{pushConstantRange});
-   VulkanGraphicsPipelineBuilder builder(m_device);
-   builder
-      // Set the shaders
-      .SetVertexShader(vertShader.Get())
-      .SetFragmentShader(fragShader.Get())
-      // Setup depth testing
-      .EnableDepthTest(VK_COMPARE_OP_LESS)
-      // Set vertex locations
-      .AddVertexBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-      .AddVertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position))
-      .AddVertexAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal))
-      .AddVertexAttribute(2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv))
-      // Setup type of drawing
-      .SetTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-      // Make viewport and scissor dynamic
-      .AddDynamicState(VK_DYNAMIC_STATE_VIEWPORT)
-      .AddDynamicState(VK_DYNAMIC_STATE_SCISSOR)
-      .AddViewport(VkViewport{})
-      .AddScissor(VkRect2D{})
-      // Set layout and render pass
-      .SetPipelineLayout(m_pipelineLayout->Get())
-      .SetRenderPass(m_renderPass.Get());
-   VulkanGraphicsPipelineBuilder::RasterizationState raster{};
-   raster.cullMode = VK_CULL_MODE_BACK_BIT;
-   raster.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-   builder.SetRasterizationState(raster);
-   VulkanGraphicsPipelineBuilder::MultisampleState ms{};
-   ms.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-   builder.SetMultisampleState(ms);
-   VulkanGraphicsPipelineBuilder::ColorBlendAttachmentState cb{};
-   cb.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                       VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-   VulkanGraphicsPipelineBuilder::ColorBlendState cbState{};
-   cbState.attachments.push_back(cb);
-   builder.SetColorBlendState(cbState);
-   m_graphicsPipeline = std::make_unique<VulkanGraphicsPipeline>(builder.Build());
-}
-
-void VulkanRenderer::CreateDescriptorSetLayout() {
+void VulkanRenderer::CreateGeometryDescriptorSetLayout() {
    VkDescriptorSetLayoutBinding uboLayoutBinding{};
    uboLayoutBinding.binding = 0;
    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -130,37 +95,107 @@ void VulkanRenderer::CreateDescriptorSetLayout() {
    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
    layoutInfo.pBindings = bindings.data();
-   if (vkCreateDescriptorSetLayout(m_device.Get(), &layoutInfo, nullptr, &m_descriptorSetLayout) !=
-       VK_SUCCESS) {
+   if (vkCreateDescriptorSetLayout(m_device.Get(), &layoutInfo, nullptr,
+                                   &m_geometryDescriptorSetLayout) != VK_SUCCESS) {
       throw std::runtime_error("Failed to create descriptor set layout.");
    }
 }
 
-void VulkanRenderer::CreateFramebuffers() {
-   // Create framebuffers from the given swapchain images
-   m_swapchainFramebuffers.resize(m_swapchain.GetImageViews().size());
-   for (size_t i = 0; i < m_swapchain.GetImageViews().size(); ++i) {
-      std::vector<VkImageView> attachments;
-      attachments.reserve(2);
-      attachments.push_back(m_swapchain.GetImageViews()[i]);
-      ITexture* depthTexture = m_resourceManager->GetTexture(m_depthTexture);
-      if (depthTexture) {
-         VulkanTexture* vkDepthTexture = reinterpret_cast<VulkanTexture*>(depthTexture);
-         attachments.push_back(vkDepthTexture->GetImageView());
-      }
-      VkFramebufferCreateInfo framebufferInfo{};
-      framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-      framebufferInfo.renderPass = m_renderPass.Get();
-      framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-      framebufferInfo.pAttachments = attachments.data();
-      framebufferInfo.width = m_swapchain.GetExtent().width;
-      framebufferInfo.height = m_swapchain.GetExtent().height;
-      framebufferInfo.layers = 1;
-      if (vkCreateFramebuffer(m_device.Get(), &framebufferInfo, nullptr,
-                              &m_swapchainFramebuffers[i]) != VK_SUCCESS) {
-         throw std::runtime_error("Failed to create a framebuffer.");
-      }
+void VulkanRenderer::CreateGeometryPass() {
+   m_gAlbedoTexture = m_resourceManager->CreateRenderTarget(
+      "gbuffer_albedo", m_swapchain.GetExtent().width, m_swapchain.GetExtent().height,
+      ITexture::Format::RGBA8);
+   m_gNormalTexture = m_resourceManager->CreateRenderTarget(
+      "gbuffer_normal", m_swapchain.GetExtent().width, m_swapchain.GetExtent().height,
+      ITexture::Format::RGBA16F);
+   m_gDepthTexture = m_resourceManager->CreateDepthTexture(
+      "gbuffer_depth", m_swapchain.GetExtent().width, m_swapchain.GetExtent().height);
+   ITexture* albedoTex = m_resourceManager->GetTexture(m_gAlbedoTexture);
+   ITexture* normalTex = m_resourceManager->GetTexture(m_gNormalTexture);
+   ITexture* depthTex = m_resourceManager->GetTexture(m_gDepthTexture);
+   if (!albedoTex || !normalTex || !depthTex) {
+      throw std::runtime_error("Failed to get G-buffer textures");
    }
+   VulkanTexture* vkAlbedo = reinterpret_cast<VulkanTexture*>(albedoTex);
+   VulkanTexture* vkNormal = reinterpret_cast<VulkanTexture*>(normalTex);
+   VulkanTexture* vkDepth = reinterpret_cast<VulkanTexture*>(depthTex);
+   m_geometryRenderPass = std::make_unique<VulkanRenderPass>(
+      m_device, std::vector<VkFormat>{vkAlbedo->GetVkFormat(), vkNormal->GetVkFormat()},
+      vkDepth->GetVkFormat());
+}
+
+void VulkanRenderer::CreateGeometryFBO() {
+   // Create a single framebuffer for the G-buffer using the created textures' image views
+   ITexture* albedoTex = m_resourceManager->GetTexture(m_gAlbedoTexture);
+   ITexture* normalTex = m_resourceManager->GetTexture(m_gNormalTexture);
+   ITexture* depthTex = m_resourceManager->GetTexture(m_gDepthTexture);
+   if (!albedoTex || !normalTex || !depthTex)
+      throw std::runtime_error("Failed to fetch gbuffer textures for framebuffer creation.");
+   VulkanTexture* vkAlbedo = reinterpret_cast<VulkanTexture*>(albedoTex);
+   VulkanTexture* vkNormal = reinterpret_cast<VulkanTexture*>(normalTex);
+   VulkanTexture* vkDepth = reinterpret_cast<VulkanTexture*>(depthTex);
+   VkImageView attachments[3] = {vkAlbedo->GetImageView(), vkNormal->GetImageView(),
+                                 vkDepth->GetImageView()};
+   VkFramebufferCreateInfo framebufferInfo{};
+   framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+   framebufferInfo.renderPass = m_geometryRenderPass->Get();
+   framebufferInfo.attachmentCount = 3;
+   framebufferInfo.pAttachments = attachments;
+   framebufferInfo.width = m_swapchain.GetExtent().width;
+   framebufferInfo.height = m_swapchain.GetExtent().height;
+   framebufferInfo.layers = 1;
+   VkFramebuffer fb;
+   if (vkCreateFramebuffer(m_device.Get(), &framebufferInfo, nullptr, &fb) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to create G-buffer framebuffer.");
+   }
+   m_geometryFramebuffers.clear();
+   m_geometryFramebuffers.push_back(fb);
+}
+
+void VulkanRenderer::CreateGeometryPipeline() {
+   // Load shaders
+   const VulkanShaderModule vertShader(m_device,
+                                       std::string("resources/shaders/vk/geometry_pass.vert.spv"));
+   const VulkanShaderModule fragShader(m_device,
+                                       std::string("resources/shaders/vk/geometry_pass.frag.spv"));
+   VkPushConstantRange pushConstantRange{};
+   pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+   pushConstantRange.offset = 0;
+   pushConstantRange.size = sizeof(glm::mat4);
+   m_geometryPipelineLayout = std::make_unique<VulkanPipelineLayout>(
+      m_device, std::vector<VkDescriptorSetLayout>{m_geometryDescriptorSetLayout},
+      std::vector<VkPushConstantRange>{pushConstantRange});
+   // Build pipeline using the builder
+   VulkanGraphicsPipelineBuilder builder(m_device);
+   builder.SetVertexShader(vertShader.Get())
+      .SetFragmentShader(fragShader.Get())
+      .AddVertexBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+      .AddVertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position))
+      .AddVertexAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal))
+      .AddVertexAttribute(2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv))
+      .SetTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+      .SetDynamicViewportAndScissor()
+      .SetCullMode(VK_CULL_MODE_BACK_BIT)
+      .SetFrontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
+      .EnableDepthTest(VK_COMPARE_OP_LESS)
+      .SetPipelineLayout(m_geometryPipelineLayout->Get())
+      .SetRenderPass(m_geometryRenderPass->Get());
+   VulkanGraphicsPipelineBuilder::RasterizationState raster{};
+   raster.cullMode = VK_CULL_MODE_BACK_BIT;
+   raster.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+   builder.SetRasterizationState(raster);
+   VulkanGraphicsPipelineBuilder::MultisampleState ms{};
+   ms.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+   builder.SetMultisampleState(ms);
+   VulkanGraphicsPipelineBuilder::ColorBlendAttachmentState cb{};
+   cb.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                       VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+   VulkanGraphicsPipelineBuilder::ColorBlendState cbState{};
+   cbState.attachments.push_back(cb);
+   builder.SetColorBlendState(cbState);
+   // Build and store pipeline
+   VulkanGraphicsPipeline pipelineObj = builder.Build();
+   m_geometryGraphicsPipeline = std::make_unique<VulkanGraphicsPipeline>(std::move(pipelineObj));
 }
 
 void VulkanRenderer::CreateCommandBuffers() {
@@ -169,20 +204,23 @@ void VulkanRenderer::CreateCommandBuffers() {
 }
 
 void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
-   // Rotate the object for fun
-   static auto startTime = std::chrono::high_resolution_clock::now();
-   auto currentTime = std::chrono::high_resolution_clock::now();
-   float time =
-      std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
    // Setup record
    m_commandBuffers->Begin(0, m_currentFrame);
    // Start a render pass
-   m_commandBuffers->BeginRenderPass(m_renderPass, m_swapchainFramebuffers[imageIndex],
-                                     m_swapchain.GetExtent(),
-                                     {{{0.0f, 0.0f, 0.0f, 1.0f}}, {{1.0f, 0.0f}}}, m_currentFrame);
-   m_commandBuffers->BindPipeline(m_graphicsPipeline->GetPipeline(),
+   // Clear values for attachments
+   std::vector<VkClearValue> clearValues(3);
+   clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}}; // albedo
+   clearValues[1].color = {{0.5f, 0.5f, 1.0f, 0.0f}}; // normal
+   clearValues[2].depthStencil = {1.0f, 0};
+   m_commandBuffers->BeginRenderPass(*m_geometryRenderPass, m_geometryFramebuffers[0],
+                                     m_swapchain.GetExtent(), clearValues, m_currentFrame);
+
+   m_commandBuffers->BindPipeline(m_geometryGraphicsPipeline->GetPipeline(),
                                   VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
-   // Set the dynamic viewport and scissor
+   vkCmdBindDescriptorSets(m_commandBuffers->Get(m_currentFrame), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                           m_geometryPipelineLayout->Get(), 0, 1, &m_descriptorSets[m_currentFrame],
+                           0, nullptr);
+   // Set dynamic viewport and scissor
    VkViewport viewport{};
    viewport.x = 0.0f;
    viewport.y = 0.0f;
@@ -195,10 +233,6 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    scissor.offset = {0, 0};
    scissor.extent = m_swapchain.GetExtent();
    m_commandBuffers->SetScissor(scissor, m_currentFrame);
-   // Set triangle position/rotation/scale
-   vkCmdBindDescriptorSets(m_commandBuffers->Get(m_currentFrame), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                           m_pipelineLayout->Get(), 0, 1, &m_descriptorSets[m_currentFrame], 0,
-                           nullptr);
    // Draw the scene
    if (m_activeScene) {
       // Update transforms
@@ -215,8 +249,9 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
             if (const Transform* worldTransform = node->GetWorldTransform()) {
                // Set up transformation matrix for rendering
                ObjectData objData{worldTransform->GetTransformMatrix()};
-               vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame), m_pipelineLayout->Get(),
-                                  VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ObjectData), &objData);
+               vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame),
+                                  m_geometryPipelineLayout->Get(), VK_SHADER_STAGE_VERTEX_BIT, 0,
+                                  sizeof(ObjectData), &objData);
             }
             if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
                const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
@@ -225,6 +260,84 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
          }
       });
    }
+
+   // TODO: Currently blitting color to screen
+   {
+      // Acquire handles
+      ITexture* albedoTex = m_resourceManager->GetTexture(m_gAlbedoTexture);
+      if (!albedoTex) {
+         m_commandBuffers->End(m_currentFrame);
+         throw std::runtime_error("Missing albedo texture for blit.");
+      }
+      VulkanTexture* vkAlbedo = reinterpret_cast<VulkanTexture*>(albedoTex);
+      // Transition albedo image to TRANSFER_SRC_OPTIMAL
+      vkAlbedo->TransitionLayout(
+         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT /* mip level*/);
+      // Transition swapchain image (the destination) from PRESENT_SRC to TRANSFER_DST
+      VkImage swapchainImage = m_swapchain.GetImages()[imageIndex];
+      // Helper function: transition image layout for swapchain image. We do it manually here.
+      VkImageMemoryBarrier barrierFromPresentToTransferDst{};
+      barrierFromPresentToTransferDst.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+      barrierFromPresentToTransferDst.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+      barrierFromPresentToTransferDst.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      barrierFromPresentToTransferDst.oldLayout =
+         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // driver may have undefined
+      barrierFromPresentToTransferDst.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+      barrierFromPresentToTransferDst.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrierFromPresentToTransferDst.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrierFromPresentToTransferDst.image = swapchainImage;
+      barrierFromPresentToTransferDst.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      barrierFromPresentToTransferDst.subresourceRange.baseMipLevel = 0;
+      barrierFromPresentToTransferDst.subresourceRange.levelCount = 1;
+      barrierFromPresentToTransferDst.subresourceRange.baseArrayLayer = 0;
+      barrierFromPresentToTransferDst.subresourceRange.layerCount = 1;
+      vkCmdPipelineBarrier(m_commandBuffers->Get(m_currentFrame), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                           VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                           &barrierFromPresentToTransferDst);
+      // Blit region
+      VkImageBlit blit{};
+      blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      blit.srcSubresource.baseArrayLayer = 0;
+      blit.srcSubresource.layerCount = 1;
+      blit.srcSubresource.mipLevel = 0;
+      blit.srcOffsets[0] = {0, 0, 0};
+      blit.srcOffsets[1] = {static_cast<int32_t>(m_swapchain.GetExtent().width),
+                            static_cast<int32_t>(m_swapchain.GetExtent().height), 1};
+      blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      blit.dstSubresource.baseArrayLayer = 0;
+      blit.dstSubresource.layerCount = 1;
+      blit.dstSubresource.mipLevel = 0;
+      blit.dstOffsets[0] = {0, 0, 0};
+      blit.dstOffsets[1] = {static_cast<int32_t>(m_swapchain.GetExtent().width),
+                            static_cast<int32_t>(m_swapchain.GetExtent().height), 1};
+      vkCmdBlitImage(m_commandBuffers->Get(m_currentFrame), vkAlbedo->GetImage(),
+                     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchainImage,
+                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_NEAREST);
+      // Transition swapchain image to PRESENT_SRC
+      VkImageMemoryBarrier barrierToPresent{};
+      barrierToPresent.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+      barrierToPresent.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      barrierToPresent.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+      barrierToPresent.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+      barrierToPresent.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+      barrierToPresent.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrierToPresent.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrierToPresent.image = swapchainImage;
+      barrierToPresent.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      barrierToPresent.subresourceRange.baseMipLevel = 0;
+      barrierToPresent.subresourceRange.levelCount = 1;
+      barrierToPresent.subresourceRange.baseArrayLayer = 0;
+      barrierToPresent.subresourceRange.layerCount = 1;
+      vkCmdPipelineBarrier(m_commandBuffers->Get(m_currentFrame), VK_PIPELINE_STAGE_TRANSFER_BIT,
+                           VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                           &barrierToPresent);
+      // Transition albedo back to SHADER_READ_ONLY_OPTIMAL for future sampling
+      vkAlbedo->TransitionLayout(
+         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+         VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT /* mip level */);
+   }
+
    // TODO: Clean up imgui stuff
    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers->Get(m_currentFrame));
    m_commandBuffers->EndRenderPass(m_currentFrame);
@@ -257,7 +370,8 @@ void VulkanRenderer::RecreateSwapchain() {
    CleanupSwapchain();
    m_swapchain.Recreate();
    CreateDepthResources();
-   CreateFramebuffers();
+   CreateGeometryPass();
+   CreateGeometryFBO();
    if (m_activeCamera) {
       m_activeCamera->SetAspectRatio(static_cast<float>(m_swapchain.GetExtent().width) /
                                      static_cast<float>(m_swapchain.GetExtent().height));
@@ -265,35 +379,10 @@ void VulkanRenderer::RecreateSwapchain() {
 }
 
 void VulkanRenderer::CleanupSwapchain() {
-   for (const VkFramebuffer& framebuffer : m_swapchainFramebuffers) {
+   for (const VkFramebuffer& framebuffer : m_geometryFramebuffers) {
       vkDestroyFramebuffer(m_device.Get(), framebuffer, nullptr);
    }
-}
-
-VkFormat VulkanRenderer::FindSupportedFormat(const std::vector<VkFormat>& candidates,
-                                             const VkImageTiling& tiling,
-                                             const VkFormatFeatureFlags features) const {
-   for (const VkFormat& format : candidates) {
-      VkFormatProperties props;
-      vkGetPhysicalDeviceFormatProperties(m_device.GetPhysicalDevice(), format, &props);
-      if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-         return format;
-      } else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
-                 (props.optimalTilingFeatures & features) == features) {
-         return format;
-      }
-   }
-   throw std::runtime_error("Failed to find supported format.");
-}
-
-VkFormat VulkanRenderer::FindDepthFormat() const {
-   return FindSupportedFormat(
-      {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-      VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-}
-
-bool VulkanRenderer::HasStencilComponent(const VkFormat& format) const {
-   return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+   m_geometryFramebuffers.clear();
 }
 
 void VulkanRenderer::CreateDepthResources() {
@@ -351,7 +440,7 @@ void VulkanRenderer::CreateDescriptorPool() {
 }
 
 void VulkanRenderer::CreateDescriptorSets() {
-   std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout);
+   std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_geometryDescriptorSetLayout);
    VkDescriptorSetAllocateInfo allocInfo{};
    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
    allocInfo.descriptorPool = m_descriptorPool;
@@ -397,7 +486,7 @@ VulkanRenderer::~VulkanRenderer() {
    vkDeviceWaitIdle(m_device.Get());
    CleanupSwapchain();
    vkDestroyDescriptorPool(m_device.Get(), m_descriptorPool, nullptr);
-   vkDestroyDescriptorSetLayout(m_device.Get(), m_descriptorSetLayout, nullptr);
+   vkDestroyDescriptorSetLayout(m_device.Get(), m_geometryDescriptorSetLayout, nullptr);
    for (size_t i = 0; i < m_renderFinishedSemaphores.size(); ++i) {
       vkDestroySemaphore(m_device.Get(), m_renderFinishedSemaphores[i], nullptr);
    }
@@ -427,7 +516,7 @@ void VulkanRenderer::SetupImgui() {
                                         {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
    VkDescriptorPoolCreateInfo pool_info{};
    pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-   pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT; // ImGui needs this
+   pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
    pool_info.maxSets = 1000 * IM_ARRAYSIZE(pool_sizes);
    pool_info.poolSizeCount = static_cast<uint32_t>(IM_ARRAYSIZE(pool_sizes));
    pool_info.pPoolSizes = pool_sizes;
@@ -447,7 +536,7 @@ void VulkanRenderer::SetupImgui() {
    imguiInfo.ImageCount = static_cast<uint32_t>(m_swapchain.GetImages().size());
    imguiInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
    imguiInfo.Allocator = nullptr;
-   imguiInfo.RenderPass = m_renderPass.Get();
+   imguiInfo.RenderPass = m_geometryRenderPass->Get();
    imguiInfo.CheckVkResultFn = [](VkResult err) {
       if (err != VK_SUCCESS) {
          throw std::runtime_error("ImGui Vulkan call failed.");

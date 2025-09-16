@@ -10,10 +10,11 @@ VulkanRenderPass::VulkanRenderPass(const VulkanDevice& device, const RenderPassD
    CreateRenderPass(desc);
 }
 
-VulkanRenderPass::VulkanRenderPass(const VulkanDevice& device, const VkFormat colorFormat,
+VulkanRenderPass::VulkanRenderPass(const VulkanDevice& device,
+                                   const std::vector<VkFormat>& colorFormats,
                                    const VkFormat depthFormat)
     : m_device(&device) {
-   RenderPassDescription desc = CreateDefaultDescription(colorFormat, depthFormat);
+   RenderPassDescription desc = CreateDefaultDescription(colorFormats, depthFormat);
    CreateRenderPass(desc);
 }
 
@@ -105,18 +106,22 @@ void VulkanRenderPass::CreateRenderPass(const RenderPassDescription& desc) {
    }
 }
 
-RenderPassDescription VulkanRenderPass::CreateDefaultDescription(const VkFormat colorFormat,
-                                                                 const VkFormat depthFormat) {
+RenderPassDescription VulkanRenderPass::CreateDefaultDescription(
+   const std::vector<VkFormat>& colorFormats, VkFormat depthFormat) {
    RenderPassDescription desc;
-   // Color attachment
-   AttachmentDescription colorAtt{};
-   colorAtt.format = colorFormat;
-   colorAtt.samples = VK_SAMPLE_COUNT_1_BIT;
-   colorAtt.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-   colorAtt.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-   colorAtt.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-   colorAtt.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-   desc.attachments.push_back(colorAtt);
+   // Add color attachments
+   for (uint32_t i = 0; i < colorFormats.size(); ++i) {
+      AttachmentDescription colorAtt{};
+      colorAtt.format = colorFormats[i];
+      colorAtt.samples = VK_SAMPLE_COUNT_1_BIT;
+      colorAtt.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+      colorAtt.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+      colorAtt.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+      colorAtt.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+      colorAtt.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+      colorAtt.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+      desc.attachments.push_back(colorAtt);
+   }
    // Depth attachment
    if (depthFormat != VK_FORMAT_UNDEFINED) {
       AttachmentDescription depthAtt{};
@@ -130,35 +135,34 @@ RenderPassDescription VulkanRenderPass::CreateDefaultDescription(const VkFormat 
       depthAtt.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
       desc.attachments.push_back(depthAtt);
    }
-   // Subpass
+   // Subpass description
    SubpassDescription subpass{};
    subpass.bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-   VkAttachmentReference colorRef{};
-   colorRef.attachment = 0;
-   colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-   subpass.colorAttachments.push_back(colorRef);
+   for (uint32_t i = 0; i < colorFormats.size(); ++i) {
+      VkAttachmentReference ref{};
+      ref.attachment = i;
+      ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+      subpass.colorAttachments.push_back(ref);
+   }
    if (depthFormat != VK_FORMAT_UNDEFINED) {
-      subpass.depthStencilAttachment =
-         new VkAttachmentReference{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+      VkAttachmentReference depthRef{};
+      depthRef.attachment = static_cast<uint32_t>(colorFormats.size());
+      depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+      subpass.depthStencilAttachment = &depthRef;
    }
    desc.subpasses.push_back(subpass);
-   // Dependencies
-   VkSubpassDependency dependency{};
-   dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-   dependency.dstSubpass = 0;
-   dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-   dependency.srcAccessMask = 0;
-   dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-   dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+   VkSubpassDependency dep{};
+   dep.srcSubpass = VK_SUBPASS_EXTERNAL;
+   dep.dstSubpass = 0;
+   dep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+   dep.srcAccessMask = 0;
+   dep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+   dep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
    if (depthFormat != VK_FORMAT_UNDEFINED) {
-      dependency.srcStageMask =
-         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-      dependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-      dependency.dstStageMask =
-         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-      dependency.dstAccessMask =
-         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+      dep.srcStageMask |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+      dep.dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+      dep.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
    }
-   desc.dependencies.push_back(dependency);
+   desc.dependencies.push_back(dep);
    return desc;
 }
