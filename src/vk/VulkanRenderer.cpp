@@ -28,21 +28,30 @@
 struct CameraData {
    alignas(16) glm::mat4 view;
    alignas(16) glm::mat4 proj;
+   alignas(16) glm::vec3 viewPos;
 };
 
 struct ObjectData {
    alignas(16) glm::mat4 model;
 };
 
-#ifdef NDEBUG
-constexpr bool enableValidationLayers = false;
-#else
-constexpr bool enableValidationLayers = true;
-#endif
+struct LightData {
+   alignas(4) uint32_t lightType;
+   alignas(16) glm::vec3 position;
+   alignas(16) glm::vec3 direction;
+   alignas(16) glm::vec3 color;
+   alignas(4) float intensity;
+   alignas(4) float constant;
+   alignas(4) float linear;
+   alignas(4) float quadratic;
+   alignas(4) float innerCone;
+   alignas(4) float outerCone;
+};
 
-const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
-
-const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+struct LightsData {
+   alignas(4) uint32_t lightCount;
+   std::array<LightData, VulkanRenderer::MAX_LIGHTS> lights;
+};
 
 VulkanRenderer::VulkanRenderer(Window* windowHandle)
     : IRenderer(windowHandle),
@@ -421,6 +430,7 @@ void VulkanRenderer::UpdateUniformBuffer(const uint32_t currentImage) {
                                   static_cast<float>(m_swapchain.GetExtent().height));
    camData.view = m_activeCamera->GetViewMatrix();
    camData.proj = m_activeCamera->GetProjectionMatrix();
+   camData.viewPos = m_activeCamera->GetTransform().GetPosition();
    m_uniformBuffers[currentImage]->Update(&camData, sizeof(CameraData));
 }
 

@@ -60,6 +60,8 @@ class VulkanRenderer : public IRenderer {
    void CreateDefaultMaterial();
    void CreateUniformBuffer();
    void UpdateUniformBuffer(const uint32_t currentImage);
+public:
+   constexpr static uint32_t MAX_LIGHTS = 256;
 
   private:
    constexpr static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
