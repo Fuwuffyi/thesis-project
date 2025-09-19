@@ -84,7 +84,8 @@ void VulkanRenderPass::CreateRenderPass(const RenderPassDescription& desc) {
       vkSub.inputAttachmentCount = static_cast<uint32_t>(sub.inputAttachments.size());
       vkSub.pInputAttachments =
          sub.inputAttachments.empty() ? nullptr : sub.inputAttachments.data();
-      vkSub.pDepthStencilAttachment = sub.depthStencilAttachment;
+      vkSub.pDepthStencilAttachment =
+         sub.depthStencilAttachment.has_value() ? &sub.depthStencilAttachment.value() : nullptr;
       vkSub.pResolveAttachments =
          sub.resolveAttachments.empty() ? nullptr : sub.resolveAttachments.data();
       vkSub.preserveAttachmentCount = static_cast<uint32_t>(sub.preserveAttachments.size());
@@ -148,7 +149,7 @@ RenderPassDescription VulkanRenderPass::CreateDefaultDescription(
       VkAttachmentReference depthRef{};
       depthRef.attachment = static_cast<uint32_t>(colorFormats.size());
       depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-      subpass.depthStencilAttachment = &depthRef;
+      subpass.depthStencilAttachment = depthRef;
    }
    desc.subpasses.push_back(subpass);
    VkSubpassDependency dep{};

@@ -432,6 +432,14 @@ set(VKB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(VKB_BUILD_DOCUMENTATION OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(vk-bootstrap)
 
+# Vulkan Memory Allocaotr
+FetchContent_Declare(
+   vulkan-vma
+   GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+   GIT_TAG v3.3.0
+)
+FetchContent_MakeAvailable(vulkan-vma)
+
 # ImGui
 FetchContent_Declare(
    imgui
@@ -479,6 +487,7 @@ target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE
    Vulkan::Vulkan
    vk-bootstrap::vk-bootstrap
+   VulkanMemoryAllocator
    OpenGL::GL
    glad_gl_core_46
    glfw

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 #include <VkBootstrap.h>
 #include <optional>
 
@@ -34,12 +35,16 @@ class VulkanDevice {
    const VkQueue& GetPresentQueue() const;
    const VkCommandPool& GetCommandPool() const;
    const QueueFamilyIndices& GetQueueFamilies() const;
+   const VmaAllocator& GetAllocator() const;
    uint32_t GetGraphicsQueueFamily() const;
    uint32_t GetPresentQueueFamily() const;
 
   private:
    void CreateCommandPool();
+   void CreateAllocator(const VulkanInstance& instance,
+                        const VkPhysicalDeviceBufferDeviceAddressFeatures& features);
 
+  private:
    vkb::Device m_vkbDevice;
    VkDevice m_device{VK_NULL_HANDLE};
    VkPhysicalDevice m_physicalDevice{VK_NULL_HANDLE};
@@ -47,5 +52,6 @@ class VulkanDevice {
    VkQueue m_presentQueue{VK_NULL_HANDLE};
    VkCommandPool m_commandPool{VK_NULL_HANDLE};
    QueueFamilyIndices m_queueFamilies{};
+   VmaAllocator m_allocator{VK_NULL_HANDLE};
    bool m_ownsDevice{false};
 };

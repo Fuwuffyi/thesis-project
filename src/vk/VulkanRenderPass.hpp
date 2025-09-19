@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <optional>
 #include <vector>
 
 class VulkanDevice;
@@ -20,7 +21,7 @@ struct SubpassDescription {
    VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
    std::vector<VkAttachmentReference> colorAttachments;
    std::vector<VkAttachmentReference> inputAttachments;
-   VkAttachmentReference* depthStencilAttachment = nullptr;
+   std::optional<VkAttachmentReference> depthStencilAttachment;
    std::vector<VkAttachmentReference> resolveAttachments;
    std::vector<uint32_t> preserveAttachments;
 };

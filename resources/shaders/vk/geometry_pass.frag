@@ -8,6 +8,6 @@ layout(location = 0) out vec4 gAlbedo; // RGB color + A AO
 layout(location = 1) out vec4 gNormal; // RG encoded normal + B roughness + A metallic
 
 void main() {
-    gAlbedo = vec4(1.0, 0.0, 0.0, 1.0);
+    gAlbedo = vec4(fragNormal, 1.0);
     gNormal = vec4(0.0, 1.0, 0.0, 1.0);
 }

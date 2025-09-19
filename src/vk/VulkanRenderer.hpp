@@ -87,7 +87,6 @@ class VulkanRenderer : public IRenderer {
    TextureHandle m_depthTexture;
    TextureHandle m_texture;
    std::vector<std::unique_ptr<VulkanBuffer>> m_uniformBuffers;
-   std::vector<void*> m_uniformBuffersMapped;
    VkDescriptorPool m_descriptorPool;
    std::vector<VkDescriptorSet> m_descriptorSets;
    std::unique_ptr<ResourceManager> m_resourceManager;

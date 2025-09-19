@@ -10,7 +10,7 @@ VulkanMaterial::VulkanMaterial(const VulkanDevice& device, const MaterialTemplat
    const size_t uboSize = GetUBOSize();
    if (uboSize > 0) {
       m_uniformBuffer = std::make_unique<VulkanBuffer>(
-         device, uboSize, VulkanBuffer::Usage::Uniform, VulkanBuffer::MemoryType::HostVisible);
+         device, uboSize, VulkanBuffer::Usage::Uniform, VulkanBuffer::MemoryType::CPUToGPU);
    }
 }
 
@@ -35,7 +35,8 @@ void VulkanMaterial::UpdateUBO() {
    const size_t uboSize = GetUBOSize();
 
    if (uboData && uboSize > 0) {
-      m_uniformBuffer->UpdateMapped(uboData, uboSize);
+      m_uniformBuffer->Map();
+      m_uniformBuffer->Update(uboData, uboSize);
    }
 
    ClearDirty();

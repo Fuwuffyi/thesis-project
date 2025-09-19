@@ -16,6 +16,8 @@ class VulkanMesh : public IMesh {
 
    VulkanMesh(const VulkanMesh&) = delete;
    VulkanMesh& operator=(const VulkanMesh&) = delete;
+   VulkanMesh(VulkanMesh&& other) noexcept = default;
+   VulkanMesh& operator=(VulkanMesh&& other) noexcept = default;
 
    ResourceType GetType() const noexcept override;
    size_t GetMemoryUsage() const noexcept override;
@@ -27,15 +29,10 @@ class VulkanMesh : public IMesh {
    void* GetNativeHandle() const override;
 
    void Draw(const VkCommandBuffer& commandBuffer) const;
-   const VulkanBuffer& GetVertexBuffer() const;
-   const VulkanBuffer& GetIndexBuffer() const;
 
   private:
-   static VulkanBuffer CreateVertexBuffer(const std::vector<Vertex>& vertices,
-                                          const VulkanDevice& device);
-   template<typename T>
-   static VulkanBuffer CreateIndexBuffer(const std::vector<T>& indices,
-                                         const VulkanDevice& device);
+   VulkanBuffer CreateVertexBuffer(const std::vector<Vertex>& vertices, const VulkanDevice& device);
+   VulkanBuffer CreateIndexBuffer(const std::vector<uint32_t>& indices, const VulkanDevice& device);
 
   private:
    VulkanBuffer m_vertexBuffer;

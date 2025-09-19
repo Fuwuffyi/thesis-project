@@ -192,6 +192,7 @@ void VulkanRenderer::CreateGeometryPipeline() {
                        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
    VulkanGraphicsPipelineBuilder::ColorBlendState cbState{};
    cbState.attachments.push_back(cb);
+   cbState.attachments.push_back(cb);
    builder.SetColorBlendState(cbState);
    // Build and store pipeline
    VulkanGraphicsPipeline pipelineObj = builder.Build();
@@ -407,7 +408,8 @@ void VulkanRenderer::CreateUniformBuffer() {
    m_uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
       m_uniformBuffers[i] = std::make_unique<VulkanBuffer>(
-         m_device, bufferSize, VulkanBuffer::Usage::Uniform, VulkanBuffer::MemoryType::HostVisible);
+         m_device, bufferSize, VulkanBuffer::Usage::Uniform, VulkanBuffer::MemoryType::CPUToGPU);
+      m_uniformBuffers[i]->Map();
    }
 }
 
@@ -419,7 +421,7 @@ void VulkanRenderer::UpdateUniformBuffer(const uint32_t currentImage) {
                                   static_cast<float>(m_swapchain.GetExtent().height));
    camData.view = m_activeCamera->GetViewMatrix();
    camData.proj = m_activeCamera->GetProjectionMatrix();
-   m_uniformBuffers[currentImage]->UpdateMapped(&camData, sizeof(CameraData));
+   m_uniformBuffers[currentImage]->Update(&camData, sizeof(CameraData));
 }
 
 void VulkanRenderer::CreateDescriptorPool() {

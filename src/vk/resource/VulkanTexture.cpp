@@ -27,13 +27,11 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const CreateInfo& info)
 VulkanTexture::VulkanTexture(const VulkanDevice& device, const std::string& filepath,
                              bool generateMipmaps, bool sRGB)
     : m_device(&device) {
-   int32_t width, height, channels;
+   int width, height, channels;
    stbi_set_flip_vertically_on_load(true);
-   // Force 4 channels
    uint8_t* pixels = stbi_load(filepath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-   if (!pixels) {
+   if (!pixels)
       throw std::runtime_error("Failed to load image: " + filepath);
-   }
    m_width = static_cast<uint32_t>(width);
    m_height = static_cast<uint32_t>(height);
    m_depth = 1;
@@ -44,22 +42,24 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const std::string& file
                     : 1;
    // Create staging buffer
    VulkanBuffer stagingBuffer(device, m_width * m_height * 4, VulkanBuffer::Usage::TransferSrc,
-                              VulkanBuffer::MemoryType::HostVisible);
-   stagingBuffer.UpdateMapped(pixels, m_width * m_height * 4);
+                              VulkanBuffer::MemoryType::CPUToGPU);
+   stagingBuffer.Map();
+   stagingBuffer.Update(pixels, m_width * m_height * 4);
    stbi_image_free(pixels);
+   // Create GPU-only image
    CreateImage();
    TransitionLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+   // Copy from staging buffer to image
    CopyFromBuffer(stagingBuffer, 0);
    CreateImageView();
    m_sampler = CreateSampler();
-   if (generateMipmaps) {
+   if (generateMipmaps)
       GenerateMipmaps();
-   } else {
+   else
       TransitionLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT,
                        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-   }
 }
 
 VulkanTexture::VulkanTexture(const VulkanDevice& device, uint32_t width, uint32_t height,
@@ -108,20 +108,17 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const ITexture::Format 
       m_mipLevels(1) {
    m_format = Format::RGBA8;
    m_vkFormat = ConvertFormat(m_format);
-
    CreateImage();
    CreateImageView();
    m_sampler = CreateSampler();
-
    uint8_t pixelData[4] = {static_cast<uint8_t>(glm::clamp(color.r * 255.0f, 0.0f, 255.0f)),
                            static_cast<uint8_t>(glm::clamp(color.g * 255.0f, 0.0f, 255.0f)),
                            static_cast<uint8_t>(glm::clamp(color.b * 255.0f, 0.0f, 255.0f)),
                            static_cast<uint8_t>(glm::clamp(color.a * 255.0f, 0.0f, 255.0f))};
-
    VulkanBuffer stagingBuffer(device, sizeof(pixelData), VulkanBuffer::Usage::TransferSrc,
-                              VulkanBuffer::MemoryType::HostVisible);
-   stagingBuffer.UpdateMapped(pixelData, sizeof(pixelData));
-
+                              VulkanBuffer::MemoryType::CPUToGPU);
+   stagingBuffer.Map();
+   stagingBuffer.Update(pixelData, sizeof(pixelData));
    TransitionLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
    CopyFromBuffer(stagingBuffer, 0);
