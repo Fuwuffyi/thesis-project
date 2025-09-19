@@ -41,7 +41,7 @@ class MaterialEditor final {
 
    void DrawTexturePreview(const ITexture* const texture,
                            const glm::vec2& size = glm::vec2{64.0f, 64.0f}) const;
-   [[nodiscard]] constexpr uint32_t GetTextureId(const ITexture* const texture) const noexcept;
+   [[nodiscard]] constexpr uint64_t GetTextureId(const ITexture* const texture) const noexcept;
 
    [[nodiscard]] std::string FindMaterialName(const MaterialHandle& handle) const;
    [[nodiscard]] std::string FindTextureName(const TextureHandle& handle) const;

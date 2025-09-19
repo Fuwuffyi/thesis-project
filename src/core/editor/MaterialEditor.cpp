@@ -79,30 +79,30 @@ void MaterialEditor::DrawTextureBrowser() const {
    if (ImGui::Begin("Texture Browser", nullptr, kDefaultWindowFlags)) {
       ImGui::BeginChild("TextureScrollRegion", ImVec2(0, 0), false,
                         ImGuiWindowFlags_HorizontalScrollbar);
-      ImGui::Columns(kTextureBrowserColumns, nullptr, false);
-      const auto textures = m_resourceManager->GetAllTexturesNamed();
-      for (const auto& [texture, name] : textures) {
-         if (!texture) [[unlikely]]
-            continue;
-         const uint32_t texId = GetTextureId(texture);
-         ImGui::PushID(name.c_str());
-         constexpr ImVec2 imgButtonSize{kTextureBrowserImageSize, kTextureBrowserImageSize};
-         ImGui::ImageButton(name.c_str(), static_cast<ImTextureID>(texId), imgButtonSize);
-         // Drag source
-         if (ImGui::BeginDragDropSource()) {
-            ImGui::SetDragDropPayload(kTexturePayload.data(), name.c_str(), name.size() + 1);
-            ImGui::Text("Texture: %s", name.c_str());
-            ImGui::Image(static_cast<ImTextureID>(texId), {kImageSize.x, kImageSize.y},
-                         ImVec2(0, 1), ImVec2(1, 0));
-            ImGui::EndDragDropSource();
+      if (ImGui::BeginTable("TextureTable", kTextureBrowserColumns)) {
+         const auto textures = m_resourceManager->GetAllTexturesNamed();
+         for (const auto& [texture, name] : textures) {
+            if (!texture) [[unlikely]]
+               continue;
+            ImGui::TableNextColumn();
+            const ImTextureID texId = GetTextureId(texture);
+            ImGui::PushID(name.c_str());
+            constexpr ImVec2 imgButtonSize{kTextureBrowserImageSize, kTextureBrowserImageSize};
+            ImGui::ImageButton(name.c_str(), texId, imgButtonSize);
+            // Drag source
+            if (ImGui::BeginDragDropSource()) {
+               ImGui::SetDragDropPayload(kTexturePayload.data(), name.c_str(), name.size() + 1);
+               ImGui::Text("Texture: %s", name.c_str());
+               ImGui::Image(texId, {kImageSize.x, kImageSize.y}, ImVec2(0, 1), ImVec2(1, 0));
+               ImGui::EndDragDropSource();
+            }
+            ImGui::PopID();
+            // Info
+            ImGui::TextWrapped("%s", name.c_str());
+            ImGui::Text("%ux%u", texture->GetWidth(), texture->GetHeight());
          }
-         ImGui::PopID();
-         // Info
-         ImGui::TextWrapped("%s", name.c_str());
-         ImGui::Text("%ux%u", texture->GetWidth(), texture->GetHeight());
-         ImGui::NextColumn();
+         ImGui::EndTable();
       }
-      ImGui::Columns(1);
       ImGui::EndChild();
    }
    ImGui::End();
@@ -339,8 +339,7 @@ void MaterialEditor::DrawTextureSlotEditor(IMaterial* const material,
    ImGui::Text("%s:", displayName.data());
    ImGui::PushID(textureName.data());
    if (texture) {
-      const uint32_t texId = GetTextureId(texture);
-      const auto texIdPtr = static_cast<ImTextureID>(texId);
+      const ImTextureID texIdPtr = GetTextureId(texture);
       ImGui::ImageButton(textureName.data(), texIdPtr, {kImageButtonSize.x, kImageButtonSize.y});
       // Find texture name for payload (cached lookup would be better)
       const std::string texNameForPayload =
@@ -411,25 +410,24 @@ void MaterialEditor::DrawTexturePreview(const ITexture* const texture,
                                         const glm::vec2& size) const {
    if (!texture) [[unlikely]]
       return;
-   const uint32_t textureId = GetTextureId(texture);
-   if (textureId != 0) {
-      const auto texIdPtr = static_cast<ImTextureID>(textureId);
+   if (texture->IsValid()) {
+      const ImTextureID texIdPtr = GetTextureId(texture);
       ImGui::Image(texIdPtr, ImVec2(size.x, size.y), ImVec2(0, 1), ImVec2(1, 0));
    }
 }
 
-constexpr uint32_t MaterialEditor::GetTextureId(const ITexture* const texture) const noexcept {
+constexpr uint64_t MaterialEditor::GetTextureId(const ITexture* const texture) const noexcept {
    if (!texture) [[unlikely]]
       return 0;
    switch (m_api) {
       case GraphicsAPI::OpenGL: {
          const auto* const glTexture = static_cast<const GLTexture*>(texture);
-         return glTexture->GetId();
+         return (ImTextureID)glTexture->GetId();
       }
       // TODO: Fix vulkan case?
       case GraphicsAPI::Vulkan: {
          const auto* const vkTexture = static_cast<const VulkanTexture*>(texture);
-         return static_cast<uint32_t>(reinterpret_cast<uintptr_t>(vkTexture->GetDescriptorSet()));
+         return (ImTextureID)vkTexture->GetDescriptorSet();
       }
       default:
          return 0;
