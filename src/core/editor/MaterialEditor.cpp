@@ -424,10 +424,9 @@ constexpr uint64_t MaterialEditor::GetTextureId(const ITexture* const texture) c
          const auto* const glTexture = static_cast<const GLTexture*>(texture);
          return (ImTextureID)glTexture->GetId();
       }
-      // TODO: Fix vulkan case?
       case GraphicsAPI::Vulkan: {
          const auto* const vkTexture = static_cast<const VulkanTexture*>(texture);
-         return (ImTextureID)vkTexture->GetDescriptorSet();
+         return (ImTextureID)vkTexture->GetImguiDescriptor();
       }
       default:
          return 0;

@@ -18,15 +18,6 @@ class VulkanMaterial final : public MaterialInstance {
    void UpdateUBO() override;
    void* GetNativeHandle() const noexcept override;
 
-   // Vulkan-specific methods
-   VkBuffer GetUniformBuffer() const;
-
-   // Get all texture descriptor sets for binding
-   std::vector<VkDescriptorSet> GetTextureDescriptorSets(const ResourceManager& resourceManager,
-                                                         VkDevice device,
-                                                         VkDescriptorPool descriptorPool,
-                                                         VkDescriptorSetLayout textureLayout) const;
-
   private:
    const VulkanDevice* m_device;
    std::unique_ptr<VulkanBuffer> m_uniformBuffer;

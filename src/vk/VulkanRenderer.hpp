@@ -87,7 +87,6 @@ public:
    std::vector<VkSemaphore> m_renderFinishedSemaphores;
    std::vector<VkFence> m_inFlightFences;
    TextureHandle m_depthTexture;
-   TextureHandle m_texture;
    std::vector<std::unique_ptr<VulkanBuffer>> m_uniformBuffers;
    VkDescriptorPool m_descriptorPool;
    std::vector<VkDescriptorSet> m_descriptorSets;

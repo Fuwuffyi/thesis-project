@@ -13,9 +13,9 @@
 #include "vk/resource/VulkanMesh.hpp"
 #include "vk/resource/VulkanResourceFactory.hpp"
 
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_vulkan.h"
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
 
 #include <GLFW/glfw3.h>
 #include <memory>
@@ -74,7 +74,6 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
    CreateDepthResources();
 
    SetupImgui();
-   CreateTestResources();
    CreateUniformBuffer();
    CreateDescriptorPool();
    CreateDescriptorSets();
@@ -407,11 +406,6 @@ void VulkanRenderer::CreateDepthResources() {
    }
 }
 
-void VulkanRenderer::CreateTestResources() {
-   m_texture = m_resourceManager->LoadTexture(
-      "test_texture", "resources/textures/wood_tile_01_BaseColor.png", true, true);
-}
-
 void VulkanRenderer::CreateUniformBuffer() {
    const VkDeviceSize bufferSize = sizeof(CameraData);
    m_uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
@@ -469,12 +463,7 @@ void VulkanRenderer::CreateDescriptorSets() {
       bufferInfo.offset = 0;
       bufferInfo.range = sizeof(CameraData);
       VkDescriptorImageInfo imageInfo{};
-      ITexture* texture = m_resourceManager->GetTexture(m_texture);
-      if (texture) {
-         VulkanTexture* vkTexture = reinterpret_cast<VulkanTexture*>(texture);
-         imageInfo = vkTexture->GetDescriptorImageInfo();
-      }
-      std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+      std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
       descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       descriptorWrites[0].dstSet = m_descriptorSets[i];
       descriptorWrites[0].dstBinding = 0;
@@ -482,13 +471,6 @@ void VulkanRenderer::CreateDescriptorSets() {
       descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
       descriptorWrites[0].descriptorCount = 1;
       descriptorWrites[0].pBufferInfo = &bufferInfo;
-      descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      descriptorWrites[1].dstSet = m_descriptorSets[i];
-      descriptorWrites[1].dstBinding = 1;
-      descriptorWrites[1].dstArrayElement = 0;
-      descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-      descriptorWrites[1].descriptorCount = 1;
-      descriptorWrites[1].pImageInfo = &imageInfo;
       vkUpdateDescriptorSets(m_device.Get(), static_cast<uint32_t>(descriptorWrites.size()),
                              descriptorWrites.data(), 0, nullptr);
    }

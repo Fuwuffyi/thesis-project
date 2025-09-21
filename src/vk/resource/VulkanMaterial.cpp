@@ -48,37 +48,3 @@ void* VulkanMaterial::GetNativeHandle() const noexcept {
    }
    return nullptr;
 }
-
-VkBuffer VulkanMaterial::GetUniformBuffer() const {
-   return m_uniformBuffer ? m_uniformBuffer->Get() : VK_NULL_HANDLE;
-}
-
-std::vector<VkDescriptorSet> VulkanMaterial::GetTextureDescriptorSets(
-   const ResourceManager& resourceManager, VkDevice device, VkDescriptorPool descriptorPool,
-   VkDescriptorSetLayout textureLayout) const {
-   std::vector<VkDescriptorSet> descriptorSets;
-   const auto& textureDescriptors = m_template->GetTextures();
-   for (const auto& [textureName, descriptor] : textureDescriptors) {
-      const TextureHandle& textureHandle = GetTexture(textureName);
-      // Try to get the texture from the handle first
-      ITexture* texture = nullptr;
-      if (textureHandle.IsValid()) {
-         texture = resourceManager.GetTexture(textureHandle);
-      }
-      // If no texture is set or texture is invalid, try to use default
-      if (!texture && descriptor.defaultTexture.IsValid()) {
-         texture = resourceManager.GetTexture(descriptor.defaultTexture);
-      }
-      if (texture && texture->IsValid()) {
-         VulkanTexture* vkTexture = reinterpret_cast<VulkanTexture*>(texture);
-         // Ensure texture has descriptor set
-         vkTexture->CreateDescriptorSet(device, descriptorPool, textureLayout);
-         vkTexture->UpdateDescriptorSet(device);
-         VkDescriptorSet textureDescSet = vkTexture->GetDescriptorSet();
-         if (textureDescSet != VK_NULL_HANDLE) {
-            descriptorSets.push_back(textureDescSet);
-         }
-      }
-   }
-   return descriptorSets;
-}
