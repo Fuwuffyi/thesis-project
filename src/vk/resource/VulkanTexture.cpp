@@ -8,7 +8,6 @@
 #include <imgui_impl_vulkan.h>
 #include <stb_image.h>
 
-#include <iostream>
 #include <stdexcept>
 #include <cstring>
 #include <cmath>
@@ -263,8 +262,6 @@ void VulkanTexture::CreateImage() {
    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
    VmaAllocationCreateInfo allocInfo{};
    allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-   std::cout << "Creating image: " << m_width << "x" << m_height << ", format=" << m_vkFormat
-             << ", mipLevels=" << m_mipLevels << ", samples=" << m_samples << "\n";
    if (vmaCreateImage(m_device->GetAllocator(), &imageInfo, &allocInfo, &m_image, &m_allocation,
                       nullptr) != VK_SUCCESS) {
       throw std::runtime_error("Failed to create image with VMA");
