@@ -5,6 +5,7 @@
 
 #include "core/scene/Scene.hpp"
 #include "core/scene/Node.hpp"
+#include "core/scene/components/LightComponent.hpp"
 #include "core/scene/components/RendererComponent.hpp"
 
 #include "core/editor/PerformanceGUI.hpp"
@@ -98,8 +99,8 @@ void VulkanRenderer::CreateGeometryDescriptorSetLayout() {
    materialUboBinding.descriptorCount = 1;
    materialUboBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
    materialUboBinding.pImmutableSamplers = nullptr;
-   const std::array<VkDescriptorSetLayoutBinding, 2> bindings = {
-      cameraUboBinding, materialUboBinding};
+   const std::array<VkDescriptorSetLayoutBinding, 2> bindings = {cameraUboBinding,
+                                                                 materialUboBinding};
    VkDescriptorSetLayoutCreateInfo layoutInfo{};
    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -398,29 +399,57 @@ void VulkanRenderer::CreateUBOs() {
    // Camera buffers
    const VkDeviceSize cameraBufferSize = sizeof(CameraData);
    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-      m_cameraUniformBuffers[i] = std::make_unique<VulkanBuffer>(
-         m_device, cameraBufferSize, VulkanBuffer::Usage::Uniform, VulkanBuffer::MemoryType::CPUToGPU);
+      m_cameraUniformBuffers[i] =
+         std::make_unique<VulkanBuffer>(m_device, cameraBufferSize, VulkanBuffer::Usage::Uniform,
+                                        VulkanBuffer::MemoryType::CPUToGPU);
       m_cameraUniformBuffers[i]->Map();
    }
    // Light buffers
    const VkDeviceSize lightBufferSize = sizeof(LightsData);
    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-      m_cameraUniformBuffers[i] = std::make_unique<VulkanBuffer>(
-         m_device, lightBufferSize, VulkanBuffer::Usage::Uniform, VulkanBuffer::MemoryType::CPUToGPU);
-      m_cameraUniformBuffers[i]->Map();
+      m_lightsUniformBuffers[i] =
+         std::make_unique<VulkanBuffer>(m_device, lightBufferSize, VulkanBuffer::Usage::Uniform,
+                                        VulkanBuffer::MemoryType::CPUToGPU);
+      m_lightsUniformBuffers[i]->Map();
    }
 }
 
-void VulkanRenderer::UpdateUniformBuffer(const uint32_t currentImage) {
+void VulkanRenderer::UpdateCameraUBO(const uint32_t currentImage) {
    if (!m_activeCamera)
       return;
-   CameraData camData{};
-   m_activeCamera->SetAspectRatio(static_cast<float>(m_swapchain.GetExtent().width) /
-                                  static_cast<float>(m_swapchain.GetExtent().height));
-   camData.view = m_activeCamera->GetViewMatrix();
-   camData.proj = m_activeCamera->GetProjectionMatrix();
-   camData.viewPos = m_activeCamera->GetTransform().GetPosition();
+   const CameraData camData{.view = m_activeCamera->GetViewMatrix(),
+                            .proj = m_activeCamera->GetProjectionMatrix(),
+                            .viewPos = m_activeCamera->GetTransform().GetPosition()};
    m_cameraUniformBuffers[currentImage]->Update(&camData, sizeof(CameraData));
+}
+
+void VulkanRenderer::UpdateLightsUBO(const uint32_t currentImage) {
+   if (!m_activeScene)
+      return;
+   LightsData lightsData{};
+   lightsData.lightCount = 0;
+   m_activeScene->ForEachNode([&](const Node* node) {
+      if (!node->IsActive() || lightsData.lightCount >= MAX_LIGHTS) [[unlikely]]
+         return;
+      const auto* lightComp = node->GetComponent<LightComponent>();
+      const auto* transformComp = node->GetComponent<TransformComponent>();
+      if (lightComp && transformComp) [[likely]] {
+         auto& light = lightsData.lights[lightsData.lightCount];
+         light.lightType = static_cast<uint32_t>(lightComp->GetType());
+         light.color = lightComp->GetColor();
+         light.intensity = lightComp->GetIntensity();
+         light.constant = lightComp->GetConstant();
+         light.linear = lightComp->GetLinear();
+         light.quadratic = lightComp->GetQuadratic();
+         const auto& transform = transformComp->GetTransform();
+         light.position = transform.GetPosition();
+         light.direction = transform.GetForward();
+         light.innerCone = lightComp->GetInnerCone();
+         light.outerCone = lightComp->GetOuterCone();
+         ++lightsData.lightCount;
+      }
+   });
+   m_lightsUniformBuffers[currentImage]->Update(&lightsData, sizeof(LightsData));
 }
 
 void VulkanRenderer::CreateDescriptorPool() {
@@ -574,7 +603,10 @@ void VulkanRenderer::RenderFrame() {
    vkResetFences(m_device.Get(), 1, &m_inFlightFences[m_currentFrame]);
    // Setup command buffer to draw the triangle
    m_commandBuffers->Reset(m_currentFrame);
-   UpdateUniformBuffer(m_currentFrame);
+
+   UpdateCameraUBO(m_currentFrame);
+   UpdateLightsUBO(m_currentFrame);
+
    RenderImgui();
    RecordCommandBuffer(imageIndex);
    // Submit the command buffer

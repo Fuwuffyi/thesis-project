@@ -36,6 +36,9 @@ class VulkanRenderer : public IRenderer {
 
    void CreateUBOs();
 
+   void UpdateCameraUBO(const uint32_t currentImage);
+   void UpdateLightsUBO(const uint32_t currentImage);
+
    // Functions to set up g-buffer
    void CreateGeometryDescriptorSetLayout();
    void CreateGeometryFBO();
@@ -52,15 +55,12 @@ class VulkanRenderer : public IRenderer {
    // Functions to setup swapchain recreation
    void RecreateSwapchain();
    void CleanupSwapchain();
-   // Setup for depth texture
-   // TODO: Remove once scene impl complete
-   // Functions to create textures
-   // Testing mesh
+   // Setup default material
    void CreateDefaultMaterial();
-   void UpdateUniformBuffer(const uint32_t currentImage);
 
    [[nodiscard]] ResourceManager* GetResourceManager() const noexcept override;
-public:
+
+  public:
    constexpr static uint32_t MAX_LIGHTS = 256;
 
   private:
