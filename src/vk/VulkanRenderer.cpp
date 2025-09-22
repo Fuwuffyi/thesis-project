@@ -64,6 +64,8 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
    m_materialEditor =
       std::make_unique<MaterialEditor>(m_resourceManager.get(), GraphicsAPI::Vulkan);
 
+   CreateUBOs();
+
    CreateGeometryDescriptorSetLayout();
    CreateGeometryPass();
    CreateGeometryFBO();
@@ -71,12 +73,11 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
 
    CreateCommandBuffers();
 
-   CreateDepthResources();
-
    SetupImgui();
-   CreateUniformBuffer();
+
    CreateDescriptorPool();
    CreateDescriptorSets();
+
    CreateSynchronizationObjects();
 
    CreateDefaultMaterial();
@@ -85,20 +86,20 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
 }
 
 void VulkanRenderer::CreateGeometryDescriptorSetLayout() {
-   VkDescriptorSetLayoutBinding uboLayoutBinding{};
-   uboLayoutBinding.binding = 0;
-   uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-   uboLayoutBinding.descriptorCount = 1;
-   uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-   uboLayoutBinding.pImmutableSamplers = nullptr;
-   VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-   samplerLayoutBinding.binding = 1;
-   samplerLayoutBinding.descriptorCount = 1;
-   samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-   samplerLayoutBinding.pImmutableSamplers = nullptr;
-   samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-   const std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding,
-                                                                 samplerLayoutBinding};
+   VkDescriptorSetLayoutBinding cameraUboBinding{};
+   cameraUboBinding.binding = 0;
+   cameraUboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+   cameraUboBinding.descriptorCount = 1;
+   cameraUboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+   cameraUboBinding.pImmutableSamplers = nullptr;
+   VkDescriptorSetLayoutBinding materialUboBinding{};
+   materialUboBinding.binding = 2;
+   materialUboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+   materialUboBinding.descriptorCount = 1;
+   materialUboBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+   materialUboBinding.pImmutableSamplers = nullptr;
+   const std::array<VkDescriptorSetLayoutBinding, 2> bindings = {
+      cameraUboBinding, materialUboBinding};
    VkDescriptorSetLayoutCreateInfo layoutInfo{};
    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -166,13 +167,13 @@ void VulkanRenderer::CreateGeometryPipeline() {
                                        std::string("resources/shaders/vk/geometry_pass.vert.spv"));
    const VulkanShaderModule fragShader(m_device,
                                        std::string("resources/shaders/vk/geometry_pass.frag.spv"));
-   VkPushConstantRange pushConstantRange{};
-   pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-   pushConstantRange.offset = 0;
-   pushConstantRange.size = sizeof(glm::mat4);
+   VkPushConstantRange modelPushConstant{};
+   modelPushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+   modelPushConstant.offset = 0;
+   modelPushConstant.size = sizeof(glm::mat4);
    m_geometryPipelineLayout = std::make_unique<VulkanPipelineLayout>(
       m_device, std::vector<VkDescriptorSetLayout>{m_geometryDescriptorSetLayout},
-      std::vector<VkPushConstantRange>{pushConstantRange});
+      std::vector<VkPushConstantRange>{modelPushConstant});
    // Build pipeline using the builder
    VulkanGraphicsPipelineBuilder builder(m_device);
    builder.SetVertexShader(vertShader.Get())
@@ -378,7 +379,6 @@ void VulkanRenderer::RecreateSwapchain() {
    vkDeviceWaitIdle(m_device.Get());
    CleanupSwapchain();
    m_swapchain.Recreate();
-   CreateDepthResources();
    CreateGeometryPass();
    CreateGeometryFBO();
    if (m_activeCamera) {
@@ -394,25 +394,20 @@ void VulkanRenderer::CleanupSwapchain() {
    m_geometryFramebuffers.clear();
 }
 
-void VulkanRenderer::CreateDepthResources() {
-   m_depthTexture = m_resourceManager->CreateDepthTexture(
-      "depth_texture", m_swapchain.GetExtent().width, m_swapchain.GetExtent().height);
-   ITexture* depthTexture = m_resourceManager->GetTexture(m_depthTexture);
-   if (depthTexture) {
-      VulkanTexture* vkDepthTexture = reinterpret_cast<VulkanTexture*>(depthTexture);
-      vkDepthTexture->TransitionLayout(
-         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
-   }
-}
-
-void VulkanRenderer::CreateUniformBuffer() {
-   const VkDeviceSize bufferSize = sizeof(CameraData);
-   m_uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+void VulkanRenderer::CreateUBOs() {
+   // Camera buffers
+   const VkDeviceSize cameraBufferSize = sizeof(CameraData);
    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-      m_uniformBuffers[i] = std::make_unique<VulkanBuffer>(
-         m_device, bufferSize, VulkanBuffer::Usage::Uniform, VulkanBuffer::MemoryType::CPUToGPU);
-      m_uniformBuffers[i]->Map();
+      m_cameraUniformBuffers[i] = std::make_unique<VulkanBuffer>(
+         m_device, cameraBufferSize, VulkanBuffer::Usage::Uniform, VulkanBuffer::MemoryType::CPUToGPU);
+      m_cameraUniformBuffers[i]->Map();
+   }
+   // Light buffers
+   const VkDeviceSize lightBufferSize = sizeof(LightsData);
+   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+      m_cameraUniformBuffers[i] = std::make_unique<VulkanBuffer>(
+         m_device, lightBufferSize, VulkanBuffer::Usage::Uniform, VulkanBuffer::MemoryType::CPUToGPU);
+      m_cameraUniformBuffers[i]->Map();
    }
 }
 
@@ -425,7 +420,7 @@ void VulkanRenderer::UpdateUniformBuffer(const uint32_t currentImage) {
    camData.view = m_activeCamera->GetViewMatrix();
    camData.proj = m_activeCamera->GetProjectionMatrix();
    camData.viewPos = m_activeCamera->GetTransform().GetPosition();
-   m_uniformBuffers[currentImage]->Update(&camData, sizeof(CameraData));
+   m_cameraUniformBuffers[currentImage]->Update(&camData, sizeof(CameraData));
 }
 
 void VulkanRenderer::CreateDescriptorPool() {
@@ -459,7 +454,7 @@ void VulkanRenderer::CreateDescriptorSets() {
    }
    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
       VkDescriptorBufferInfo bufferInfo{};
-      bufferInfo.buffer = m_uniformBuffers[i]->Get();
+      bufferInfo.buffer = m_cameraUniformBuffers[i]->Get();
       bufferInfo.offset = 0;
       bufferInfo.range = sizeof(CameraData);
       VkDescriptorImageInfo imageInfo{};

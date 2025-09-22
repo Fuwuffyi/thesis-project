@@ -34,6 +34,8 @@ class VulkanRenderer : public IRenderer {
    void RenderImgui() override;
    void DestroyImgui() override;
 
+   void CreateUBOs();
+
    // Functions to set up g-buffer
    void CreateGeometryDescriptorSetLayout();
    void CreateGeometryFBO();
@@ -51,15 +53,13 @@ class VulkanRenderer : public IRenderer {
    void RecreateSwapchain();
    void CleanupSwapchain();
    // Setup for depth texture
-   void CreateDepthResources();
-   [[nodiscard]] ResourceManager* GetResourceManager() const noexcept override;
    // TODO: Remove once scene impl complete
    // Functions to create textures
    // Testing mesh
-   void CreateTestResources();
    void CreateDefaultMaterial();
-   void CreateUniformBuffer();
    void UpdateUniformBuffer(const uint32_t currentImage);
+
+   [[nodiscard]] ResourceManager* GetResourceManager() const noexcept override;
 public:
    constexpr static uint32_t MAX_LIGHTS = 256;
 
@@ -71,6 +71,9 @@ public:
    VulkanDevice m_device;
 
    VulkanSwapchain m_swapchain;
+
+   std::array<std::unique_ptr<VulkanBuffer>, MAX_FRAMES_IN_FLIGHT> m_cameraUniformBuffers;
+   std::array<std::unique_ptr<VulkanBuffer>, MAX_FRAMES_IN_FLIGHT> m_lightsUniformBuffers;
 
    TextureHandle m_gDepthTexture;
    TextureHandle m_gAlbedoTexture; // RGB color + A AO
@@ -87,7 +90,6 @@ public:
    std::vector<VkSemaphore> m_renderFinishedSemaphores;
    std::vector<VkFence> m_inFlightFences;
    TextureHandle m_depthTexture;
-   std::vector<std::unique_ptr<VulkanBuffer>> m_uniformBuffers;
    VkDescriptorPool m_descriptorPool;
    std::vector<VkDescriptorSet> m_descriptorSets;
    std::unique_ptr<ResourceManager> m_resourceManager;

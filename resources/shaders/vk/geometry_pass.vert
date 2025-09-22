@@ -7,6 +7,7 @@ layout(location = 2) in vec2 inUV;
 layout(set = 0, binding = 0) uniform CameraData {
    mat4 view;
    mat4 proj;
+   vec3 viewPos;
 } camera;
 
 layout(location = 0) out vec3 fragPos;

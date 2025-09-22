@@ -11,10 +11,10 @@ layout(std140, binding = 0) uniform CameraData {
 } camera;
 
 layout(std140, binding = 2) uniform MaterialData {
-    float ao;
-    float roughness;
-    float metallic;
-    vec3 albedo;
+   float ao;
+   float roughness;
+   float metallic;
+   vec3 albedo;
 } material;
 
 // Depth R is used to calculate position
