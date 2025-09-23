@@ -66,8 +66,6 @@ class VulkanTexture : public ITexture {
 
   private:
    [[nodiscard]] VkFormat ConvertFormat(const Format fmt) const;
-   [[nodiscard]] uint32_t FindMemoryType(const uint32_t typeFilter,
-                                         const VkMemoryPropertyFlags props) const;
    [[nodiscard]] static constexpr size_t BytesPerPixel(const Format fmt) noexcept;
    [[nodiscard]] VkSampler CreateSampler(const VkFilter minF, const VkFilter magF,
                                          const VkSamplerAddressMode addr, bool enableAnisotropy,
@@ -82,7 +80,7 @@ class VulkanTexture : public ITexture {
    VkImage m_image{VK_NULL_HANDLE};
    VkImageView m_imageView{VK_NULL_HANDLE};
    VkSampler m_sampler{VK_NULL_HANDLE};
-   VmaAllocation m_allocation{VK_NULL_HANDLE};
+   VmaAllocation m_allocation{nullptr};
    VkFormat m_vkFormat;
 
    bool m_descriptorSetDirty{true};

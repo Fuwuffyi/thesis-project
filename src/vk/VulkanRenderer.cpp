@@ -189,6 +189,8 @@ void VulkanRenderer::CreateGeometryPipeline() {
       .SetFrontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
       .EnableDepthTest(VK_COMPARE_OP_LESS)
       .SetPipelineLayout(m_geometryPipelineLayout->Get())
+      .AddScissor(VkRect2D{})
+      .AddViewport(VkViewport{})
       .SetRenderPass(m_geometryRenderPass->Get());
    VulkanGraphicsPipelineBuilder::RasterizationState raster{};
    raster.cullMode = VK_CULL_MODE_BACK_BIT;
@@ -456,7 +458,7 @@ void VulkanRenderer::CreateDescriptorPool() {
    std::array<VkDescriptorPoolSize, 2> poolSizes{};
    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-   poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+   poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
    poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
    VkDescriptorPoolCreateInfo poolInfo{};
    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -588,6 +590,7 @@ void VulkanRenderer::RenderImgui() {
 }
 
 void VulkanRenderer::RenderFrame() {
+   std::print("============== Frame ================");
    // Wait for previous farme
    vkWaitForFences(m_device.Get(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
    // Get the next image of the swapchain

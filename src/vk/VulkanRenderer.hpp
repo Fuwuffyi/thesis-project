@@ -44,9 +44,9 @@ class VulkanRenderer : public IRenderer {
    void CreateGeometryFBO();
    void CreateGeometryPass();
    void CreateGeometryPipeline();
+   void CreateDescriptorSets();
    // Descriptor set for pipeline
    void CreateDescriptorPool();
-   void CreateDescriptorSets();
    // Functions to set up command pool
    void CreateCommandBuffers();
    void RecordCommandBuffer(const uint32_t imageIndex);

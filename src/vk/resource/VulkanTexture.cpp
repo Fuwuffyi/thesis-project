@@ -19,7 +19,7 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const CreateInfo& info)
       m_height(info.height),
       m_depth(info.depth),
       m_format((info.format == Format::RGB8) ? Format::RGBA8 : info.format),
-      m_isDepth(info.depth),
+      m_isDepth(info.format == Format::Depth24 || info.format == Format::Depth32F),
       m_samples(info.samples),
       m_mipLevels(
          info.generateMipmaps
@@ -130,7 +130,7 @@ VulkanTexture& VulkanTexture::operator=(VulkanTexture&& other) noexcept {
          ImGui_ImplVulkan_RemoveTexture(m_imguiDescriptorSet);
       m_device = other.m_device;
       m_image = std::exchange(other.m_image, VK_NULL_HANDLE);
-      m_allocation = std::exchange(other.m_allocation, VK_NULL_HANDLE);
+      m_allocation = std::exchange(other.m_allocation, nullptr);
       m_imageView = std::exchange(other.m_imageView, VK_NULL_HANDLE);
       m_sampler = std::exchange(other.m_sampler, VK_NULL_HANDLE);
       m_vkFormat = other.m_vkFormat;
@@ -172,18 +172,6 @@ VkFormat VulkanTexture::ConvertFormat(const Format fmt) const {
       default:
          throw std::runtime_error("Unsupported format");
    }
-}
-
-uint32_t VulkanTexture::FindMemoryType(const uint32_t typeFilter,
-                                       const VkMemoryPropertyFlags props) const {
-   VkPhysicalDeviceMemoryProperties memProps;
-   vkGetPhysicalDeviceMemoryProperties(m_device->GetPhysicalDevice(), &memProps);
-   for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
-      if ((typeFilter & (1 << i)) && (memProps.memoryTypes[i].propertyFlags & props) == props) {
-         return i;
-      }
-   }
-   throw std::runtime_error("Failed to find suitable memory type");
 }
 
 constexpr size_t VulkanTexture::BytesPerPixel(const Format fmt) noexcept {
@@ -256,8 +244,11 @@ void VulkanTexture::CreateImage() {
    imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
    if (m_mipLevels > 1)
       imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-   if (m_isDepth)
+   if (m_isDepth) {
       imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+   } else {
+      imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+   }
    imageInfo.samples = static_cast<VkSampleCountFlagBits>(m_samples);
    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
    VmaAllocationCreateInfo allocInfo{};
