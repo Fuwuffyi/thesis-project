@@ -45,6 +45,6 @@ void main() {
    // Compute view direction in world space and convert to tangent space
    vec3 viewDir = normalize(camera.viewPos - fragPos);
    vec3 viewDirTS = normalize(TBN * viewDir);
-   gAlbedo = vec4(fragNormal, 1.0);
-   gNormal = vec4(0.0, 1.0, 0.0, 1.0);
+   gAlbedo = vec4(1.0);
+   gNormal = vec4(encodeOctNormal(fragNormal), 1.0, 0.0);
 }

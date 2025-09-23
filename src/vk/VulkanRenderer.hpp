@@ -39,13 +39,21 @@ class VulkanRenderer : public IRenderer {
    void UpdateCameraUBO(const uint32_t currentImage);
    void UpdateLightsUBO(const uint32_t currentImage);
 
-   // Functions to set up g-buffer
+   // Geometry Pass
    void CreateGeometryDescriptorSetLayout();
    void CreateGeometryFBO();
    void CreateGeometryPass();
    void CreateGeometryPipeline();
-   void CreateDescriptorSets();
+
+   // Lighting Pass
+   void CreateLightingDescriptorSetLayout();
+   void CreateLightingFBO();
+   void CreateLightingPass();
+   void CreateLightingPipeline();
+
    // Descriptor set for pipeline
+   void CreateDescriptorSets();
+   void UpdateDescriptorSets();
    void CreateDescriptorPool();
    // Functions to set up command pool
    void CreateCommandBuffers();
@@ -55,7 +63,8 @@ class VulkanRenderer : public IRenderer {
    // Functions to setup swapchain recreation
    void RecreateSwapchain();
    void CleanupSwapchain();
-   // Setup default material
+
+   void CreateUtilityMeshes();
    void CreateDefaultMaterial();
 
    [[nodiscard]] ResourceManager* GetResourceManager() const noexcept override;
@@ -64,6 +73,7 @@ class VulkanRenderer : public IRenderer {
    constexpr static uint32_t MAX_LIGHTS = 256;
 
   private:
+   // TODO: Remove unique ptrs in favour of stack variables once other abstractions are implemented
    constexpr static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
    uint32_t m_currentFrame = 0;
    VulkanInstance m_instance;
@@ -75,23 +85,37 @@ class VulkanRenderer : public IRenderer {
    std::array<std::unique_ptr<VulkanBuffer>, MAX_FRAMES_IN_FLIGHT> m_cameraUniformBuffers;
    std::array<std::unique_ptr<VulkanBuffer>, MAX_FRAMES_IN_FLIGHT> m_lightsUniformBuffers;
 
-   TextureHandle m_gDepthTexture;
-   TextureHandle m_gAlbedoTexture; // RGB color + A AO
-   TextureHandle m_gNormalTexture; // RG encoded normal + B roughness + A metallic
+   MeshHandle m_fullscreenQuad;
+   MeshHandle m_lineCube;
+
+   // G-Buffer
+   std::array<TextureHandle, MAX_FRAMES_IN_FLIGHT> m_gDepthTexture;
+   std::array<TextureHandle, MAX_FRAMES_IN_FLIGHT> m_gAlbedoTexture; // RGB color + A AO
+   std::array<TextureHandle, MAX_FRAMES_IN_FLIGHT>
+      m_gNormalTexture; // RG encoded normal + B roughness + A metallic
+
+   // Geometry pass
    std::unique_ptr<VulkanRenderPass> m_geometryRenderPass;
-   std::vector<VkFramebuffer> m_geometryFramebuffers;
+   std::array<VkFramebuffer, MAX_FRAMES_IN_FLIGHT> m_geometryFramebuffers;
    VkDescriptorSetLayout m_geometryDescriptorSetLayout;
    std::unique_ptr<VulkanPipelineLayout> m_geometryPipelineLayout;
    std::unique_ptr<VulkanGraphicsPipeline> m_geometryGraphicsPipeline;
+   std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> m_geometryDescriptorSets;
 
-   // TODO: Remove unique ptrs in favour of stack variables once other abstractions are implemented
+   // Lighting pass
+   std::unique_ptr<VulkanRenderPass> m_lightingRenderPass;
+   std::vector<VkFramebuffer> m_lightingFramebuffers;
+   VkDescriptorSetLayout m_lightingDescriptorSetLayout;
+   std::unique_ptr<VulkanPipelineLayout> m_lightingPipelineLayout;
+   std::unique_ptr<VulkanGraphicsPipeline> m_lightingGraphicsPipeline;
+   std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> m_lightingDescriptorSets;
+
    std::unique_ptr<VulkanCommandBuffers> m_commandBuffers;
    std::vector<VkSemaphore> m_imageAvailableSemaphores;
    std::vector<VkSemaphore> m_renderFinishedSemaphores;
    std::vector<VkFence> m_inFlightFences;
    TextureHandle m_depthTexture;
    VkDescriptorPool m_descriptorPool;
-   std::vector<VkDescriptorSet> m_descriptorSets;
    std::unique_ptr<ResourceManager> m_resourceManager;
    std::unique_ptr<MaterialEditor> m_materialEditor;
 };

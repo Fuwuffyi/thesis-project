@@ -46,12 +46,15 @@ class VulkanTexture : public ITexture {
    [[nodiscard]] VkFormat GetVkFormat() const noexcept { return m_vkFormat; }
    [[nodiscard]] VkSampler GetSampler() const noexcept { return m_sampler; }
    [[nodiscard]] VkDescriptorSet GetImguiDescriptor() const noexcept {
-      if (!m_descriptorSetDirty)
-         return m_imguiDescriptorSet;
-      if (m_imguiDescriptorSet != VK_NULL_HANDLE)
+      if (m_imguiDescriptorSet != VK_NULL_HANDLE && m_descriptorSetDirty) {
          ImGui_ImplVulkan_RemoveTexture(m_imguiDescriptorSet);
-      m_imguiDescriptorSet = ImGui_ImplVulkan_AddTexture(m_sampler, m_imageView,
-                                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+         m_imguiDescriptorSet = VK_NULL_HANDLE;
+      }
+      if (m_imguiDescriptorSet == VK_NULL_HANDLE) {
+         m_imguiDescriptorSet = ImGui_ImplVulkan_AddTexture(
+            m_sampler, m_imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+         m_descriptorSetDirty = false;
+      }
       return m_imguiDescriptorSet;
    }
    void UpdateSamplerSettings(
@@ -83,7 +86,7 @@ class VulkanTexture : public ITexture {
    VmaAllocation m_allocation{nullptr};
    VkFormat m_vkFormat;
 
-   bool m_descriptorSetDirty{true};
+   mutable bool m_descriptorSetDirty{true};
    mutable VkDescriptorSet m_imguiDescriptorSet{VK_NULL_HANDLE};
 
    uint32_t m_width{};
