@@ -84,7 +84,7 @@ void VulkanSwapchain::CreateSwapchain() {
          .set_desired_present_mode(VK_PRESENT_MODE_MAILBOX_KHR)
          .set_desired_extent(m_window->GetWidth(), m_window->GetHeight())
          .add_fallback_format({VK_FORMAT_R8G8B8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR})
-         .add_fallback_present_mode(VK_PRESENT_MODE_FIFO_KHR) // Always supported
+         .add_fallback_present_mode(VK_PRESENT_MODE_FIFO_KHR)
          .build();
    if (!swap_ret) {
       throw std::runtime_error("Failed to create swapchain: " + swap_ret.error().message());

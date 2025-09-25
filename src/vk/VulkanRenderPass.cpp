@@ -119,8 +119,8 @@ RenderPassDescription VulkanRenderPass::CreateDefaultDescription(
       colorAtt.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
       colorAtt.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
       colorAtt.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-      colorAtt.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-      colorAtt.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+      colorAtt.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      colorAtt.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       desc.attachments.push_back(colorAtt);
    }
    // Depth attachment
@@ -129,11 +129,11 @@ RenderPassDescription VulkanRenderPass::CreateDefaultDescription(
       depthAtt.format = depthFormat;
       depthAtt.samples = VK_SAMPLE_COUNT_1_BIT;
       depthAtt.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-      depthAtt.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+      depthAtt.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
       depthAtt.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
       depthAtt.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-      depthAtt.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-      depthAtt.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+      depthAtt.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      depthAtt.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       desc.attachments.push_back(depthAtt);
    }
    // Subpass description

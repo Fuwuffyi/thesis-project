@@ -154,6 +154,15 @@ void VulkanRenderer::CreateGeometryFBO() {
       VulkanTexture* vkAlbedo = reinterpret_cast<VulkanTexture*>(albedoTex);
       VulkanTexture* vkNormal = reinterpret_cast<VulkanTexture*>(normalTex);
       VulkanTexture* vkDepth = reinterpret_cast<VulkanTexture*>(depthTex);
+      vkAlbedo->TransitionLayout(
+         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+      vkNormal->TransitionLayout(
+         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+      vkAlbedo->UpdateSamplerSettings(VK_FILTER_NEAREST, VK_FILTER_NEAREST);
+      vkNormal->UpdateSamplerSettings(VK_FILTER_NEAREST, VK_FILTER_NEAREST);
+      vkDepth->UpdateSamplerSettings(VK_FILTER_NEAREST, VK_FILTER_NEAREST);
       VkImageView attachments[3] = {vkAlbedo->GetImageView(), vkNormal->GetImageView(),
                                     vkDepth->GetImageView()};
       VkFramebufferCreateInfo framebufferInfo{};
@@ -531,84 +540,6 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
       // TODO: Clean up imgui stuff
       ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers->Get(m_currentFrame));
       m_commandBuffers->EndRenderPass(m_currentFrame);
-   }
-   {
-      std::vector<VkImageMemoryBarrier> backTransitions;
-      backTransitions.reserve(3);
-
-      // Get the textures for current frame
-      ITexture* albedoTex = m_resourceManager->GetTexture(m_gAlbedoTexture[m_currentFrame]);
-      ITexture* normalTex = m_resourceManager->GetTexture(m_gNormalTexture[m_currentFrame]);
-      ITexture* depthTex = m_resourceManager->GetTexture(m_gDepthTexture[m_currentFrame]);
-
-      if (albedoTex && normalTex && depthTex) {
-         VulkanTexture* vkAlbedo = reinterpret_cast<VulkanTexture*>(albedoTex);
-         VulkanTexture* vkNormal = reinterpret_cast<VulkanTexture*>(normalTex);
-         VulkanTexture* vkDepth = reinterpret_cast<VulkanTexture*>(depthTex);
-
-         // Albedo texture: SHADER_READ_ONLY_OPTIMAL -> COLOR_ATTACHMENT_OPTIMAL
-         VkImageMemoryBarrier albedoBackBarrier{};
-         albedoBackBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-         albedoBackBarrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-         albedoBackBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-         albedoBackBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         albedoBackBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         albedoBackBarrier.image = vkAlbedo->GetImage();
-         albedoBackBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-         albedoBackBarrier.subresourceRange.baseMipLevel = 0;
-         albedoBackBarrier.subresourceRange.levelCount = 1;
-         albedoBackBarrier.subresourceRange.baseArrayLayer = 0;
-         albedoBackBarrier.subresourceRange.layerCount = 1;
-         albedoBackBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-         albedoBackBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-         backTransitions.push_back(albedoBackBarrier);
-
-         // Normal texture: SHADER_READ_ONLY_OPTIMAL -> COLOR_ATTACHMENT_OPTIMAL
-         VkImageMemoryBarrier normalBackBarrier{};
-         normalBackBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-         normalBackBarrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-         normalBackBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-         normalBackBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         normalBackBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         normalBackBarrier.image = vkNormal->GetImage();
-         normalBackBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-         normalBackBarrier.subresourceRange.baseMipLevel = 0;
-         normalBackBarrier.subresourceRange.levelCount = 1;
-         normalBackBarrier.subresourceRange.baseArrayLayer = 0;
-         normalBackBarrier.subresourceRange.layerCount = 1;
-         normalBackBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-         normalBackBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-         backTransitions.push_back(normalBackBarrier);
-
-         // Depth texture: SHADER_READ_ONLY_OPTIMAL -> DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-         VkImageMemoryBarrier depthBackBarrier{};
-         depthBackBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-         depthBackBarrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-         depthBackBarrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-         depthBackBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         depthBackBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         depthBackBarrier.image = vkDepth->GetImage();
-         depthBackBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-         depthBackBarrier.subresourceRange.baseMipLevel = 0;
-         depthBackBarrier.subresourceRange.levelCount = 1;
-         depthBackBarrier.subresourceRange.baseArrayLayer = 0;
-         depthBackBarrier.subresourceRange.layerCount = 1;
-         depthBackBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-         depthBackBarrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-         backTransitions.push_back(depthBackBarrier);
-
-         // Execute the back transitions
-         vkCmdPipelineBarrier(m_commandBuffers->Get(m_currentFrame),
-                              VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // srcStageMask
-                              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                                 VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, // dstStageMask
-                              0,                                             // dependencyFlags
-                              0, nullptr,                                    // memory barriers
-                              0, nullptr,                                    // buffer barriers
-                              static_cast<uint32_t>(backTransitions.size()),
-                              backTransitions.data() // image barriers
-         );
-      }
    }
 
    m_commandBuffers->End(m_currentFrame);
