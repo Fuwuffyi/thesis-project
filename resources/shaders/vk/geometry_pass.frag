@@ -10,14 +10,12 @@ layout(set = 0, binding = 0) uniform CameraData {
    vec3 viewPos;
 } camera;
 
-/*
-layout(set = 0, binding = 2) uniform MaterialData {
+layout(set = 1, binding = 2) uniform MaterialData {
    float ao;
    float roughness;
    float metallic;
    vec3 albedo;
 } material;
-*/
 
 layout(location = 0) out vec4 gAlbedo; // RGB color + A AO
 layout(location = 1) out vec4 gNormal; // RG encoded normal + B roughness + A metallic

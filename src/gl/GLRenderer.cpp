@@ -327,8 +327,7 @@ void GLRenderer::UpdateLightsUBO() noexcept {
       if (!node->IsActive() || lightsData.lightCount >= MAX_LIGHTS) [[unlikely]]
          return;
       const auto* lightComp = node->GetComponent<LightComponent>();
-      const auto* transformComp = node->GetComponent<TransformComponent>();
-      if (lightComp && transformComp) [[likely]] {
+      if (lightComp) [[likely]] {
          auto& light = lightsData.lights[lightsData.lightCount];
          light.lightType = static_cast<uint32_t>(lightComp->GetType());
          light.color = lightComp->GetColor();
@@ -336,9 +335,9 @@ void GLRenderer::UpdateLightsUBO() noexcept {
          light.constant = lightComp->GetConstant();
          light.linear = lightComp->GetLinear();
          light.quadratic = lightComp->GetQuadratic();
-         const auto& transform = transformComp->GetTransform();
-         light.position = transform.GetPosition();
-         light.direction = transform.GetForward();
+         const auto* transform = node->GetWorldTransform();
+         light.position = transform->GetPosition();
+         light.direction = transform->GetForward();
          light.innerCone = lightComp->GetInnerCone();
          light.outerCone = lightComp->GetOuterCone();
          ++lightsData.lightCount;
@@ -400,9 +399,8 @@ void GLRenderer::RenderGizmos() const noexcept {
       if (!node->IsActive()) [[unlikely]]
          return;
       const auto* lightComp = node->GetComponent<LightComponent>();
-      const auto* transformComp = node->GetComponent<TransformComponent>();
-      if (lightComp && transformComp) [[likely]] {
-         m_gizmoPassShader->SetMat4("model", transformComp->GetTransform().GetTransformMatrix());
+      if (lightComp) [[likely]] {
+         m_gizmoPassShader->SetMat4("model", node->GetWorldTransform()->GetTransformMatrix());
          m_gizmoPassShader->SetVec3("gizmoColor", lightComp->GetColor());
          glCubeMesh->Draw(m_gizmoPass->GetPrimitiveType());
       }

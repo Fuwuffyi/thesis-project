@@ -11,6 +11,7 @@
 #include "core/editor/PerformanceGUI.hpp"
 #include "core/editor/MaterialEditor.hpp"
 
+#include "vk/resource/VulkanMaterial.hpp"
 #include "vk/resource/VulkanMesh.hpp"
 #include "vk/resource/VulkanResourceFactory.hpp"
 
@@ -424,22 +425,14 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
                                      sizeof(glm::mat4), &worldTransform->GetTransformMatrix());
                }
                /*
-                * TODO: Implement materials first, create a descriptor set per material
                if (const IMaterial* material =
                       m_resourceManager->GetMaterial(renderer->GetMaterial())) {
-                  VulkanBuffer* b = reinterpret_cast<VulkanBuffer*>(material->GetNativeHandle());
-                  VkDescriptorBufferInfo materialBufferInfo{};
-                  materialBufferInfo.buffer = b->Get();
-                  materialBufferInfo.offset = 0;
-                  materialBufferInfo.range = b->GetSize();
-                  VkWriteDescriptorSet matDescriptorSet{};
-                  matDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                  matDescriptorSet.dstSet = m_lightingDescriptorSets[m_currentFrame];
-                  matDescriptorSet.dstBinding = 2;
-                  matDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                  matDescriptorSet.descriptorCount = 1;
-                  matDescriptorSet.pBufferInfo = &materialBufferInfo;
-                  vkUpdateDescriptorSets(m_device.Get(), 1, &matDescriptorSet, 0, nullptr);
+                  const VulkanMaterial* vkMaterial =
+                     reinterpret_cast<const VulkanMaterial*>(material);
+                  const VkDescriptorSet descriptorSet = vkMaterial->GetDescriptorSet();
+                  vkCmdBindDescriptorSets(
+                     m_commandBuffers->Get(m_currentFrame), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                     m_geometryPipelineLayout->Get(), 1, 1, &descriptorSet, 0, nullptr);
                }
                */
                if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
@@ -628,8 +621,7 @@ void VulkanRenderer::UpdateLightsUBO(const uint32_t currentImage) {
       if (!node->IsActive() || lightsData.lightCount >= MAX_LIGHTS) [[unlikely]]
          return;
       const auto* lightComp = node->GetComponent<LightComponent>();
-      const auto* transformComp = node->GetComponent<TransformComponent>();
-      if (lightComp && transformComp) [[likely]] {
+      if (lightComp) [[likely]] {
          auto& light = lightsData.lights[lightsData.lightCount];
          light.lightType = static_cast<uint32_t>(lightComp->GetType());
          light.color = lightComp->GetColor();
@@ -637,9 +629,9 @@ void VulkanRenderer::UpdateLightsUBO(const uint32_t currentImage) {
          light.constant = lightComp->GetConstant();
          light.linear = lightComp->GetLinear();
          light.quadratic = lightComp->GetQuadratic();
-         const auto& transform = transformComp->GetTransform();
-         light.position = transform.GetPosition();
-         light.direction = transform.GetForward();
+         const auto* transform = node->GetWorldTransform();
+         light.position = transform->GetPosition();
+         light.direction = transform->GetForward();
          light.innerCone = lightComp->GetInnerCone();
          light.outerCone = lightComp->GetOuterCone();
          ++lightsData.lightCount;
