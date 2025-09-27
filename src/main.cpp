@@ -31,7 +31,8 @@ void CreateFullScene(Scene& scene, ResourceManager& resourceManager, const Graph
    // FIXME: Currently vulkan loads texture statically
    Node* sponzaNode = MeshLoaderHelper::LoadSceneAsChildNode(
       scene, scene.GetRootNode(), resourceManager, "sponza", "resources/meshes/sponza.fbx", {}, {});
-   sponzaNode->GetTransform()->SetScale(glm::vec3(0.01));
+   sponzaNode->GetTransform()->SetScale(glm::vec3(0.01f));
+   sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
 
    // Setup light node
    Node* lightsNode = scene.CreateNode("lights");
