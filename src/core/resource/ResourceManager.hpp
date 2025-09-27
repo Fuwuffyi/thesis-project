@@ -2,22 +2,14 @@
 
 #include "core/resource/IResourceFactory.hpp"
 #include "core/resource/ResourceHandle.hpp"
-
 #include "core/resource/MaterialTemplate.hpp"
+#include "core/resource/MeshLoader.hpp"
 
 #include <shared_mutex>
 #include <unordered_map>
 
 class ResourceManager final {
   public:
-   struct LoadedMeshGroup {
-      std::vector<MeshHandle> subMeshes;
-      std::vector<size_t> materialIndices;
-      std::string filepath;
-
-      bool IsValid() const noexcept;
-   };
-
    explicit ResourceManager(std::unique_ptr<IResourceFactory> factory);
    ~ResourceManager();
 
@@ -39,15 +31,20 @@ class ResourceManager final {
                                     const uint32_t samples = 1);
    // Material management
    MaterialHandle CreateMaterial(const std::string_view name, const std::string_view templateName);
+
    // Mesh management
    MeshHandle LoadMesh(const std::string_view name, const std::vector<Vertex>& vertices,
                        const std::vector<uint32_t>& indices);
-   LoadedMeshGroup LoadMeshFromFile(const std::string_view name, const std::string_view filepath);
    MeshHandle LoadSingleMeshFromFile(const std::string_view name, const std::string_view filepath);
+
+   // Scene data loading
+   MeshLoader::SceneData LoadSceneData(const std::string_view filepath);
+
    // Resource access
    ITexture* GetTexture(const TextureHandle& handle) const;
    IMaterial* GetMaterial(const MaterialHandle& handle) const;
    IMesh* GetMesh(const MeshHandle& handle) const;
+
    // Resource access by name
    ITexture* GetTexture(const std::string_view name) const;
    IMaterial* GetMaterial(const std::string_view name) const;
@@ -56,7 +53,7 @@ class ResourceManager final {
    TextureHandle GetTextureHandle(const std::string_view name) const;
    MaterialHandle GetMaterialHandle(const std::string_view name) const;
    MeshHandle GetMeshHandle(const std::string_view name) const;
-   const LoadedMeshGroup* GetMeshGroup(const std::string_view name) const;
+
    // Resource management
    void UnloadTexture(const TextureHandle& handle);
    void UnloadMaterial(const MaterialHandle& handle);
@@ -64,7 +61,7 @@ class ResourceManager final {
    void UnloadTexture(const std::string_view name);
    void UnloadMaterial(const std::string_view name);
    void UnloadMesh(const std::string_view name);
-   void UnloadMeshGroup(const std::string_view name);
+
    // Utility methods
    void UnloadAll();
    size_t GetTotalMemoryUsage() const;
@@ -81,7 +78,6 @@ class ResourceManager final {
                                       const std::string_view filepath = {});
 
    void RemoveResource(const uint64_t id);
-
    void SetupMaterialTemplates();
 
   private:
@@ -97,7 +93,6 @@ class ResourceManager final {
    std::unordered_map<uint64_t, std::unique_ptr<ResourceEntry>> m_resources;
    std::unordered_map<std::string, std::unique_ptr<MaterialTemplate>> m_materialTemplates;
    std::unordered_map<std::string, uint64_t> m_nameToId;
-   std::unordered_map<std::string, LoadedMeshGroup> m_meshGroups;
 
    mutable std::shared_mutex m_mutex;
    uint64_t m_nextId;

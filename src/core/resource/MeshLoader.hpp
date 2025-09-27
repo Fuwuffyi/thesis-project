@@ -2,6 +2,9 @@
 
 #include "core/Vertex.hpp"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <string>
 #include <vector>
 
@@ -12,33 +15,47 @@ struct aiMesh;
 
 class MeshLoader final {
   public:
-   // Structure to hold data for a single sub-mesh
-   struct SubMesh {
+   // Structure to hold data for a single mesh
+   struct MeshData {
       std::vector<Vertex> vertices;
       std::vector<uint32_t> indices;
       std::string name;
-      uint32_t materialIndex = 0;
+      uint32_t materialIndex{0};
+      glm::mat4 transform{glm::mat4(1.0f)};
 
       size_t GetVertexCount() const noexcept;
       size_t GetIndexCount() const noexcept;
+      bool IsEmpty() const noexcept;
    };
 
-   // Structure to hold all mesh data from a file
-   struct MeshData {
-      std::vector<SubMesh> subMeshes;
+   // Structure to hold scene hierarchy information
+   struct SceneNode {
+      std::string name;
+      glm::mat4 transform{glm::mat4(1.0f)};
+      std::vector<size_t> meshIndices;
+      std::vector<SceneNode> children;
+
+      bool HasMeshes() const noexcept { return !meshIndices.empty(); }
+   };
+
+   // Complete scene data with hierarchy
+   struct SceneData {
+      std::vector<MeshData> meshes;
+      SceneNode rootNode;
       std::string filepath;
 
       bool IsEmpty() const noexcept;
-      size_t GetSubMeshCount() const noexcept;
-      std::pair<std::vector<Vertex>, std::vector<uint32_t>> GetCombinedData() const;
+      size_t GetMeshCount() const noexcept;
    };
 
-   static MeshData LoadMesh(std::string_view filepath);
+   static SceneData LoadScene(std::string_view filepath);
+   static MeshData LoadSingleMesh(std::string_view filepath);
 
   private:
-   static void ProcessNode(const aiScene* scene, const aiNode* node,
-                           std::vector<SubMesh>& subMeshes);
-   static SubMesh ProcessMesh(const aiScene* scene, const aiMesh* mesh);
+   static void ProcessNode(const aiScene* scene, const aiNode* node, SceneData& sceneData,
+                           SceneNode& parentNode);
+   static MeshData ProcessMesh(const aiScene* scene, const aiMesh* mesh);
    static void ExtractVertexData(const aiMesh* mesh, std::vector<Vertex>& vertices);
    static void ExtractIndexData(const aiMesh* mesh, std::vector<uint32_t>& indices);
+   static glm::mat4 ConvertMatrix(const auto& aiMat);
 };

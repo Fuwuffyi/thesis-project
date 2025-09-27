@@ -29,9 +29,9 @@ struct MouseState {
 // TODO: This is a test scene, I need to add a serialization/deserialization system
 void CreateFullScene(Scene& scene, ResourceManager& resourceManager, const GraphicsAPI api) {
    // FIXME: Currently vulkan loads texture statically
-   Node* sponzaNode = MeshLoaderHelper::LoadMeshAsChildNode(
+   Node* sponzaNode = MeshLoaderHelper::LoadSceneAsChildNode(
       scene, scene.GetRootNode(), resourceManager, "sponza", "resources/meshes/sponza.fbx", {}, {});
-   sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
+   sponzaNode->GetTransform()->SetScale(glm::vec3(0.01));
 
    // Setup light node
    Node* lightsNode = scene.CreateNode("lights");
