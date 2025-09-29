@@ -84,12 +84,11 @@ void ParticleSystemComponent::EmitParticles(float deltaTime, const glm::vec3& wo
 }
 
 void ParticleSystemComponent::UpdateParticlePhysics(const float deltaTime) noexcept {
-   // Use parallel execution to stress CPU more
    std::for_each(std::execution::par_unseq, m_particles.begin(),
                  m_particles.begin() + m_activeParticles, [this, deltaTime](Particle& particle) {
                     // Apply gravity
                     particle.acceleration = m_physicsSettings.gravity;
-                    // Update velocity and position using Verlet integration
+                    // Update velocity and position
                     particle.velocity += particle.acceleration * deltaTime;
                     particle.velocity *= m_physicsSettings.damping;
                     particle.position += particle.velocity * deltaTime;
