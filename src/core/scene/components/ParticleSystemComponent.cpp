@@ -62,9 +62,17 @@ void ParticleSystemComponent::Update(float deltaTime, const glm::vec3& worldPosi
    UpdateParticlePhysics(deltaTime);
    UpdateParticleLifetime(deltaTime);
    RemoveDeadParticles();
+
+   // Update the instance data
+   for (uint32_t i = 0; i < m_activeParticles; ++i) {
+      m_instanceData[i].transform = glm::translate(glm::mat4(1.0f), m_particles[i].position) *
+                                    glm::scale(glm::mat4(1.0f), glm::vec3(m_particles[i].size));
+      m_instanceData[i].color = m_particles[i].color;
+   }
 }
 
-void ParticleSystemComponent::EmitParticles(float deltaTime, const glm::vec3& worldPosition) noexcept {
+void ParticleSystemComponent::EmitParticles(float deltaTime,
+                                            const glm::vec3& worldPosition) noexcept {
    m_emissionAccumulator += m_emissionSettings.emissionRate * deltaTime;
    const uint32_t particlesToEmit = static_cast<uint32_t>(m_emissionAccumulator);
    m_emissionAccumulator -= particlesToEmit;
