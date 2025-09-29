@@ -7,6 +7,7 @@
 #include "core/scene/MeshLoaderHelper.hpp"
 #include "core/scene/Node.hpp"
 #include "core/scene/components/LightComponent.hpp"
+#include "core/scene/components/ParticleSystemComponent.hpp"
 #include "glm/trigonometric.hpp"
 
 #include <GLFW/glfw3.h>
@@ -33,6 +34,11 @@ void CreateFullScene(Scene& scene, ResourceManager& resourceManager, const Graph
       scene, scene.GetRootNode(), resourceManager, "sponza", "resources/meshes/sponza.fbx", {}, {});
    sponzaNode->GetTransform()->SetScale(glm::vec3(0.01f));
    sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
+
+   // Setup particle node
+   Node* particlesNode = scene.CreateNode("particles");
+   particlesNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 2.0f, 0.0f));
+   particlesNode->AddComponent<ParticleSystemComponent>(1000000);
 
    // Setup light node
    Node* lightsNode = scene.CreateNode("lights");

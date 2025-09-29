@@ -4,6 +4,7 @@
 #include "core/scene/Node.hpp"
 
 #include "core/scene/components/LightComponent.hpp"
+#include "core/scene/components/ParticleSystemComponent.hpp"
 #include "core/scene/components/RendererComponent.hpp"
 #include "core/scene/components/TransformComponent.hpp"
 
@@ -76,6 +77,8 @@ void Scene::DrawInspector(MaterialEditor& matEditor) {
                                                   const_cast<RendererComponent*>(comp));
       if (const auto* comp = selectedNode->GetComponent<LightComponent>())
          const_cast<LightComponent*>(comp)->DrawInspector(selectedNode);
+      if (const auto* comp = selectedNode->GetComponent<ParticleSystemComponent>())
+         const_cast<ParticleSystemComponent*>(comp)->DrawInspector(selectedNode);
       if (ImGui::Button("Add component"))
          ImGui::OpenPopup("add_component_popup");
       if (ImGui::BeginPopup("add_component_popup")) {
@@ -230,13 +233,13 @@ void Scene::UpdateTransforms() {
 
 void Scene::UpdateScene(const float deltaTime) {
    UpdateTransforms();
-   // TODO: Add component updates using ranges
-   // ForEachNode([deltaTime](Node* node) {
-   //     // Update components that need per-frame updates
-   //     auto updatableComponents = node->GetComponents<UpdatableComponent>();
-   //     std::ranges::for_each(updatableComponents,
-   //         [deltaTime](auto* comp) { comp->Update(deltaTime); });
-   // });
+   // TODO: Add component updates
+   ForEachNode([deltaTime](Node* node) {
+      auto particleComponent = node->GetComponent<ParticleSystemComponent>();
+      if (particleComponent) {
+         particleComponent->Update(deltaTime, node->GetWorldTransform()->GetPosition());
+      }
+   });
 }
 
 void Scene::Clear() {
