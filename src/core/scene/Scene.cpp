@@ -94,6 +94,10 @@ void Scene::DrawInspector(MaterialEditor& matEditor) {
             selectedNode->AddComponent<LightComponent>();
             ImGui::CloseCurrentPopup();
          }
+         if (!selectedNode->HasComponent<ParticleSystemComponent>() && ImGui::Button("Particle System")) {
+            selectedNode->AddComponent<ParticleSystemComponent>();
+            ImGui::CloseCurrentPopup();
+         }
          ImGui::EndPopup();
       }
       static char childName[60] = {};
