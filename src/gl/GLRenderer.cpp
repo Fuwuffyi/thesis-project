@@ -408,12 +408,19 @@ void GLRenderer::RenderGizmos() const noexcept {
 }
 
 void GLRenderer::RenderFrame() {
+   // Calculate delta time
+   const double currentTime = glfwGetTime();
+   m_deltaTime = static_cast<float>(currentTime - m_lastFrameTime);
+   m_lastFrameTime = currentTime;
+   ImGuiIO& io = ImGui::GetIO();
+   io.DeltaTime = m_deltaTime;
    // Update UBOs
    UpdateCameraUBO();
    UpdateLightsUBO();
    // Geometry pass
    m_geometryPass->Begin();
    if (m_activeScene) [[likely]] {
+      m_activeScene->UpdateScene(m_deltaTime);
       m_activeScene->UpdateTransforms();
       RenderGeometry();
    }

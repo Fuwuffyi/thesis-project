@@ -389,6 +389,11 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    scissor.offset = {0, 0};
    scissor.extent = m_swapchain.GetExtent();
 
+   if (m_activeScene) [[likely]] {
+      m_activeScene->UpdateScene(m_deltaTime);
+      m_activeScene->UpdateTransforms();
+   }
+
    // GEOMETRY PASS
    {
       std::vector<VkClearValue> clearValues(3);
@@ -408,7 +413,6 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
       // Draw the scene
       if (m_activeScene) {
          // Update transforms
-         m_activeScene->UpdateTransforms();
          m_activeScene->ForEachNode([&](const Node* node) {
             // Skip inactive nodes
             if (!node->IsActive())
@@ -879,6 +883,12 @@ void VulkanRenderer::RenderImgui() {
 }
 
 void VulkanRenderer::RenderFrame() {
+   // Calculate delta time
+   const double currentTime = glfwGetTime();
+   m_deltaTime = static_cast<float>(currentTime - m_lastFrameTime);
+   m_lastFrameTime = currentTime;
+   ImGuiIO& io = ImGui::GetIO();
+   io.DeltaTime = m_deltaTime;
    // Wait for previous farme
    vkWaitForFences(m_device.Get(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
    // Get the next image of the swapchain

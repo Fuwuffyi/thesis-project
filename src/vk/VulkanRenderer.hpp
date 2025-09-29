@@ -70,12 +70,16 @@ class VulkanRenderer : public IRenderer {
    [[nodiscard]] ResourceManager* GetResourceManager() const noexcept override;
 
   public:
-   constexpr static uint32_t MAX_LIGHTS = 256;
+   constexpr static uint32_t MAX_LIGHTS{256};
 
   private:
    // TODO: Remove unique ptrs in favour of stack variables once other abstractions are implemented
-   constexpr static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
-   uint32_t m_currentFrame = 0;
+   constexpr static uint32_t MAX_FRAMES_IN_FLIGHT{2};
+   uint32_t m_currentFrame{0};
+
+   double m_lastFrameTime{0};
+   float m_deltaTime{0};
+
    VulkanInstance m_instance;
    VulkanSurface m_surface;
    VulkanDevice m_device;

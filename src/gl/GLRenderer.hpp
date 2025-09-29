@@ -59,6 +59,9 @@ class GLRenderer : public IRenderer {
    static constexpr size_t MAX_LIGHTS = 256;
 
   private:
+   double m_lastFrameTime{0};
+   float m_deltaTime{0};
+   // Default resources
    MaterialHandle m_defaultMaterial;
    MeshHandle m_fullscreenQuad;
    MeshHandle m_lineCube;
@@ -84,7 +87,6 @@ class GLRenderer : public IRenderer {
    // ResourceManager
    std::unique_ptr<ResourceManager> m_resourceManager;
    std::unique_ptr<MaterialEditor> m_materialEditor;
-
    // Texture binding slots
    static constexpr uint32_t MATERIAL_BINDING_SLOT = 2;
    static constexpr uint32_t GBUFFER_ALBEDO_SLOT = 3;
