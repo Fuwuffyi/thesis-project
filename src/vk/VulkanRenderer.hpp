@@ -51,6 +51,10 @@ class VulkanRenderer : public IRenderer {
    void CreateLightingPass();
    void CreateLightingPipeline();
 
+   // Gizmo Pass
+   void CreateGizmoDescriptorSetLayout();
+   void CreateGizmoPipeline();
+
    // Descriptor set for pipeline
    void CreateDescriptorSets();
    void UpdateDescriptorSets();
@@ -113,6 +117,12 @@ class VulkanRenderer : public IRenderer {
    std::unique_ptr<VulkanPipelineLayout> m_lightingPipelineLayout;
    std::unique_ptr<VulkanGraphicsPipeline> m_lightingGraphicsPipeline;
    std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> m_lightingDescriptorSets;
+
+   // Gizmo pass
+   VkDescriptorSetLayout m_gizmoDescriptorSetLayout;
+   std::unique_ptr<VulkanPipelineLayout> m_gizmoPipelineLayout;
+   std::unique_ptr<VulkanGraphicsPipeline> m_gizmoGraphicsPipeline;
+   std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> m_gizmoDescriptorSets;
 
    std::unique_ptr<VulkanCommandBuffers> m_commandBuffers;
    std::vector<VkSemaphore> m_imageAvailableSemaphores;

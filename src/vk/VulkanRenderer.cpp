@@ -74,6 +74,9 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
    CreateLightingFBO();
    CreateLightingPipeline();
 
+   CreateGizmoDescriptorSetLayout();
+   CreateGizmoPipeline();
+
    CreateCommandBuffers();
 
    SetupImgui();
@@ -368,6 +371,77 @@ void VulkanRenderer::CreateLightingPipeline() {
    m_lightingGraphicsPipeline = std::make_unique<VulkanGraphicsPipeline>(std::move(pipelineObj));
 }
 
+void VulkanRenderer::CreateGizmoDescriptorSetLayout() {
+   VkDescriptorSetLayoutBinding cameraUboBinding{};
+   cameraUboBinding.binding = 0;
+   cameraUboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+   cameraUboBinding.descriptorCount = 1;
+   cameraUboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+   cameraUboBinding.pImmutableSamplers = nullptr;
+   const std::array<VkDescriptorSetLayoutBinding, 1> bindings = {cameraUboBinding};
+   VkDescriptorSetLayoutCreateInfo layoutInfo{};
+   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+   layoutInfo.pBindings = bindings.data();
+   if (vkCreateDescriptorSetLayout(m_device.Get(), &layoutInfo, nullptr,
+                                   &m_gizmoDescriptorSetLayout) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to create descriptor set layout.");
+   }
+}
+
+void VulkanRenderer::CreateGizmoPipeline() {
+   // Load shaders
+   const VulkanShaderModule vertShader(m_device,
+                                       std::string("resources/shaders/vk/gizmo_pass.vert.spv"));
+   const VulkanShaderModule fragShader(m_device,
+                                       std::string("resources/shaders/vk/gizmo_pass.frag.spv"));
+   VkPushConstantRange transformPushConstant{};
+   transformPushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+   transformPushConstant.offset = 0;
+   transformPushConstant.size = sizeof(glm::mat4);
+   VkPushConstantRange colorPushConstant{};
+   colorPushConstant.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+   colorPushConstant.offset = sizeof(glm::mat4);
+   colorPushConstant.size = sizeof(glm::vec3);
+   m_gizmoPipelineLayout = std::make_unique<VulkanPipelineLayout>(
+      m_device, std::vector<VkDescriptorSetLayout>{m_gizmoDescriptorSetLayout},
+      std::vector<VkPushConstantRange>{transformPushConstant, colorPushConstant});
+   // Build pipeline using the builder
+   VulkanGraphicsPipelineBuilder builder(m_device);
+   builder.SetVertexShader(vertShader.Get())
+      .SetFragmentShader(fragShader.Get())
+      .AddVertexBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+      .AddVertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position))
+      .AddVertexAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal))
+      .AddVertexAttribute(2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv))
+      .SetTopology(VK_PRIMITIVE_TOPOLOGY_LINE_LIST)
+      .SetDynamicViewportAndScissor()
+      .SetCullMode(VK_CULL_MODE_NONE)
+      .SetFrontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
+      .EnableDepthTest(VK_COMPARE_OP_LESS)
+      .AddScissor(VkRect2D{})
+      .AddViewport(VkViewport{})
+      .SetPipelineLayout(m_gizmoPipelineLayout->Get())
+      .SetRenderPass(m_lightingRenderPass->Get());
+   VulkanGraphicsPipelineBuilder::RasterizationState raster{};
+   raster.lineWidth = 3.0f; // Add this
+   raster.cullMode = VK_CULL_MODE_NONE;
+   raster.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+   builder.SetRasterizationState(raster);
+   VulkanGraphicsPipelineBuilder::MultisampleState ms{};
+   ms.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+   builder.SetMultisampleState(ms);
+   VulkanGraphicsPipelineBuilder::ColorBlendAttachmentState cb{};
+   cb.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                       VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+   VulkanGraphicsPipelineBuilder::ColorBlendState cbState{};
+   cbState.attachments.push_back(cb);
+   builder.SetColorBlendState(cbState);
+   // Build and store pipeline
+   VulkanGraphicsPipeline pipelineObj = builder.Build();
+   m_gizmoGraphicsPipeline = std::make_unique<VulkanGraphicsPipeline>(std::move(pipelineObj));
+}
+
 void VulkanRenderer::CreateCommandBuffers() {
    m_commandBuffers = std::make_unique<VulkanCommandBuffers>(
       m_device, m_device.GetCommandPool(), VK_COMMAND_BUFFER_LEVEL_PRIMARY, MAX_FRAMES_IN_FLIGHT);
@@ -534,6 +608,42 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
          const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
          vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
       }
+   }
+   // GIZMO PASS
+   {
+      std::vector<VkClearValue> clearValues(1);
+      clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+      m_commandBuffers->BindPipeline(m_gizmoGraphicsPipeline->GetPipeline(),
+                                     VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
+      vkCmdBindDescriptorSets(m_commandBuffers->Get(m_currentFrame),
+                              VK_PIPELINE_BIND_POINT_GRAPHICS, m_gizmoPipelineLayout->Get(), 0, 1,
+                              &m_gizmoDescriptorSets[m_currentFrame], 0, nullptr);
+      m_commandBuffers->SetViewport(viewport, m_currentFrame);
+      m_commandBuffers->SetScissor(scissor, m_currentFrame);
+      if (m_activeScene) {
+         m_activeScene->ForEachNode([&](const Node* node) {
+            // Skip inactive nodes
+            if (!node->IsActive())
+               return;
+            if (const auto* lightComp = node->GetComponent<LightComponent>()) {
+               // If has position, load it in
+               if (const Transform* worldTransform = node->GetWorldTransform()) {
+                  // Set up transformation matrix for rendering
+                  vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame),
+                                     m_gizmoPipelineLayout->Get(), VK_SHADER_STAGE_VERTEX_BIT, 0,
+                                     sizeof(glm::mat4), &worldTransform->GetTransformMatrix());
+               }
+               vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame),
+                                  m_gizmoPipelineLayout->Get(), VK_SHADER_STAGE_FRAGMENT_BIT,
+                                  sizeof(glm::mat4), sizeof(glm::vec3), &lightComp->GetColor());
+               if (const IMesh* mesh = m_resourceManager->GetMesh(m_lineCube)) {
+                  const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
+                  vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
+               }
+            }
+         });
+      }
+
       // TODO: Clean up imgui stuff
       ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers->Get(m_currentFrame));
       m_commandBuffers->EndRenderPass(m_currentFrame);
@@ -656,7 +766,8 @@ void VulkanRenderer::CreateDescriptorPool() {
    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
    poolInfo.pPoolSizes = poolSizes.data();
-   poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2; // Geometry + Lighting sets
+   poolInfo.maxSets =
+      static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 3; // Geometry + Lighting + Gizmo sets
    if (vkCreateDescriptorPool(m_device.Get(), &poolInfo, nullptr, &m_descriptorPool) !=
        VK_SUCCESS) {
       throw std::runtime_error("Failed to create descriptor pool.");
@@ -674,6 +785,18 @@ void VulkanRenderer::CreateDescriptorSets() {
    geometryAllocInfo.pSetLayouts = geometryLayouts.data();
    if (vkAllocateDescriptorSets(m_device.Get(), &geometryAllocInfo,
                                 m_geometryDescriptorSets.data()) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to allocate geometry descriptor sets.");
+   }
+   // Allocate gizmo descriptor sets
+   std::vector<VkDescriptorSetLayout> gizmoLayouts(MAX_FRAMES_IN_FLIGHT,
+                                                   m_gizmoDescriptorSetLayout);
+   VkDescriptorSetAllocateInfo gizmoAllocInfo{};
+   gizmoAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+   gizmoAllocInfo.descriptorPool = m_descriptorPool;
+   gizmoAllocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+   gizmoAllocInfo.pSetLayouts = gizmoLayouts.data();
+   if (vkAllocateDescriptorSets(m_device.Get(), &gizmoAllocInfo, m_gizmoDescriptorSets.data()) !=
+       VK_SUCCESS) {
       throw std::runtime_error("Failed to allocate geometry descriptor sets.");
    }
    // Allocate lighting descriptor sets
@@ -697,6 +820,22 @@ void VulkanRenderer::CreateDescriptorSets() {
       VkWriteDescriptorSet cameraDescriptorWrite{};
       cameraDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       cameraDescriptorWrite.dstSet = m_geometryDescriptorSets[i];
+      cameraDescriptorWrite.dstBinding = 0;
+      cameraDescriptorWrite.dstArrayElement = 0;
+      cameraDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+      cameraDescriptorWrite.descriptorCount = 1;
+      cameraDescriptorWrite.pBufferInfo = &cameraBufferInfo;
+      vkUpdateDescriptorSets(m_device.Get(), 1, &cameraDescriptorWrite, 0, nullptr);
+   }
+   // Update gizmo descriptor sets
+   for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+      VkDescriptorBufferInfo cameraBufferInfo{};
+      cameraBufferInfo.buffer = m_cameraUniformBuffers[i]->Get();
+      cameraBufferInfo.offset = 0;
+      cameraBufferInfo.range = sizeof(CameraData);
+      VkWriteDescriptorSet cameraDescriptorWrite{};
+      cameraDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      cameraDescriptorWrite.dstSet = m_gizmoDescriptorSets[i];
       cameraDescriptorWrite.dstBinding = 0;
       cameraDescriptorWrite.dstArrayElement = 0;
       cameraDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
