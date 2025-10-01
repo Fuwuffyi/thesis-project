@@ -38,7 +38,7 @@ void CreateFullScene(Scene& scene, ResourceManager& resourceManager, const Graph
    // Setup particle node
    Node* particlesNode = scene.CreateNode("particles");
    particlesNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 2.0f, 0.0f));
-   particlesNode->AddComponent<ParticleSystemComponent>(1000000);
+   particlesNode->AddComponent<ParticleSystemComponent>();
 
    // Setup light node
    Node* lightsNode = scene.CreateNode("lights");

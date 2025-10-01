@@ -4,6 +4,7 @@
 
 #include <glm/glm.hpp>
 
+#include <atomic>
 #include <random>
 #include <vector>
 
@@ -19,8 +20,8 @@ struct Particle final {
 };
 
 struct ParticleInstanceData final {
-   glm::mat4 transform;
-   glm::vec4 color;
+   glm::mat4 transform{1.0f};
+   glm::vec4 color{1.0f};
 };
 
 class ParticleSystemComponent final : public Component {
@@ -29,8 +30,8 @@ class ParticleSystemComponent final : public Component {
       glm::vec3 emissionDirection{0.0f, 1.0f, 0.0f};
       float emissionCone{0.5f};
       float emissionRate{50.0f};
-      glm::vec3 initialVelocityMin{-1.0f, 0.0f, -1.0f};
-      glm::vec3 initialVelocityMax{1.0f, 5.0f, 1.0f};
+      float initialSpeedMin{0.0f};
+      float initialSpeedMax{5.0f};
       float lifeMin{2.0f};
       float lifeMax{5.0f};
       float sizeMin{0.1f};
@@ -53,13 +54,12 @@ class ParticleSystemComponent final : public Component {
       float endSizeMultiplier{0.5f};
    };
 
-   explicit ParticleSystemComponent(const uint32_t maxParticles = 100000) noexcept;
+   explicit ParticleSystemComponent(const uint32_t maxParticles = 25000) noexcept;
    ~ParticleSystemComponent() override = default;
 
    void DrawInspector(Node* const node) noexcept override;
    void Update(float deltaTime, const glm::vec3& worldPosition) noexcept;
 
-   // Getters/Setters
    [[nodiscard]] const std::vector<ParticleInstanceData>& GetInstanceData() const noexcept {
       return m_instanceData;
    }
@@ -69,11 +69,17 @@ class ParticleSystemComponent final : public Component {
       m_maxParticles = count;
       ReallocateParticles();
    }
-   [[nodiscard]] uint32_t GetActiveParticleCount() const noexcept { return m_activeParticles; }
+   [[nodiscard]] uint32_t GetActiveParticleCount() const noexcept {
+      return m_activeParticles.load(std::memory_order_acquire);
+   }
    [[nodiscard]] uint32_t GetMaxParticles() const noexcept { return m_maxParticles; }
 
-   void SetEmissionEnabled(const bool enabled) noexcept { m_emissionEnabled = enabled; }
-   [[nodiscard]] bool IsEmissionEnabled() const noexcept { return m_emissionEnabled; }
+   void SetEmissionEnabled(const bool enabled) noexcept {
+      m_emissionEnabled.store(enabled, std::memory_order_release);
+   }
+   [[nodiscard]] bool IsEmissionEnabled() const noexcept {
+      return m_emissionEnabled.load(std::memory_order_acquire);
+   }
 
    [[nodiscard]] EmissionSettings& GetEmissionSettings() noexcept { return m_emissionSettings; }
    [[nodiscard]] PhysicsSettings& GetPhysicsSettings() noexcept { return m_physicsSettings; }
@@ -81,11 +87,10 @@ class ParticleSystemComponent final : public Component {
 
   private:
    void EmitParticles(const float deltaTime, const glm::vec3& worldPosition) noexcept;
-   void UpdateParticlePhysics(const float deltaTime) noexcept;
-   void UpdateParticleLifetime(const float deltaTime) noexcept;
-   void RemoveDeadParticles() noexcept;
+   void UpdateParticlesCombined(const float deltaTime) noexcept;
+   void UpdateInstanceData() noexcept;
+   void RemoveDeadParticlesSwap() noexcept;
 
-   // Utility functions
    [[nodiscard]] glm::vec3 GenerateRandomVelocity() const noexcept;
    [[nodiscard]] glm::vec4 InterpolateColor(const float t) const noexcept;
    [[nodiscard]] float InterpolateSize(const float t) const noexcept;
@@ -94,22 +99,20 @@ class ParticleSystemComponent final : public Component {
    // Particle data
    std::vector<Particle> m_particles;
    uint32_t m_maxParticles;
-   uint32_t m_activeParticles{0};
-
+   std::atomic<uint32_t> m_activeParticles{0};
    // Emission tracking
    float m_emissionAccumulator{0};
-   bool m_emissionEnabled{true};
-
+   std::atomic<bool> m_emissionEnabled{true};
    // Settings
    EmissionSettings m_emissionSettings;
    PhysicsSettings m_physicsSettings;
    RenderSettings m_renderSettings;
-
    // Instance data for rendering
    std::vector<ParticleInstanceData> m_instanceData;
-
    // Random number generation
    mutable std::random_device m_rd;
-   mutable std::mt19937 m_gen{m_rd()};
+   mutable std::mt19937_64 m_gen{m_rd()};
    mutable std::uniform_real_distribution<float> m_dist{0.0f, 1.0f};
+   // stable base seed used for thread-local generators
+   uint64_t m_baseSeed{0};
 };
