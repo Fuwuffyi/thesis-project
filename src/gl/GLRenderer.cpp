@@ -4,6 +4,7 @@
 #include "core/Window.hpp"
 #include "core/scene/Node.hpp"
 #include "core/scene/Scene.hpp"
+#include "core/scene/components/ParticleSystemComponent.hpp"
 #include "core/scene/components/RendererComponent.hpp"
 #include "core/scene/components/LightComponent.hpp"
 #include "core/editor/MaterialEditor.hpp"
@@ -91,6 +92,7 @@ void GLRenderer::FramebufferCallback(const int32_t width, const int32_t height) 
    CreateLightingFBO();
    CreateLightingPass();
    CreateGizmoPass();
+   CreateParticlePass();
 }
 
 void GLRenderer::CreateUtilityMeshes() {
@@ -150,6 +152,8 @@ void GLRenderer::LoadShaders() {
                                        "resources/shaders/gl/lighting_pass.frag");
    m_gizmoPassShader =
       createShader("resources/shaders/gl/gizmo_pass.vert", "resources/shaders/gl/gizmo_pass.frag");
+   m_particlePassShader = createShader("resources/shaders/gl/particle_pass.vert",
+                                       "resources/shaders/gl/particle_pass.frag");
 }
 
 void GLRenderer::CreateGeometryFBO() {
@@ -261,6 +265,29 @@ void GLRenderer::CreateGizmoPass() {
    m_gizmoPass = std::make_unique<GLRenderPass>(gizmoPassInfo);
 }
 
+void GLRenderer::CreateParticlePass() {
+   const GLRenderPass::CreateInfo particlePassInfo{
+      .framebuffer = m_lightingFbo.get(),
+      .colorAttachments =
+         {
+            {GLRenderPass::LoadOp::Load, GLRenderPass::StoreOp::Store, {0.0f, 0.0f, 0.0f, 1.0f}},
+         },
+      .depthStencilAttachment = {.depthLoadOp = GLRenderPass::LoadOp::Load,
+                                 .depthStoreOp = GLRenderPass::StoreOp::Store,
+                                 .stencilLoadOp = GLRenderPass::LoadOp::DontCare,
+                                 .stencilStoreOp = GLRenderPass::StoreOp::DontCare,
+                                 .depthClearValue = 1.0f,
+                                 .stencilClearValue = 0},
+      .renderState = {.depthTest = GLRenderPass::DepthTest::Less,
+                      .depthWrite = false,
+                      .cullMode = GLRenderPass::CullMode::None,
+                      .frontFaceCCW = true,
+                      .blendMode = GLRenderPass::BlendMode::Alpha,
+                      .primitiveType = GLRenderPass::PrimitiveType::Triangles},
+      .shader = m_particlePassShader.get()};
+   m_particlePass = std::make_unique<GLRenderPass>(particlePassInfo);
+}
+
 void GLRenderer::CreateUBOs() {
    // Create camera UBO
    m_cameraUbo = std::make_unique<GLBuffer>(GLBuffer::Type::Uniform, GLBuffer::Usage::DynamicDraw);
@@ -272,6 +299,10 @@ void GLRenderer::CreateUBOs() {
    const LightsData lightData{};
    m_lightsUbo->UploadData(&lightData, sizeof(LightsData));
    m_lightsUbo->BindBase(LIGHTS_UBO_BINDING);
+   // Create particle instance buffer
+   m_particleInstanceCapacity = 100000;
+   m_particleInstanceVBO =
+      std::make_unique<GLBuffer>(GLBuffer::Type::Array, GLBuffer::Usage::DynamicDraw);
 }
 
 void GLRenderer::SetupImgui() {
@@ -407,6 +438,58 @@ void GLRenderer::RenderGizmos() const noexcept {
    });
 }
 
+void GLRenderer::RenderParticles() noexcept {
+   if (!m_activeScene) [[unlikely]]
+      return;
+   const auto* quadMesh = m_resourceManager->GetMesh(m_fullscreenQuad);
+   if (!quadMesh) [[unlikely]]
+      return;
+   const auto* glQuadMesh = dynamic_cast<const GLMesh*>(quadMesh);
+   if (!glQuadMesh) [[unlikely]]
+      return;
+   m_activeScene->ForEachNode([&](const Node* node) {
+      if (!node->IsActive()) [[unlikely]]
+         return;
+      const auto* particles = node->GetComponent<ParticleSystemComponent>();
+      if (!particles) [[unlikely]]
+         return;
+      const auto& instanceData = particles->GetInstanceData();
+      const uint32_t activeCount = particles->GetActiveParticleCount();
+      if (activeCount == 0) [[unlikely]]
+         return;
+      // Ensure instance buffer is large enough
+      const size_t requiredSize = activeCount * sizeof(ParticleInstanceData);
+      if (activeCount > m_particleInstanceCapacity) {
+         m_particleInstanceCapacity = activeCount * 2;
+      }
+      // Upload instance data
+      m_particleInstanceVBO->UploadData(std::span(instanceData.data(), activeCount));
+      // Setup instanced vertex attributes
+      const uint32_t vao =
+         reinterpret_cast<uintptr_t>(glQuadMesh->GetNativeHandle());
+      glBindVertexArray(vao);
+      m_particleInstanceVBO->Bind();
+      for (uint32_t i = 0; i < 4; ++i) {
+         glEnableVertexAttribArray(3 + i);
+         glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(ParticleInstanceData),
+                               reinterpret_cast<void*>(i * sizeof(glm::vec4)));
+         glVertexAttribDivisor(3 + i, 1);
+      }
+      glEnableVertexAttribArray(7);
+      glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(ParticleInstanceData),
+                            reinterpret_cast<void*>(sizeof(glm::mat4)));
+      glVertexAttribDivisor(7, 1);
+      glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(glQuadMesh->GetIndexCount()),
+                              GL_UNSIGNED_SHORT, nullptr, static_cast<GLsizei>(activeCount));
+      // Cleanup divisors
+      for (uint32_t i = 0; i < 4; ++i) {
+         glVertexAttribDivisor(3 + i, 0);
+      }
+      glVertexAttribDivisor(7, 0);
+      glBindVertexArray(0);
+   });
+}
+
 void GLRenderer::RenderFrame() {
    // Calculate delta time
    const double currentTime = glfwGetTime();
@@ -436,6 +519,10 @@ void GLRenderer::RenderFrame() {
    m_gizmoPass->Begin();
    RenderGizmos();
    m_gizmoPass->End();
+   // Particle pass
+   m_particlePass->Begin();
+   RenderParticles();
+   m_particlePass->End();
    // Blit final result to screen
    m_lightingFbo->BlitToScreen(m_window->GetWidth(), m_window->GetHeight(), GL_COLOR_BUFFER_BIT,
                                GL_NEAREST);

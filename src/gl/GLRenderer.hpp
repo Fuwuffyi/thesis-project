@@ -45,6 +45,7 @@ class GLRenderer : public IRenderer {
    void CreateLightingFBO();
    void CreateLightingPass();
    void CreateGizmoPass();
+   void CreateParticlePass();
 
    void UpdateCameraUBO() noexcept;
    void UpdateLightsUBO() noexcept;
@@ -52,6 +53,7 @@ class GLRenderer : public IRenderer {
    void RenderGeometry() const noexcept;
    void RenderLighting() const noexcept;
    void RenderGizmos() const noexcept;
+   void RenderParticles() noexcept;
 
    [[nodiscard]] ResourceManager* GetResourceManager() const noexcept override;
 
@@ -84,6 +86,11 @@ class GLRenderer : public IRenderer {
    // Gizmo pass things
    std::unique_ptr<GLRenderPass> m_gizmoPass;
    std::unique_ptr<GLShader> m_gizmoPassShader;
+   // Particle pass things
+   std::unique_ptr<GLRenderPass> m_particlePass;
+   std::unique_ptr<GLShader> m_particlePassShader;
+   std::unique_ptr<GLBuffer> m_particleInstanceVBO;
+   size_t m_particleInstanceCapacity{0};
    // ResourceManager
    std::unique_ptr<ResourceManager> m_resourceManager;
    std::unique_ptr<MaterialEditor> m_materialEditor;
