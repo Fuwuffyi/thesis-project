@@ -55,6 +55,11 @@ class VulkanRenderer : public IRenderer {
    void CreateGizmoDescriptorSetLayout();
    void CreateGizmoPipeline();
 
+   // Particle pass
+   void CreateParticleDescriptorSetLayout();
+   void CreateParticlePipeline();
+   void CreateParticleInstanceBuffers();
+
    // Descriptor set for pipeline
    void CreateDescriptorSets();
    void UpdateDescriptorSets();
@@ -62,6 +67,7 @@ class VulkanRenderer : public IRenderer {
    // Functions to set up command pool
    void CreateCommandBuffers();
    void RecordCommandBuffer(const uint32_t imageIndex);
+   void RenderParticlesInstanced(const uint32_t imageIndex);
    // Functions to set up synchronization for drawing
    void CreateSynchronizationObjects();
    // Functions to setup swapchain recreation
@@ -123,6 +129,14 @@ class VulkanRenderer : public IRenderer {
    std::unique_ptr<VulkanPipelineLayout> m_gizmoPipelineLayout;
    std::unique_ptr<VulkanGraphicsPipeline> m_gizmoGraphicsPipeline;
    std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> m_gizmoDescriptorSets;
+
+   // Particle pass
+   std::unique_ptr<VulkanPipelineLayout> m_particlePipelineLayout;
+   std::unique_ptr<VulkanGraphicsPipeline> m_particleGraphicsPipeline;
+   VkDescriptorSetLayout m_particleDescriptorSetLayout;
+   std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> m_particleDescriptorSets;
+   std::array<std::unique_ptr<VulkanBuffer>, MAX_FRAMES_IN_FLIGHT> m_particleInstanceBuffers;
+   size_t m_particleInstanceCapacity{0};
 
    std::unique_ptr<VulkanCommandBuffers> m_commandBuffers;
    std::vector<VkSemaphore> m_imageAvailableSemaphores;

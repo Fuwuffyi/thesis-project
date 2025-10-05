@@ -6,6 +6,7 @@
 #include "core/scene/Scene.hpp"
 #include "core/scene/Node.hpp"
 #include "core/scene/components/LightComponent.hpp"
+#include "core/scene/components/ParticleSystemComponent.hpp"
 #include "core/scene/components/RendererComponent.hpp"
 
 #include "core/editor/PerformanceGUI.hpp"
@@ -76,6 +77,10 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
 
    CreateGizmoDescriptorSetLayout();
    CreateGizmoPipeline();
+
+   CreateParticleDescriptorSetLayout();
+   CreateParticlePipeline();
+   CreateParticleInstanceBuffers();
 
    CreateCommandBuffers();
 
@@ -441,6 +446,99 @@ void VulkanRenderer::CreateGizmoPipeline() {
    VulkanGraphicsPipeline pipelineObj = builder.Build();
    m_gizmoGraphicsPipeline = std::make_unique<VulkanGraphicsPipeline>(std::move(pipelineObj));
 }
+void VulkanRenderer::CreateParticleDescriptorSetLayout() {
+   VkDescriptorSetLayoutBinding cameraUboBinding{};
+   cameraUboBinding.binding = 0;
+   cameraUboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+   cameraUboBinding.descriptorCount = 1;
+   cameraUboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+   cameraUboBinding.pImmutableSamplers = nullptr;
+   const std::array<VkDescriptorSetLayoutBinding, 1> bindings = {cameraUboBinding};
+   VkDescriptorSetLayoutCreateInfo layoutInfo{};
+   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+   layoutInfo.pBindings = bindings.data();
+   if (vkCreateDescriptorSetLayout(m_device.Get(), &layoutInfo, nullptr,
+                                   &m_particleDescriptorSetLayout) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to create particle descriptor set layout.");
+   }
+}
+
+void VulkanRenderer::CreateParticlePipeline() {
+   // Load shaders
+   const VulkanShaderModule vertShader(m_device,
+                                       std::string("resources/shaders/vk/particle_pass.vert.spv"));
+   const VulkanShaderModule fragShader(m_device,
+                                       std::string("resources/shaders/vk/particle_pass.frag.spv"));
+   m_particlePipelineLayout = std::make_unique<VulkanPipelineLayout>(
+      m_device, std::vector<VkDescriptorSetLayout>{m_particleDescriptorSetLayout});
+   // Build pipeline
+   VulkanGraphicsPipelineBuilder builder(m_device);
+   builder.SetVertexShader(vertShader.Get())
+      .SetFragmentShader(fragShader.Get())
+      // Vertex attributes (per-vertex)
+      .AddVertexBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+      .AddVertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position))
+      .AddVertexAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal))
+      .AddVertexAttribute(2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv))
+      // Instance attributes
+      .AddVertexBinding(1, sizeof(ParticleInstanceData), VK_VERTEX_INPUT_RATE_INSTANCE)
+      // Mat4 particle transform
+      .AddVertexAttribute(3, 1, VK_FORMAT_R32G32B32A32_SFLOAT, 0)
+      .AddVertexAttribute(4, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(glm::vec4))
+      .AddVertexAttribute(5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, 2 * sizeof(glm::vec4))
+      .AddVertexAttribute(6, 1, VK_FORMAT_R32G32B32A32_SFLOAT, 3 * sizeof(glm::vec4))
+      // Color
+      .AddVertexAttribute(7, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(glm::mat4))
+      .SetTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+      .SetDynamicViewportAndScissor()
+      .SetCullMode(VK_CULL_MODE_NONE)
+      .SetFrontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
+      .EnableDepthTest(VK_COMPARE_OP_LESS)
+      .AddScissor(VkRect2D{})
+      .AddViewport(VkViewport{})
+      .SetPipelineLayout(m_particlePipelineLayout->Get())
+      .SetRenderPass(m_lightingRenderPass->Get());
+   VulkanGraphicsPipelineBuilder::RasterizationState raster{};
+   raster.cullMode = VK_CULL_MODE_NONE;
+   raster.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+   builder.SetRasterizationState(raster);
+   VulkanGraphicsPipelineBuilder::MultisampleState ms{};
+   ms.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+   builder.SetMultisampleState(ms);
+   VulkanGraphicsPipelineBuilder::DepthStencilState ds{};
+   ds.depthTestEnable = VK_TRUE;
+   ds.depthWriteEnable = VK_FALSE;
+   ds.depthCompareOp = VK_COMPARE_OP_LESS;
+   builder.SetDepthStencilState(ds);
+   // Configure alpha blending
+   VulkanGraphicsPipelineBuilder::ColorBlendAttachmentState cb{};
+   cb.blendEnable = VK_TRUE;
+   cb.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+   cb.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+   cb.colorBlendOp = VK_BLEND_OP_ADD;
+   cb.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+   cb.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+   cb.alphaBlendOp = VK_BLEND_OP_ADD;
+   cb.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                       VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+   VulkanGraphicsPipelineBuilder::ColorBlendState cbState{};
+   cbState.attachments.push_back(cb);
+   builder.SetColorBlendState(cbState);
+   // Build pipeline
+   VulkanGraphicsPipeline pipelineObj = builder.Build();
+   m_particleGraphicsPipeline = std::make_unique<VulkanGraphicsPipeline>(std::move(pipelineObj));
+}
+
+void VulkanRenderer::CreateParticleInstanceBuffers() {
+   m_particleInstanceCapacity = 100000;
+   const VkDeviceSize bufferSize = m_particleInstanceCapacity * sizeof(ParticleInstanceData);
+   for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+      m_particleInstanceBuffers[i] = std::make_unique<VulkanBuffer>(
+         m_device, bufferSize, VulkanBuffer::Usage::Vertex, VulkanBuffer::MemoryType::CPUToGPU);
+      m_particleInstanceBuffers[i]->Map();
+   }
+}
 
 void VulkanRenderer::CreateCommandBuffers() {
    m_commandBuffers = std::make_unique<VulkanCommandBuffers>(
@@ -643,13 +741,79 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
             }
          });
       }
-
-      // TODO: Clean up imgui stuff
-      ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers->Get(m_currentFrame));
-      m_commandBuffers->EndRenderPass(m_currentFrame);
    }
+   // PARTICLE PASS
+   {
+      // Check particle buffer size
+      if (m_activeScene) {
+         uint32_t maxParticles = 0;
+         m_activeScene->ForEachNode([&](const Node* node) {
+            if (auto* ps = node->GetComponent<ParticleSystemComponent>()) {
+               maxParticles = std::max(maxParticles, ps->GetActiveParticleCount());
+            }
+         });
+         if (maxParticles > m_particleInstanceCapacity) {
+            vkDeviceWaitIdle(m_device.Get()); // Wait before reallocation
+            m_particleInstanceCapacity = maxParticles * 2;
+            // Reallocate all buffers
+            for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+               const VkDeviceSize newSize =
+                  m_particleInstanceCapacity * sizeof(ParticleInstanceData);
+               m_particleInstanceBuffers[i] =
+                  std::make_unique<VulkanBuffer>(m_device, newSize, VulkanBuffer::Usage::Vertex,
+                                                 VulkanBuffer::MemoryType::CPUToGPU);
+               m_particleInstanceBuffers[i]->Map();
+            }
+         }
+      }
+      if (m_activeScene) {
+         m_commandBuffers->BindPipeline(m_particleGraphicsPipeline->GetPipeline(),
+                                        VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
+         vkCmdBindDescriptorSets(m_commandBuffers->Get(m_currentFrame),
+                                 VK_PIPELINE_BIND_POINT_GRAPHICS, m_particlePipelineLayout->Get(),
+                                 0, 1, &m_particleDescriptorSets[m_currentFrame], 0, nullptr);
+         m_commandBuffers->SetViewport(viewport, m_currentFrame);
+         m_commandBuffers->SetScissor(scissor, m_currentFrame);
+         RenderParticlesInstanced(imageIndex);
+      }
+   }
+   // TODO: Clean up imgui stuff
+   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers->Get(m_currentFrame));
+   m_commandBuffers->EndRenderPass(m_currentFrame);
 
    m_commandBuffers->End(m_currentFrame);
+}
+
+void VulkanRenderer::RenderParticlesInstanced(const uint32_t imageIndex) {
+   if (!m_activeScene)
+      return;
+   const IMesh* mesh = m_resourceManager->GetMesh(m_fullscreenQuad);
+   if (!mesh)
+      return;
+   const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
+   m_activeScene->ForEachNode([&](const Node* node) {
+      if (!node->IsActive())
+         return;
+      const auto* particles = node->GetComponent<ParticleSystemComponent>();
+      if (!particles)
+         return;
+      const uint32_t activeCount = particles->GetActiveParticleCount();
+      if (activeCount == 0)
+         return;
+      // Upload instance data
+      const auto& instanceData = particles->GetInstanceData();
+      const VkDeviceSize dataSize = activeCount * sizeof(ParticleInstanceData);
+      m_particleInstanceBuffers[m_currentFrame]->Update(instanceData.data(), dataSize);
+      // Bind and draw
+      const VkBuffer vertexBuffers[] = {vkMesh->GetVertexBuffer(),
+                                        m_particleInstanceBuffers[m_currentFrame]->Get()};
+      const VkDeviceSize offsets[] = {0, 0};
+      vkCmdBindVertexBuffers(m_commandBuffers->Get(m_currentFrame), 0, 2, vertexBuffers, offsets);
+      vkCmdBindIndexBuffer(m_commandBuffers->Get(m_currentFrame), vkMesh->GetIndexBuffer(), 0,
+                           vkMesh->GetIndexType());
+      vkCmdDrawIndexed(m_commandBuffers->Get(m_currentFrame),
+                       static_cast<uint32_t>(vkMesh->GetIndexCount()), activeCount, 0, 0, 0);
+   });
 }
 
 void VulkanRenderer::CreateSynchronizationObjects() {
@@ -758,7 +922,7 @@ void VulkanRenderer::CreateDescriptorPool() {
    std::array<VkDescriptorPoolSize, 2> poolSizes{};
    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
    poolSizes[0].descriptorCount =
-      static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2; // Camera/Lighting UBO
+      static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 3; // Camera/Lighting/Particle UBO
    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
    poolSizes[1].descriptorCount =
       static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 3; // G-Buffer textures
@@ -766,8 +930,8 @@ void VulkanRenderer::CreateDescriptorPool() {
    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
    poolInfo.pPoolSizes = poolSizes.data();
-   poolInfo.maxSets =
-      static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 3; // Geometry + Lighting + Gizmo sets
+   poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) *
+                      4; // Geometry + Lighting + Gizmo + Particle sets
    if (vkCreateDescriptorPool(m_device.Get(), &poolInfo, nullptr, &m_descriptorPool) !=
        VK_SUCCESS) {
       throw std::runtime_error("Failed to create descriptor pool.");
@@ -811,6 +975,19 @@ void VulkanRenderer::CreateDescriptorSets() {
                                 m_lightingDescriptorSets.data()) != VK_SUCCESS) {
       throw std::runtime_error("Failed to allocate lighting descriptor sets.");
    }
+   // Allocate particle descriptor sets
+   std::vector<VkDescriptorSetLayout> particleLayouts(MAX_FRAMES_IN_FLIGHT,
+                                                      m_particleDescriptorSetLayout);
+   VkDescriptorSetAllocateInfo particleAllocInfo{};
+   particleAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+   particleAllocInfo.descriptorPool = m_descriptorPool;
+   particleAllocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+   particleAllocInfo.pSetLayouts = particleLayouts.data();
+
+   if (vkAllocateDescriptorSets(m_device.Get(), &particleAllocInfo,
+                                m_particleDescriptorSets.data()) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to allocate particle descriptor sets.");
+   }
    // Update geometry descriptor sets
    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
       VkDescriptorBufferInfo cameraBufferInfo{};
@@ -836,6 +1013,22 @@ void VulkanRenderer::CreateDescriptorSets() {
       VkWriteDescriptorSet cameraDescriptorWrite{};
       cameraDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       cameraDescriptorWrite.dstSet = m_gizmoDescriptorSets[i];
+      cameraDescriptorWrite.dstBinding = 0;
+      cameraDescriptorWrite.dstArrayElement = 0;
+      cameraDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+      cameraDescriptorWrite.descriptorCount = 1;
+      cameraDescriptorWrite.pBufferInfo = &cameraBufferInfo;
+      vkUpdateDescriptorSets(m_device.Get(), 1, &cameraDescriptorWrite, 0, nullptr);
+   }
+   // Update particle descriptor sets
+   for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+      VkDescriptorBufferInfo cameraBufferInfo{};
+      cameraBufferInfo.buffer = m_cameraUniformBuffers[i]->Get();
+      cameraBufferInfo.offset = 0;
+      cameraBufferInfo.range = sizeof(CameraData);
+      VkWriteDescriptorSet cameraDescriptorWrite{};
+      cameraDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      cameraDescriptorWrite.dstSet = m_particleDescriptorSets[i];
       cameraDescriptorWrite.dstBinding = 0;
       cameraDescriptorWrite.dstArrayElement = 0;
       cameraDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;

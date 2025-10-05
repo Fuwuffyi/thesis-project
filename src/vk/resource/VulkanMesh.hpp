@@ -28,6 +28,10 @@ class VulkanMesh : public IMesh {
    size_t GetVertexCount() const;
    void* GetNativeHandle() const override;
 
+   [[nodiscard]] VkBuffer GetVertexBuffer() const noexcept { return m_vertexBuffer.Get(); }
+   [[nodiscard]] VkBuffer GetIndexBuffer() const noexcept { return m_indexBuffer.Get(); }
+   [[nodiscard]] VkIndexType GetIndexType() const noexcept { return m_indexType; }
+
    void Draw(const VkCommandBuffer& commandBuffer) const;
 
   private:
