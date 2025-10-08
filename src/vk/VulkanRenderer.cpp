@@ -342,7 +342,7 @@ void VulkanRenderer::CreateLightingFBO() {
       VkFramebufferCreateInfo framebufferInfo{};
       framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
       framebufferInfo.renderPass = m_lightingRenderPass->Get();
-      framebufferInfo.attachmentCount = 2; // Color + Depth
+      framebufferInfo.attachmentCount = 2;
       framebufferInfo.pAttachments = attachments;
       framebufferInfo.width = m_swapchain.GetExtent().width;
       framebufferInfo.height = m_swapchain.GetExtent().height;
@@ -570,7 +570,6 @@ void VulkanRenderer::CreateCommandBuffers() {
 void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    // Setup record
    m_commandBuffers->Begin(0, m_currentFrame);
-
    // Calculate dynamic viewport and scissor
    VkViewport viewport{};
    viewport.x = 0.0f;
@@ -589,8 +588,8 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    // GEOMETRY PASS
    {
       std::vector<VkClearValue> clearValues(3);
-      clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}}; // albedo
-      clearValues[1].color = {{0.5f, 0.5f, 1.0f, 0.0f}}; // normal
+      clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+      clearValues[1].color = {{0.5f, 0.5f, 1.0f, 0.0f}};
       clearValues[2].depthStencil = {1.0f, 0};
       m_commandBuffers->BeginRenderPass(*m_geometryRenderPass,
                                         m_geometryFramebuffers[m_currentFrame],
@@ -730,8 +729,6 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    }
    // GIZMO PASS
    {
-      std::vector<VkClearValue> clearValues(1);
-      clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
       m_commandBuffers->BindPipeline(m_gizmoGraphicsPipeline->GetPipeline(),
                                      VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
       vkCmdBindDescriptorSets(m_commandBuffers->Get(m_currentFrame),
@@ -798,10 +795,9 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
          RenderParticlesInstanced(imageIndex);
       }
    }
-   // TODO: Clean up imgui stuff
+   // Render ImGUI
    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers->Get(m_currentFrame));
    m_commandBuffers->EndRenderPass(m_currentFrame);
-
    m_commandBuffers->End(m_currentFrame);
 }
 
@@ -838,7 +834,7 @@ void VulkanRenderer::RenderParticlesInstanced(const uint32_t imageIndex) {
 }
 
 void VulkanRenderer::CreateSynchronizationObjects() {
-   uint32_t imageCount = m_swapchain.GetImages().size();
+   const uint32_t imageCount = m_swapchain.GetImages().size();
    m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
    m_renderFinishedSemaphores.resize(imageCount);
    m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
@@ -847,14 +843,20 @@ void VulkanRenderer::CreateSynchronizationObjects() {
    VkFenceCreateInfo fenceInfo{};
    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-   // Create per-frame image-available semaphores & fences
+   // Create per-frame resources
    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-      vkCreateSemaphore(m_device.Get(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]);
-      vkCreateFence(m_device.Get(), &fenceInfo, nullptr, &m_inFlightFences[i]);
+      if (vkCreateSemaphore(m_device.Get(), &semaphoreInfo, nullptr,
+                            &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
+          vkCreateFence(m_device.Get(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS) {
+         throw std::runtime_error("Failed to create per-frame synchronization objects");
+      }
    }
-   // Create per-image render-finished semaphores
+   // Create per-image resources
    for (uint32_t i = 0; i < imageCount; ++i) {
-      vkCreateSemaphore(m_device.Get(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]);
+      if (vkCreateSemaphore(m_device.Get(), &semaphoreInfo, nullptr,
+                            &m_renderFinishedSemaphores[i]) != VK_SUCCESS) {
+         throw std::runtime_error("Failed to create per-image synchronization objects");
+      }
    }
 }
 
