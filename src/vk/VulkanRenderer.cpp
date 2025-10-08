@@ -294,38 +294,60 @@ void VulkanRenderer::CreateLightingPass() {
    colorAtt.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
    colorAtt.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
    desc.attachments.push_back(colorAtt);
+   AttachmentDescription depthAtt{};
+   depthAtt.format = VK_FORMAT_D32_SFLOAT; // TODO: check
+   depthAtt.samples = VK_SAMPLE_COUNT_1_BIT;
+   depthAtt.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+   depthAtt.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+   depthAtt.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+   depthAtt.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+   depthAtt.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+   depthAtt.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+   desc.attachments.push_back(depthAtt);
    SubpassDescription subpass{};
    subpass.bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
    VkAttachmentReference colorRef{};
    colorRef.attachment = 0;
    colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
    subpass.colorAttachments.push_back(colorRef);
+   VkAttachmentReference depthRef{};
+   depthRef.attachment = 1;
+   depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+   subpass.depthStencilAttachment = depthRef;
    desc.subpasses.push_back(subpass);
    VkSubpassDependency dep{};
    dep.srcSubpass = VK_SUBPASS_EXTERNAL;
    dep.dstSubpass = 0;
-   dep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+   dep.srcStageMask =
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
    dep.srcAccessMask = 0;
-   dep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-   dep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+   dep.dstStageMask =
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+   dep.dstAccessMask =
+      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
    desc.dependencies.push_back(dep);
    m_lightingRenderPass = std::make_unique<VulkanRenderPass>(m_device, desc);
 }
 
 void VulkanRenderer::CreateLightingFBO() {
    const auto& imageViews = m_swapchain.GetImageViews();
-   // Create framebuffers for ALL swapchain images, not just MAX_FRAMES_IN_FLIGHT
    m_lightingFramebuffers.resize(imageViews.size());
    for (uint32_t i = 0; i < imageViews.size(); ++i) {
-      VkImageView attachments[1] = {imageViews[i]};
+      const uint32_t depthIndex = i % MAX_FRAMES_IN_FLIGHT;
+      ITexture* depthTex = m_resourceManager->GetTexture(m_gDepthTexture[depthIndex]);
+      if (!depthTex)
+         throw std::runtime_error("Failed to get depth texture for lighting framebuffer");
+      const VulkanTexture* vkDepth = reinterpret_cast<VulkanTexture*>(depthTex);
+      const VkImageView attachments[2] = {imageViews[i], vkDepth->GetImageView()};
       VkFramebufferCreateInfo framebufferInfo{};
       framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
       framebufferInfo.renderPass = m_lightingRenderPass->Get();
-      framebufferInfo.attachmentCount = 1;
+      framebufferInfo.attachmentCount = 2; // Color + Depth
       framebufferInfo.pAttachments = attachments;
       framebufferInfo.width = m_swapchain.GetExtent().width;
       framebufferInfo.height = m_swapchain.GetExtent().height;
       framebufferInfo.layers = 1;
+
       if (vkCreateFramebuffer(m_device.Get(), &framebufferInfo, nullptr,
                               &m_lightingFramebuffers[i]) != VK_SUCCESS) {
          throw std::runtime_error("Failed to create lighting framebuffer.");
@@ -560,12 +582,10 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    VkRect2D scissor{};
    scissor.offset = {0, 0};
    scissor.extent = m_swapchain.GetExtent();
-
    if (m_activeScene) [[likely]] {
       m_activeScene->UpdateScene(m_deltaTime);
       m_activeScene->UpdateTransforms();
    }
-
    // GEOMETRY PASS
    {
       std::vector<VkClearValue> clearValues(3);
@@ -690,8 +710,9 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    }
    // LIGHTING PASS
    {
-      std::vector<VkClearValue> clearValues(1);
+      std::vector<VkClearValue> clearValues(2);
       clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+      clearValues[1].depthStencil = {1.0f, 0};
       m_commandBuffers->BeginRenderPass(*m_lightingRenderPass, m_lightingFramebuffers[imageIndex],
                                         m_swapchain.GetExtent(), clearValues, m_currentFrame);
       m_commandBuffers->BindPipeline(m_lightingGraphicsPipeline->GetPipeline(),
