@@ -355,8 +355,6 @@ void ResourceManager::SetupMaterialTemplates() {
       CreateTextureColor("default_albedo", ITexture::Format::RGBA8, glm::vec4(1.0f));
    const auto defNormal = CreateTextureColor("default_normal", ITexture::Format::RGB8,
                                              glm::vec4(0.5f, 0.5f, 1.0f, 0.0f));
-   const auto defDispl =
-      CreateTextureColor("default_displacement", ITexture::Format::R8, glm::vec4(0.0f));
    const auto defRough =
       CreateTextureColor("default_roughness", ITexture::Format::R8, glm::vec4(1.0f));
    const auto defMetal =
@@ -371,10 +369,9 @@ void ResourceManager::SetupMaterialTemplates() {
    // PBR Textures
    pbrTemplate->AddTexture("albedoTexture", 0, "albedoSampler", defAlbedo);
    pbrTemplate->AddTexture("normalTexture", 1, "normalSampler", defNormal);
-   pbrTemplate->AddTexture("displacementTexture", 2, "displacementSampler", defDispl);
-   pbrTemplate->AddTexture("roughnessTexture", 3, "roughnessSampler", defRough);
-   pbrTemplate->AddTexture("metallicTexture", 4, "metallicSampler", defMetal);
-   pbrTemplate->AddTexture("aoTexture", 5, "aoSampler", defAO);
+   pbrTemplate->AddTexture("roughnessTexture", 2, "roughnessSampler", defRough);
+   pbrTemplate->AddTexture("metallicTexture", 3, "metallicSampler", defMetal);
+   pbrTemplate->AddTexture("aoTexture", 4, "aoSampler", defAO);
    // Add the PBR material template
    pbrTemplate->Finalize();
    m_materialTemplates[std::string{pbrTemplate->GetName()}] = std::move(pbrTemplate);

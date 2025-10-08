@@ -23,10 +23,9 @@ layout(location = 1) out vec4 gNormal; // RG encoded normal + B roughness + A me
 
 layout(binding = 0) uniform sampler2D albedoSampler;
 layout(binding = 1) uniform sampler2D normalSampler;
-layout(binding = 2) uniform sampler2D displacementSampler;
-layout(binding = 3) uniform sampler2D roughnessSampler;
-layout(binding = 4) uniform sampler2D metallicSampler;
-layout(binding = 5) uniform sampler2D aoSampler;
+layout(binding = 2) uniform sampler2D roughnessSampler;
+layout(binding = 3) uniform sampler2D metallicSampler;
+layout(binding = 4) uniform sampler2D aoSampler;
 
 mat3 computeTBN(vec3 N, vec2 uv, vec3 pos) {
    vec3 dp1 = dFdx(pos);
@@ -53,16 +52,12 @@ void main() {
    // Compute view direction in world space and convert to tangent space
    vec3 viewDir = normalize(camera.viewPos - fragPos);
    vec3 viewDirTS = normalize(TBN * viewDir);
-   // Parallax offset using displacement map
-   float height = texture(displacementSampler, fragUV).r;
-   float parallaxScale = 0.05;
-   vec2 parallaxUV = fragUV + viewDirTS.xy * (height * parallaxScale);
    // Sample normal in tangent space
-   vec3 normalTS = texture(normalSampler, parallaxUV).rgb * 2.0 - 1.0;
+   vec3 normalTS = texture(normalSampler, fragUV).rgb * 2.0 - 1.0;
    vec3 normalWS = normalize(TBN * normalTS);
    // Write g-buffer
-   gAlbedo = vec4(texture(albedoSampler, parallaxUV).rgb * material.albedo, texture(aoSampler, parallaxUV).r * material.ao);
-   gNormal = vec4(encodeOctNormal(normalWS), texture(roughnessSampler, parallaxUV).r * material.roughness,
-         texture(metallicSampler, parallaxUV).r * material.metallic);
+   gAlbedo = vec4(texture(albedoSampler, fragUV).rgb * material.albedo, texture(aoSampler, fragUV).r * material.ao);
+   gNormal = vec4(encodeOctNormal(normalWS), texture(roughnessSampler, fragUV).r * material.roughness,
+         texture(metallicSampler, fragUV).r * material.metallic);
 }
 

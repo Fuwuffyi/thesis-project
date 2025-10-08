@@ -20,6 +20,12 @@ layout(set = 1, binding = 2) uniform MaterialData {
 layout(location = 0) out vec4 gAlbedo; // RGB color + A AO
 layout(location = 1) out vec4 gNormal; // RG encoded normal + B roughness + A metallic
 
+layout(binding = 0) uniform sampler2D albedoSampler;
+layout(binding = 1) uniform sampler2D normalSampler;
+layout(binding = 2) uniform sampler2D roughnessSampler;
+layout(binding = 3) uniform sampler2D metallicSampler;
+layout(binding = 4) uniform sampler2D aoSampler;
+
 mat3 computeTBN(vec3 N, vec2 uv, vec3 pos) {
    vec3 dp1 = dFdx(pos);
    vec3 dp2 = dFdy(pos);

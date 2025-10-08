@@ -259,8 +259,7 @@ void GLRenderer::CreateGizmoPass() {
                                  .stencilClearValue = 0},
       .renderState = {.depthTest = GLRenderPass::DepthTest::LessEqual,
                       .cullMode = GLRenderPass::CullMode::None,
-                      .primitiveType = GLRenderPass::PrimitiveType::Lines,
-                      .lineWidth = 3.0f},
+                      .primitiveType = GLRenderPass::PrimitiveType::Lines},
       .shader = m_gizmoPassShader.get()};
    m_gizmoPass = std::make_unique<GLRenderPass>(gizmoPassInfo);
 }

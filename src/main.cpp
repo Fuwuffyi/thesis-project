@@ -69,7 +69,7 @@ void CreateFullScene(Scene& scene, ResourceManager& resourceManager, const Graph
    LightComponent* lightSun = sunNode->AddComponent<LightComponent>();
    lightSun->SetType(LightComponent::LightType::Directional);
    lightSun->SetColor(glm::vec3(1.0f, 1.0f, 1.0f));
-   lightSun->SetIntensity(5.0f);
+   lightSun->SetIntensity(2.0f);
 }
 
 int main(int argc, char* argv[]) {

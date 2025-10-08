@@ -494,8 +494,6 @@ void VulkanRenderer::CreateGizmoPipeline() {
       .SetFragmentShader(fragShader.Get())
       .AddVertexBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
       .AddVertexAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position))
-      .AddVertexAttribute(1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal))
-      .AddVertexAttribute(2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv))
       .SetTopology(VK_PRIMITIVE_TOPOLOGY_LINE_LIST)
       .SetDynamicViewportAndScissor()
       .SetCullMode(VK_CULL_MODE_NONE)
@@ -506,7 +504,6 @@ void VulkanRenderer::CreateGizmoPipeline() {
       .SetPipelineLayout(m_gizmoPipelineLayout->Get())
       .SetRenderPass(m_lightingRenderPass->Get());
    VulkanGraphicsPipelineBuilder::RasterizationState raster{};
-   raster.lineWidth = 3.0f; // Add this
    raster.cullMode = VK_CULL_MODE_NONE;
    raster.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
    builder.SetRasterizationState(raster);
