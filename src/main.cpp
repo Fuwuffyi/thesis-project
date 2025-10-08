@@ -66,6 +66,8 @@ void CreateFullScene(Scene& scene, ResourceManager& resourceManager, const Graph
       light->SetInnerCone(glm::radians(5.0f + outer));
    }
    Node* sunNode = scene.CreateChildNode(lightsNode, "light_sun");
+   TransformComponent* sunTransform = lightsNode->GetComponent<TransformComponent>();
+   sunTransform->SetRotation(glm::vec3(-45.0f, 45.0f, 0.0f));
    LightComponent* lightSun = sunNode->AddComponent<LightComponent>();
    lightSun->SetType(LightComponent::LightType::Directional);
    lightSun->SetColor(glm::vec3(1.0f, 1.0f, 1.0f));
