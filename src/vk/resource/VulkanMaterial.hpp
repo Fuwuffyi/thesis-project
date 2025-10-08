@@ -18,7 +18,13 @@ class VulkanMaterial final : public MaterialInstance {
    void UpdateUBO() override;
    void* GetNativeHandle() const noexcept override;
 
+   void CreateDescriptorSet(const VkDescriptorPool pool, const VkDescriptorSetLayout layout);
+   VkDescriptorSet GetDescriptorSet() const noexcept { return m_descriptorSet; }
+   void UpdateDescriptorSet(const ResourceManager& resourceManager);
+
   private:
    const VulkanDevice* m_device;
    std::unique_ptr<VulkanBuffer> m_uniformBuffer;
+   VkDescriptorSet m_descriptorSet{VK_NULL_HANDLE};
+   bool m_descriptorsDirty{true};
 };

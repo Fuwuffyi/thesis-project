@@ -39,6 +39,11 @@ class VulkanRenderer : public IRenderer {
    void UpdateCameraUBO(const uint32_t currentImage);
    void UpdateLightsUBO(const uint32_t currentImage);
 
+   // Material setup
+   void CreateMaterialDescriptorSetLayout();
+   void CreateMaterialDescriptorPool();
+   void SetupMaterialDescriptorSets();
+
    // Geometry Pass
    void CreateGeometryDescriptorSetLayout();
    void CreateGeometryFBO();
@@ -123,6 +128,10 @@ class VulkanRenderer : public IRenderer {
    std::unique_ptr<VulkanPipelineLayout> m_lightingPipelineLayout;
    std::unique_ptr<VulkanGraphicsPipeline> m_lightingGraphicsPipeline;
    std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> m_lightingDescriptorSets;
+
+   // Material descriptor stuff
+   VkDescriptorSetLayout m_materialDescriptorSetLayout;
+   VkDescriptorPool m_materialDescriptorPool;
 
    // Gizmo pass
    VkDescriptorSetLayout m_gizmoDescriptorSetLayout;

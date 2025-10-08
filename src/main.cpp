@@ -65,6 +65,11 @@ void CreateFullScene(Scene& scene, ResourceManager& resourceManager, const Graph
       light->SetOuterCone(glm::radians(outer));
       light->SetInnerCone(glm::radians(5.0f + outer));
    }
+   Node* sunNode = scene.CreateChildNode(lightsNode, "light_sun");
+   LightComponent* lightSun = sunNode->AddComponent<LightComponent>();
+   lightSun->SetType(LightComponent::LightType::Directional);
+   lightSun->SetColor(glm::vec3(1.0f, 1.0f, 1.0f));
+   lightSun->SetIntensity(5.0f);
 }
 
 int main(int argc, char* argv[]) {

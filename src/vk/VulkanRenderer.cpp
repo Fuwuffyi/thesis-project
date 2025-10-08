@@ -64,6 +64,8 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
       std::make_unique<MaterialEditor>(m_resourceManager.get(), GraphicsAPI::Vulkan);
 
    CreateUBOs();
+   CreateMaterialDescriptorSetLayout();
+   CreateMaterialDescriptorPool();
 
    CreateGeometryDescriptorSetLayout();
    CreateGeometryPass();
@@ -97,6 +99,68 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
    m_window->SetResizeCallback([this](int32_t width, int32_t height) { RecreateSwapchain(); });
 }
 
+void VulkanRenderer::CreateMaterialDescriptorSetLayout() {
+   std::vector<VkDescriptorSetLayoutBinding> bindings;
+   VkDescriptorSetLayoutBinding uboBinding{};
+   uboBinding.binding = 0;
+   uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+   uboBinding.descriptorCount = 1;
+   uboBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+   uboBinding.pImmutableSamplers = nullptr;
+   bindings.push_back(uboBinding);
+   for (uint32_t i = 1; i <= 5; ++i) {
+      VkDescriptorSetLayoutBinding samplerBinding{};
+      samplerBinding.binding = i;
+      samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+      samplerBinding.descriptorCount = 1;
+      samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+      samplerBinding.pImmutableSamplers = nullptr;
+      bindings.push_back(samplerBinding);
+   }
+   VkDescriptorSetLayoutCreateInfo layoutInfo{};
+   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+   layoutInfo.pBindings = bindings.data();
+   if (vkCreateDescriptorSetLayout(m_device.Get(), &layoutInfo, nullptr,
+                                   &m_materialDescriptorSetLayout) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to create material descriptor set layout");
+   }
+}
+
+void VulkanRenderer::CreateMaterialDescriptorPool() {
+   constexpr uint32_t maxMaterials = 1000;
+   std::array<VkDescriptorPoolSize, 2> poolSizes{};
+   poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+   poolSizes[0].descriptorCount = maxMaterials;
+   poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+   poolSizes[1].descriptorCount = maxMaterials * 5; // 5 textures per material
+   VkDescriptorPoolCreateInfo poolInfo{};
+   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+   poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+   poolInfo.pPoolSizes = poolSizes.data();
+   poolInfo.maxSets = maxMaterials;
+   poolInfo.flags =
+      VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT; // Allow freeing individual sets
+   if (vkCreateDescriptorPool(m_device.Get(), &poolInfo, nullptr, &m_materialDescriptorPool) !=
+       VK_SUCCESS) {
+      throw std::runtime_error("Failed to create material descriptor pool");
+   }
+}
+
+void VulkanRenderer::SetupMaterialDescriptorSets() {
+   // Setup descriptor sets for all existing materials
+   const auto& materials = m_resourceManager->GetAllMaterialsNamed();
+   for (const auto& [material, name] : materials) {
+      if (auto* vkMaterial = dynamic_cast<VulkanMaterial*>(material)) {
+         if (vkMaterial->GetDescriptorSet() == VK_NULL_HANDLE) {
+            vkMaterial->CreateDescriptorSet(m_materialDescriptorPool,
+                                            m_materialDescriptorSetLayout);
+            vkMaterial->UpdateDescriptorSet(*m_resourceManager);
+         }
+      }
+   }
+}
+
 void VulkanRenderer::CreateGeometryDescriptorSetLayout() {
    VkDescriptorSetLayoutBinding cameraUboBinding{};
    cameraUboBinding.binding = 0;
@@ -104,17 +168,6 @@ void VulkanRenderer::CreateGeometryDescriptorSetLayout() {
    cameraUboBinding.descriptorCount = 1;
    cameraUboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
    cameraUboBinding.pImmutableSamplers = nullptr;
-   // TODO: Add when materials are ready
-   /*
-   VkDescriptorSetLayoutBinding materialUboBinding{};
-   materialUboBinding.binding = 2;
-   materialUboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-   materialUboBinding.descriptorCount = 1;
-   materialUboBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-   materialUboBinding.pImmutableSamplers = nullptr;
-   const std::array<VkDescriptorSetLayoutBinding, 2> bindings = {cameraUboBinding,
-                                                                 materialUboBinding};
-                                                                 */
    const std::array<VkDescriptorSetLayoutBinding, 1> bindings = {cameraUboBinding};
    VkDescriptorSetLayoutCreateInfo layoutInfo{};
    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -200,7 +253,9 @@ void VulkanRenderer::CreateGeometryPipeline() {
    modelPushConstant.offset = 0;
    modelPushConstant.size = sizeof(glm::mat4);
    m_geometryPipelineLayout = std::make_unique<VulkanPipelineLayout>(
-      m_device, std::vector<VkDescriptorSetLayout>{m_geometryDescriptorSetLayout},
+      m_device,
+      std::vector<VkDescriptorSetLayout>{m_geometryDescriptorSetLayout,
+                                         m_materialDescriptorSetLayout},
       std::vector<VkPushConstantRange>{modelPushConstant});
    // Build pipeline using the builder
    VulkanGraphicsPipelineBuilder builder(m_device);
@@ -619,17 +674,18 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
                                      m_geometryPipelineLayout->Get(), VK_SHADER_STAGE_VERTEX_BIT, 0,
                                      sizeof(glm::mat4), &worldTransform->GetTransformMatrix());
                }
-               /*
-               if (const IMaterial* material =
-                      m_resourceManager->GetMaterial(renderer->GetMaterial())) {
-                  const VulkanMaterial* vkMaterial =
-                     reinterpret_cast<const VulkanMaterial*>(material);
-                  const VkDescriptorSet descriptorSet = vkMaterial->GetDescriptorSet();
+               if (IMaterial* material = m_resourceManager->GetMaterial(renderer->GetMaterial())) {
+                  VulkanMaterial* vkMaterial = reinterpret_cast<VulkanMaterial*>(material);
+                  if (vkMaterial->GetDescriptorSet() == VK_NULL_HANDLE) {
+                     vkMaterial->CreateDescriptorSet(m_materialDescriptorPool,
+                                                     m_materialDescriptorSetLayout);
+                  }
+                  vkMaterial->Bind(0, *m_resourceManager);
+                  const VkDescriptorSet materialDescSet = vkMaterial->GetDescriptorSet();
                   vkCmdBindDescriptorSets(
                      m_commandBuffers->Get(m_currentFrame), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                     m_geometryPipelineLayout->Get(), 1, 1, &descriptorSet, 0, nullptr);
+                     m_geometryPipelineLayout->Get(), 1, 1, &materialDescSet, 0, nullptr);
                }
-               */
                if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
                   const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
                   vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
@@ -1152,6 +1208,12 @@ void VulkanRenderer::UpdateDescriptorSets() {
 VulkanRenderer::~VulkanRenderer() {
    vkDeviceWaitIdle(m_device.Get());
    CleanupSwapchain();
+   if (m_materialDescriptorPool != VK_NULL_HANDLE) {
+      vkDestroyDescriptorPool(m_device.Get(), m_materialDescriptorPool, nullptr);
+   }
+   if (m_materialDescriptorSetLayout != VK_NULL_HANDLE) {
+      vkDestroyDescriptorSetLayout(m_device.Get(), m_materialDescriptorSetLayout, nullptr);
+   }
    vkDestroyDescriptorPool(m_device.Get(), m_descriptorPool, nullptr);
    vkDestroyDescriptorSetLayout(m_device.Get(), m_geometryDescriptorSetLayout, nullptr);
    vkDestroyDescriptorSetLayout(m_device.Get(), m_lightingDescriptorSetLayout, nullptr);
