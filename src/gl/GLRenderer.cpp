@@ -62,6 +62,7 @@ GLRenderer::GLRenderer(Window* window) : IRenderer(window) {
          const char* message, const void* userParam) { std::println("GL Debug: {}", message); },
       nullptr);
 #endif
+   glEnable(GL_FRAMEBUFFER_SRGB);
    // Initialize resource manager
    m_resourceManager = std::make_unique<ResourceManager>(std::make_unique<GLResourceFactory>());
    m_materialEditor =
