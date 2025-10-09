@@ -294,9 +294,18 @@ void VulkanTexture::TransitionLayout(const VkImageLayout oldL, const VkImageLayo
          barrier.subresourceRange.levelCount = levelCount;
          barrier.subresourceRange.baseArrayLayer = 0;
          barrier.subresourceRange.layerCount = 1;
-         barrier.srcAccessMask = 0;
-         barrier.dstAccessMask = 0;
-
+         if (oldL == VK_IMAGE_LAYOUT_UNDEFINED) {
+            barrier.srcAccessMask = 0;
+         } else if (oldL == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+         } else if (oldL == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+         }
+         if (newL == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+         } else if (newL == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+         }
          vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
       });
 }
