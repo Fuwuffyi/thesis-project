@@ -75,7 +75,7 @@ void VulkanMaterial::UpdateDescriptorSet(const ResourceManager& resourceManager)
       VkWriteDescriptorSet write{};
       write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       write.dstSet = m_descriptorSet;
-      write.dstBinding = 0; // UBO binding
+      write.dstBinding = 16;
       write.dstArrayElement = 0;
       write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
       write.descriptorCount = 1;
@@ -89,26 +89,25 @@ void VulkanMaterial::UpdateDescriptorSet(const ResourceManager& resourceManager)
       if (th.IsValid()) {
          texture = resourceManager.GetTexture(th);
       }
-      if (!texture && descriptor.defaultTexture.IsValid()) {
-         texture = resourceManager.GetTexture(descriptor.defaultTexture);
+      if (!texture || !texture->IsValid()) {
+         throw std::runtime_error("Material texture '" + std::string(textureName) +
+                                  "' has no valid texture or default texture");
       }
-      if (texture && texture->IsValid()) {
-         const VulkanTexture* vkTexture = reinterpret_cast<const VulkanTexture*>(texture);
-         VkDescriptorImageInfo imageInfo{};
-         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-         imageInfo.imageView = vkTexture->GetImageView();
-         imageInfo.sampler = vkTexture->GetSampler();
-         imageInfos.push_back(imageInfo);
-         VkWriteDescriptorSet write{};
-         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-         write.dstSet = m_descriptorSet;
-         write.dstBinding = descriptor.bindingSlot;
-         write.dstArrayElement = 0;
-         write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-         write.descriptorCount = 1;
-         write.pImageInfo = &imageInfos.back();
-         writes.push_back(write);
-      }
+      const VulkanTexture* vkTexture = reinterpret_cast<const VulkanTexture*>(texture);
+      VkDescriptorImageInfo imageInfo{};
+      imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      imageInfo.imageView = vkTexture->GetImageView();
+      imageInfo.sampler = vkTexture->GetSampler();
+      imageInfos.push_back(imageInfo);
+      VkWriteDescriptorSet write{};
+      write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      write.dstSet = m_descriptorSet;
+      write.dstBinding = descriptor.bindingSlot;
+      write.dstArrayElement = 0;
+      write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+      write.descriptorCount = 1;
+      write.pImageInfo = &imageInfos.back();
+      writes.push_back(write);
    }
    if (!writes.empty()) {
       vkUpdateDescriptorSets(m_device->Get(), static_cast<uint32_t>(writes.size()), writes.data(),

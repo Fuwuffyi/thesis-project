@@ -102,13 +102,13 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
 void VulkanRenderer::CreateMaterialDescriptorSetLayout() {
    std::vector<VkDescriptorSetLayoutBinding> bindings;
    VkDescriptorSetLayoutBinding uboBinding{};
-   uboBinding.binding = 0;
+   uboBinding.binding = 16;
    uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
    uboBinding.descriptorCount = 1;
    uboBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
    uboBinding.pImmutableSamplers = nullptr;
    bindings.push_back(uboBinding);
-   for (uint32_t i = 1; i <= 5; ++i) {
+   for (uint32_t i = 0; i <= 4; ++i) {
       VkDescriptorSetLayoutBinding samplerBinding{};
       samplerBinding.binding = i;
       samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -483,7 +483,7 @@ void VulkanRenderer::CreateGizmoPipeline() {
    transformPushConstant.size = sizeof(glm::mat4);
    VkPushConstantRange colorPushConstant{};
    colorPushConstant.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-   colorPushConstant.offset = sizeof(glm::mat4);
+   colorPushConstant.offset = 0;
    colorPushConstant.size = sizeof(glm::vec3);
    m_gizmoPipelineLayout = std::make_unique<VulkanPipelineLayout>(
       m_device, std::vector<VkDescriptorSetLayout>{m_gizmoDescriptorSetLayout},
