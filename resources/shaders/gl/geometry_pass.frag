@@ -51,7 +51,6 @@ void main() {
    mat3 TBN = computeTBN(normalize(fragNormal), fragUV, fragPos);
    // Compute view direction in world space and convert to tangent space
    vec3 viewDir = normalize(camera.viewPos - fragPos);
-   vec3 viewDirTS = normalize(TBN * viewDir);
    // Sample normal in tangent space
    vec3 normalTS = texture(normalSampler, fragUV).rgb * 2.0 - 1.0;
    vec3 normalWS = normalize(TBN * normalTS);

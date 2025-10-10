@@ -124,7 +124,7 @@ void main() {
       float G = geometrySmith(N, V, L, roughness);
       vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
       vec3 numerator = NDF * G * F;
-      float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+      float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
       vec3 specular = numerator / denominator;
       vec3 kS = F;
       vec3 kD = (1.0 - kS) * (1.0 - metallic);
@@ -132,6 +132,7 @@ void main() {
       finalColor += (kD * albedo / PI + specular) * radiance * NdotL;
    }
    // AO
-   finalColor *= ao;
+   vec3 ambient = vec3(0.03) * albedo * ao;
+   finalColor += ambient;
    fragColor = vec4(finalColor, 1.0);
 }
