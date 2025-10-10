@@ -3,6 +3,8 @@
 #include "core/scene/Scene.hpp"
 #include "core/scene/Node.hpp"
 
+#include "core/resource/ResourceManager.hpp"
+
 #include "core/scene/MeshLoaderHelper.hpp"
 
 #include "core/scene/components/LightComponent.hpp"
@@ -10,20 +12,248 @@
 
 // TODO: This is a test scene, I need to add a serialization/deserialization system
 void LoadBaseScene(Scene& scene, ResourceManager& resourceManager, const GraphicsAPI api) {
-   // FIXME: Currently vulkan loads texture statically
+   const auto t1 = resourceManager.LoadTexture(
+      "col_head_2ndfloor_03_BaseColor", "resources/textures/col_head_2ndfloor_03_BaseColor.png");
+   const auto t2 = resourceManager.LoadTexture("brickwall_02_Metalness",
+                                               "resources/textures/brickwall_02_Metalness.png");
+   const auto t3 = resourceManager.LoadTexture("brickwall_02_Roughness",
+                                               "resources/textures/brickwall_02_Roughness.png");
+   const auto t4 = resourceManager.LoadTexture("curtain_fabric_Normal",
+                                               "resources/textures/curtain_fabric_Normal.png");
+   const auto t5 = resourceManager.LoadTexture("brickwall_01_Normal",
+                                               "resources/textures/brickwall_01_Normal.png");
+   const auto t6 = resourceManager.LoadTexture(
+      "door_stoneframe_01_BaseColor", "resources/textures/door_stoneframe_01_BaseColor.png");
+   const auto t7 = resourceManager.LoadTexture("ornament_01_Roughness",
+                                               "resources/textures/ornament_01_Roughness.png");
+   const auto t8 = resourceManager.LoadTexture(
+      "curtain_fabric_blue_BaseColor", "resources/textures/curtain_fabric_blue_BaseColor.png");
+   const auto t9 = resourceManager.LoadTexture("dirt_decal_01_mask_usd",
+                                               "resources/textures/dirt_decal_01_mask_usd.png");
+   const auto t10 = resourceManager.LoadTexture(
+      "arch_stone_wall_01_Roughness", "resources/textures/arch_stone_wall_01_Roughness.png");
+   const auto t11 = resourceManager.LoadTexture("door_stoneframe_02_Normal",
+                                                "resources/textures/door_stoneframe_02_Normal.png");
+   const auto t12 = resourceManager.LoadTexture("dirt_decal_01_alpha",
+                                                "resources/textures/dirt_decal_01_alpha.png");
+   const auto t13 = resourceManager.LoadTexture(
+      "col_brickwall_01_BaseColor", "resources/textures/col_brickwall_01_BaseColor.png");
+   const auto t14 = resourceManager.LoadTexture("wood_door_01_Roughness",
+                                                "resources/textures/wood_door_01_Roughness.png");
+   const auto t15 = resourceManager.LoadTexture(
+      "door_stoneframe_01_Metalness", "resources/textures/door_stoneframe_01_Metalness.png");
+   const auto t16 = resourceManager.LoadTexture(
+      "door_stoneframe_01_Roughness", "resources/textures/door_stoneframe_01_Roughness.png");
+   const auto t17 = resourceManager.LoadTexture(
+      "dirt_decal_01_dirt_decal_01_mask_alpha_dirt_decal_Opacity",
+      "resources/textures/dirt_decal_01_dirt_decal_01_mask_alpha_dirt_decal_Opacity.png");
+   const auto t18 = resourceManager.LoadTexture("brickwall_02_BaseColor",
+                                                "resources/textures/brickwall_02_BaseColor.png");
+   const auto t19 = resourceManager.LoadTexture(
+      "col_head_2ndfloor_03_Roughness", "resources/textures/col_head_2ndfloor_03_Roughness.png");
+   const auto t20 = resourceManager.LoadTexture("col_1stfloor_Metalness",
+                                                "resources/textures/col_1stfloor_Metalness.png");
+   const auto t21 = resourceManager.LoadTexture("roof_tiles_01_Roughness",
+                                                "resources/textures/roof_tiles_01_Roughness.png");
+   const auto t22 = resourceManager.LoadTexture(
+      "ceiling_plaster_01_Metalness", "resources/textures/ceiling_plaster_01_Metalness.png");
+   const auto t23 = resourceManager.LoadTexture("col_1stfloor_Roughness",
+                                                "resources/textures/col_1stfloor_Roughness.png");
+   const auto t24 = resourceManager.LoadTexture("dirt_decal_01_mask_gltf",
+                                                "resources/textures/dirt_decal_01_mask_gltf.png");
+   const auto t25 = resourceManager.LoadTexture("floor_tiles_01_Roughness",
+                                                "resources/textures/floor_tiles_01_Roughness.png");
+   const auto t26 = resourceManager.LoadTexture("wood_door_01_BaseColor",
+                                                "resources/textures/wood_door_01_BaseColor.png");
+   const auto t27 = resourceManager.LoadTexture("stone_trims_01_BaseColor",
+                                                "resources/textures/stone_trims_01_BaseColor.png");
+   const auto t28 = resourceManager.LoadTexture(
+      "col_head_2ndfloor_02_Normal", "resources/textures/col_head_2ndfloor_02_Normal.png");
+   const auto t29 = resourceManager.LoadTexture(
+      "col_brickwall_01_Roughness", "resources/textures/col_brickwall_01_Roughness.png");
+   const auto t30 = resourceManager.LoadTexture(
+      "ceiling_plaster_01_BaseColor", "resources/textures/ceiling_plaster_01_BaseColor.png");
+   const auto t31 = resourceManager.LoadTexture("wood_tile_01_Metalness",
+                                                "resources/textures/wood_tile_01_Metalness.png");
+   const auto t32 = resourceManager.LoadTexture("curtain_fabric_Metalness",
+                                                "resources/textures/curtain_fabric_Metalness.png");
+   const auto t33 = resourceManager.LoadTexture("stone_01_tile_Roughness",
+                                                "resources/textures/stone_01_tile_Roughness.png");
+   const auto t34 = resourceManager.LoadTexture(
+      "col_brickwall_01_Metalness", "resources/textures/col_brickwall_01_Metalness.png");
+   const auto t35 = resourceManager.LoadTexture("roof_tiles_01_Metalness",
+                                                "resources/textures/roof_tiles_01_Metalness.png");
+   const auto t36 = resourceManager.LoadTexture("metal_door_01_BaseColor",
+                                                "resources/textures/metal_door_01_BaseColor.png");
+   const auto t37 = resourceManager.LoadTexture("ornament_01_Metalness",
+                                                "resources/textures/ornament_01_Metalness.png");
+   const auto t38 = resourceManager.LoadTexture("stone_trims_02_BaseColor",
+                                                "resources/textures/stone_trims_02_BaseColor.png");
+   const auto t39 = resourceManager.LoadTexture(
+      "dirt_decal_01_dirt_decal_01_mask_gltf_alpha_dirt_decal_Opacity",
+      "resources/textures/dirt_decal_01_dirt_decal_01_mask_gltf_alpha_dirt_decal_Opacity.png");
+   const auto t40 = resourceManager.LoadTexture(
+      "ceiling_plaster_01_Roughness", "resources/textures/ceiling_plaster_01_Roughness.png");
+   const auto t41 = resourceManager.LoadTexture(
+      "ceiling_plaster_02_BaseColor", "resources/textures/ceiling_plaster_02_BaseColor.png");
+   const auto t42 = resourceManager.LoadTexture("window_frame_01_BaseColor",
+                                                "resources/textures/window_frame_01_BaseColor.png");
+   const auto t43 = resourceManager.LoadTexture("metal_door_01_Normal",
+                                                "resources/textures/metal_door_01_Normal.png");
+   const auto t44 = resourceManager.LoadTexture("ornament_01_Normal",
+                                                "resources/textures/ornament_01_Normal.png");
+   const auto t45 = resourceManager.LoadTexture("window_frame_01_Metalness",
+                                                "resources/textures/window_frame_01_Metalness.png");
+   const auto t46 = resourceManager.LoadTexture("brickwall_02_Normal",
+                                                "resources/textures/brickwall_02_Normal.png");
+   const auto t47 = resourceManager.LoadTexture("floor_tiles_01_Normal",
+                                                "resources/textures/floor_tiles_01_Normal.png");
+   const auto t48 = resourceManager.LoadTexture("brickwall_01_Roughness",
+                                                "resources/textures/brickwall_01_Roughness.png");
+   const auto t49 = resourceManager.LoadTexture("ceiling_plaster_02_Normal",
+                                                "resources/textures/ceiling_plaster_02_Normal.png");
+   const auto t50 = resourceManager.LoadTexture(
+      "door_stoneframe_02_Roughness", "resources/textures/door_stoneframe_02_Roughness.png");
+   const auto t51 = resourceManager.LoadTexture("floor_tiles_01_Metalness",
+                                                "resources/textures/floor_tiles_01_Metalness.png");
+   const auto t52 = resourceManager.LoadTexture("stone_01_tile_Metalness",
+                                                "resources/textures/stone_01_tile_Metalness.png");
+   const auto t53 = resourceManager.LoadTexture("stones_2ndfloor_01_Normal",
+                                                "resources/textures/stones_2ndfloor_01_Normal.png");
+   const auto t54 = resourceManager.LoadTexture(
+      "col_head_1stfloor_Roughness", "resources/textures/col_head_1stfloor_Roughness.png");
+   const auto t55 = resourceManager.LoadTexture("brickwall_01_Metalness",
+                                                "resources/textures/brickwall_01_Metalness.png");
+   const auto t56 = resourceManager.LoadTexture(
+      "ceiling_plaster_02_Roughness", "resources/textures/ceiling_plaster_02_Roughness.png");
+   const auto t57 = resourceManager.LoadTexture("col_brickwall_01_Normal",
+                                                "resources/textures/col_brickwall_01_Normal.png");
+   const auto t58 = resourceManager.LoadTexture("stone_trims_01_Metalness",
+                                                "resources/textures/stone_trims_01_Metalness.png");
+   const auto t59 = resourceManager.LoadTexture(
+      "arch_stone_wall_01_BaseColor", "resources/textures/arch_stone_wall_01_BaseColor.png");
+   const auto t60 = resourceManager.LoadTexture(
+      "ceiling_plaster_02_Metalness", "resources/textures/ceiling_plaster_02_Metalness.png");
+   const auto t61 = resourceManager.LoadTexture("lionhead_01_BaseColor",
+                                                "resources/textures/lionhead_01_BaseColor.png");
+   const auto t62 = resourceManager.LoadTexture(
+      "arch_stone_wall_01_Metalness", "resources/textures/arch_stone_wall_01_Metalness.png");
+   const auto t63 = resourceManager.LoadTexture("wood_tile_01_Roughness",
+                                                "resources/textures/wood_tile_01_Roughness.png");
+   const auto t64 =
+      resourceManager.LoadTexture("dirt_decal_01", "resources/textures/dirt_decal_01.png");
+   const auto t65 = resourceManager.LoadTexture(
+      "col_head_1stfloor_BaseColor", "resources/textures/col_head_1stfloor_BaseColor.png");
+   const auto t66 = resourceManager.LoadTexture("lionhead_01_Normal",
+                                                "resources/textures/lionhead_01_Normal.png");
+   const auto t67 = resourceManager.LoadTexture("brickwall_01_BaseColor",
+                                                "resources/textures/brickwall_01_BaseColor.png");
+   const auto t68 = resourceManager.LoadTexture("stone_01_tile_BaseColor",
+                                                "resources/textures/stone_01_tile_BaseColor.png");
+   const auto t69 = resourceManager.LoadTexture("window_frame_01_Normal",
+                                                "resources/textures/window_frame_01_Normal.png");
+   const auto t70 = resourceManager.LoadTexture(
+      "curtain_fabric_green_BaseColor", "resources/textures/curtain_fabric_green_BaseColor.png");
+   const auto t71 = resourceManager.LoadTexture("wood_tile_01_Normal",
+                                                "resources/textures/wood_tile_01_Normal.png");
+   const auto t72 = resourceManager.LoadTexture(
+      "col_head_1stfloor_Metalness", "resources/textures/col_head_1stfloor_Metalness.png");
+   const auto t73 = resourceManager.LoadTexture("col_head_1stfloor_Normal",
+                                                "resources/textures/col_head_1stfloor_Normal.png");
+   const auto t74 = resourceManager.LoadTexture("arch_stone_wall_01_Normal",
+                                                "resources/textures/arch_stone_wall_01_Normal.png");
+   const auto t75 = resourceManager.LoadTexture("curtain_fabric_Roughness",
+                                                "resources/textures/curtain_fabric_Roughness.png");
+   const auto t76 = resourceManager.LoadTexture("wood_door_01_Metalness",
+                                                "resources/textures/wood_door_01_Metalness.png");
+   const auto t77 = resourceManager.LoadTexture("stone_trims_01_Roughness",
+                                                "resources/textures/stone_trims_01_Roughness.png");
+   const auto t78 = resourceManager.LoadTexture(
+      "door_stoneframe_02_BaseColor", "resources/textures/door_stoneframe_02_BaseColor.png");
+   const auto t79 = resourceManager.LoadTexture("stone_trims_02_Normal",
+                                                "resources/textures/stone_trims_02_Normal.png");
+   const auto t80 = resourceManager.LoadTexture(
+      "col_head_2ndfloor_03_Normal", "resources/textures/col_head_2ndfloor_03_Normal.png");
+   const auto t81 = resourceManager.LoadTexture(
+      "stones_2ndfloor_01_Metalness", "resources/textures/stones_2ndfloor_01_Metalness.png");
+   const auto t82 = resourceManager.LoadTexture("metal_door_01_Roughness",
+                                                "resources/textures/metal_door_01_Roughness.png");
+   const auto t83 = resourceManager.LoadTexture("roof_tiles_01_Normal",
+                                                "resources/textures/roof_tiles_01_Normal.png");
+   const auto t84 = resourceManager.LoadTexture("window_frame_01_Roughness",
+                                                "resources/textures/window_frame_01_Roughness.png");
+   const auto t85 = resourceManager.LoadTexture("col_1stfloor_BaseColor",
+                                                "resources/textures/col_1stfloor_BaseColor.png");
+   const auto t86 = resourceManager.LoadTexture("dirt_decal_01_mask",
+                                                "resources/textures/dirt_decal_01_mask.png");
+   const auto t87 = resourceManager.LoadTexture(
+      "curtain_fabric_red_BaseColor", "resources/textures/curtain_fabric_red_BaseColor.png");
+   const auto t88 = resourceManager.LoadTexture(
+      "col_head_2ndfloor_02_Roughness", "resources/textures/col_head_2ndfloor_02_Roughness.png");
+   const auto t89 = resourceManager.LoadTexture(
+      "col_head_2ndfloor_02_Metalness", "resources/textures/col_head_2ndfloor_02_Metalness.png");
+   const auto t90 = resourceManager.LoadTexture("wood_door_01_Normal",
+                                                "resources/textures/wood_door_01_Normal.png");
+   const auto t91 = resourceManager.LoadTexture("ceiling_plaster_01_Normal",
+                                                "resources/textures/ceiling_plaster_01_Normal.png");
+   const auto t92 = resourceManager.LoadTexture("ornament_01_BaseColor",
+                                                "resources/textures/ornament_01_BaseColor.png");
+   const auto t93 = resourceManager.LoadTexture("stone_trims_02_Roughness",
+                                                "resources/textures/stone_trims_02_Roughness.png");
+   const auto t94 = resourceManager.LoadTexture(
+      "col_head_2ndfloor_03_Metalness", "resources/textures/col_head_2ndfloor_03_Metalness.png");
+   const auto t95 = resourceManager.LoadTexture("lionhead_01_Metalness",
+                                                "resources/textures/lionhead_01_Metalness.png");
+   const auto t96 = resourceManager.LoadTexture("lionhead_01_Roughness",
+                                                "resources/textures/lionhead_01_Roughness.png");
+   const auto t97 = resourceManager.LoadTexture(
+      "door_stoneframe_02_Metalness", "resources/textures/door_stoneframe_02_Metalness.png");
+   const auto t98 = resourceManager.LoadTexture("stone_trims_01_Normal",
+                                                "resources/textures/stone_trims_01_Normal.png");
+   const auto t99 = resourceManager.LoadTexture(
+      "col_head_2ndfloor_02_BaseColor", "resources/textures/col_head_2ndfloor_02_BaseColor.png");
+   const auto t100 = resourceManager.LoadTexture(
+      "stones_2ndfloor_01_Roughness", "resources/textures/stones_2ndfloor_01_Roughness.png");
+   const auto t101 = resourceManager.LoadTexture("wood_tile_01_BaseColor",
+                                                 "resources/textures/wood_tile_01_BaseColor.png");
+   const auto t102 = resourceManager.LoadTexture(
+      "door_stoneframe_01_Normal", "resources/textures/door_stoneframe_01_Normal.png");
+   const auto t103 = resourceManager.LoadTexture("floor_tiles_01_BaseColor",
+                                                 "resources/textures/floor_tiles_01_BaseColor.png");
+   const auto t104 = resourceManager.LoadTexture("roof_tiles_01_BaseColor",
+                                                 "resources/textures/roof_tiles_01_BaseColor.png");
+   const auto t105 = resourceManager.LoadTexture("metal_door_01_Metalness",
+                                                 "resources/textures/metal_door_01_Metalness.png");
+   const auto t106 = resourceManager.LoadTexture("dirt_decal_01_invmask",
+                                                 "resources/textures/dirt_decal_01_invmask.png");
+   const auto t107 = resourceManager.LoadTexture("col_1stfloor_Normal",
+                                                 "resources/textures/col_1stfloor_Normal.png");
+   const auto t108 = resourceManager.LoadTexture("stone_trims_02_Metalness",
+                                                 "resources/textures/stone_trims_02_Metalness.png");
+   const auto t109 = resourceManager.LoadTexture(
+      "stones_2ndfloor_01_BaseColor", "resources/textures/stones_2ndfloor_01_BaseColor.png");
+   const auto t110 = resourceManager.LoadTexture("stone_01_tile_Normal",
+                                                 "resources/textures/stone_01_tile_Normal.png");
+   // Load the main model
    Node* sponzaNode = MeshLoaderHelper::LoadSceneAsChildNode(
       scene, scene.GetRootNode(), resourceManager, "sponza", "resources/meshes/sponza.fbx", {}, {});
    sponzaNode->GetTransform()->SetScale(glm::vec3(0.01f));
    sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
-
-   // Setup particle node
+   // Setup base particle node
    Node* particlesNode = scene.CreateNode("particles");
    particlesNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 2.0f, 0.0f));
    particlesNode->AddComponent<ParticleSystemComponent>();
-
    // Setup light node
    Node* lightsNode = scene.CreateNode("lights");
    lightsNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 7.0f, 0.0f));
+   // Add a directional light for sun
+   Node* sunNode = scene.CreateChildNode(lightsNode, "light_sun");
+   TransformComponent* sunTransform = sunNode->GetComponent<TransformComponent>();
+   sunTransform->SetRotation(glm::vec3(-45.0f, 45.0f, 0.0f));
+   LightComponent* lightSun = sunNode->AddComponent<LightComponent>();
+   lightSun->SetType(LightComponent::LightType::Directional);
+   lightSun->SetColor(glm::vec3(1.0f, 1.0f, 1.0f));
+   lightSun->SetIntensity(0.45f);
    // Create testing lights
    std::random_device rd;
    std::mt19937 gen(rd());
@@ -46,11 +276,4 @@ void LoadBaseScene(Scene& scene, ResourceManager& resourceManager, const Graphic
       light->SetOuterCone(glm::radians(outer));
       light->SetInnerCone(glm::radians(5.0f + outer));
    }
-   Node* sunNode = scene.CreateChildNode(lightsNode, "light_sun");
-   TransformComponent* sunTransform = sunNode->GetComponent<TransformComponent>();
-   sunTransform->SetRotation(glm::vec3(-45.0f, 45.0f, 0.0f));
-   LightComponent* lightSun = sunNode->AddComponent<LightComponent>();
-   lightSun->SetType(LightComponent::LightType::Directional);
-   lightSun->SetColor(glm::vec3(1.0f, 1.0f, 1.0f));
-   lightSun->SetIntensity(0.45f);
 }

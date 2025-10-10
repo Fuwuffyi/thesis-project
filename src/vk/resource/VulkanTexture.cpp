@@ -18,7 +18,8 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const CreateInfo& info)
       m_width(info.width),
       m_height(info.height),
       m_depth(info.depth),
-      m_format((info.format == Format::RGB8) ? Format::RGBA8 : info.format),
+      m_format((info.format == Format::Depth24 || info.format == Format::Depth32F) ? info.format
+                                                                                   : Format::RGBA8),
       m_isDepth(info.format == Format::Depth24 || info.format == Format::Depth32F),
       m_samples(info.samples),
       m_mipLevels(
@@ -35,14 +36,14 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const std::string& file
                              const bool generateMipmaps, const bool sRGB)
     : m_device(&device) {
    int texWidth, texHeight, texChannels;
-   stbi_uc* pixels = stbi_load(filepath.c_str(), &texWidth, &texHeight, &texChannels, 0);
+   stbi_uc* pixels = stbi_load(filepath.c_str(), &texWidth, &texHeight, &texChannels, 4);
    if (!pixels)
       throw std::runtime_error("Failed to load texture image: " + filepath);
 
    m_width = static_cast<uint32_t>(texWidth);
    m_height = static_cast<uint32_t>(texHeight);
    m_depth = 1;
-   m_format = (texChannels == 4) ? Format::RGBA8 : Format::RGB8;
+   m_format = Format::RGBA8;
    m_vkFormat = ConvertFormat(m_format);
    m_mipLevels = generateMipmaps
                     ? static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height)))) + 1
@@ -72,7 +73,7 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const uint32_t width,
       m_width(width),
       m_height(height),
       m_depth(1),
-      m_format((format == Format::RGB8) ? Format::RGBA8 : format),
+      m_format(isDepth ? Format::Depth32F : Format::RGBA8),
       m_isDepth(isDepth),
       m_samples(samples),
       m_mipLevels(1) {
@@ -88,16 +89,24 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const Format format,
       m_width(1),
       m_height(1),
       m_depth(1),
-      m_format((format == Format::RGB8) ? Format::RGBA8 : format),
+      m_format(Format::RGBA8),
       m_isDepth(false),
       m_samples(1),
       m_mipLevels(1) {
    m_vkFormat = ConvertFormat(m_format);
    CreateImage();
+   uint8_t pixel[4] = {static_cast<uint8_t>(glm::clamp(color.r, 0.f, 1.f) * 255.f),
+                       static_cast<uint8_t>(glm::clamp(color.g, 0.f, 1.f) * 255.f),
+                       static_cast<uint8_t>(glm::clamp(color.b, 0.f, 1.f) * 255.f),
+                       static_cast<uint8_t>(glm::clamp(color.a, 0.f, 1.f) * 255.f)};
    VulkanBuffer staging(*m_device, BytesPerPixel(m_format), VulkanBuffer::Usage::TransferSrc,
                         VulkanBuffer::MemoryType::CPUToGPU);
-   staging.Map();
-   staging.Update(&color[0], BytesPerPixel(m_format));
+   void* mapped = staging.Map();
+   if (!mapped)
+      throw std::runtime_error("Failed to map staging buffer memory");
+   staging.Update(pixel, BytesPerPixel(m_format));
+   TransitionLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
    CopyFromBuffer(staging);
    TransitionLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                     VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);

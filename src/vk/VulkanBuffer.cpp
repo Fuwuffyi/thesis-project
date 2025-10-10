@@ -60,7 +60,7 @@ void* VulkanBuffer::Map() {
    if (m_memoryType == MemoryType::GPUOnly)
       return nullptr;
    if (!m_mapped) {
-      VkResult result = vmaMapMemory(m_allocator, m_allocation, &m_mapped);
+      const VkResult result = vmaMapMemory(m_allocator, m_allocation, &m_mapped);
       if (result != VK_SUCCESS) {
          m_mapped = nullptr;
          throw std::runtime_error("Failed to map buffer memory: " + std::to_string(result));
