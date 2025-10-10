@@ -131,9 +131,9 @@ void GLRenderer::CreateUtilityMeshes() {
 void GLRenderer::CreateDefaultMaterial() {
    m_defaultMaterial = m_resourceManager->CreateMaterial("default_pbr", "PBR");
    if (auto* material = m_resourceManager->GetMaterial(m_defaultMaterial); material) [[likely]] {
-      material->SetParameter("albedo", glm::vec3(0.8f, 0.8f, 0.8f));
-      material->SetParameter("metallic", 0.0f);
-      material->SetParameter("roughness", 0.8f);
+      material->SetParameter("albedo", glm::vec3(1.0f));
+      material->SetParameter("metallic", 1.0f);
+      material->SetParameter("roughness", 1.0f);
       material->SetParameter("ao", 1.0f);
    }
 }

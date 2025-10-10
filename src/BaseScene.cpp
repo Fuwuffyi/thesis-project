@@ -234,6 +234,8 @@ void LoadBaseScene(Scene& scene, ResourceManager& resourceManager, const Graphic
       "stones_2ndfloor_01_BaseColor", "resources/textures/stones_2ndfloor_01_BaseColor.png");
    const auto t110 = resourceManager.LoadTexture("stone_01_tile_Normal",
                                                  "resources/textures/stone_01_tile_Normal.png");
+   // Create the model's materials
+
    // Load the main model
    Node* sponzaNode = MeshLoaderHelper::LoadSceneAsChildNode(
       scene, scene.GetRootNode(), resourceManager, "sponza", "resources/meshes/sponza.fbx", {}, {});
@@ -253,7 +255,7 @@ void LoadBaseScene(Scene& scene, ResourceManager& resourceManager, const Graphic
    LightComponent* lightSun = sunNode->AddComponent<LightComponent>();
    lightSun->SetType(LightComponent::LightType::Directional);
    lightSun->SetColor(glm::vec3(1.0f, 1.0f, 1.0f));
-   lightSun->SetIntensity(0.45f);
+   lightSun->SetIntensity(1.0f);
    // Create testing lights
    std::random_device rd;
    std::mt19937 gen(rd());

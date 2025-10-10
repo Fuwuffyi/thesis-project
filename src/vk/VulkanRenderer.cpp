@@ -1400,9 +1400,9 @@ void VulkanRenderer::CreateUtilityMeshes() {
 void VulkanRenderer::CreateDefaultMaterial() {
    auto defaultMat = m_resourceManager->CreateMaterial("default_pbr", "PBR");
    if (IMaterial* material = m_resourceManager->GetMaterial(defaultMat)) {
-      material->SetParameter("albedo", glm::vec3(0.8f, 0.8f, 0.8f));
-      material->SetParameter("metallic", 0.0f);
-      material->SetParameter("roughness", 0.8f);
+      material->SetParameter("albedo", glm::vec3(1.0f));
+      material->SetParameter("metallic", 1.0f);
+      material->SetParameter("roughness", 1.0f);
       material->SetParameter("ao", 1.0f);
    }
 }
