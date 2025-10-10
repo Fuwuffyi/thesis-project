@@ -25,8 +25,8 @@ constexpr ImVec4 kBadPerformanceColor{1.0f, 0.0f, 0.0f, 1.0f};
 // Performance thresholds
 constexpr float kGoodFPSThreshold = 55.0f;
 constexpr float kWarningFPSThreshold = 30.0f;
-constexpr float kHighMemoryThresholdMB = 512.0f;
-constexpr float kCriticalMemoryThresholdMB = 1024.0f;
+constexpr float kHighMemoryThresholdMB = 2048.0f;
+constexpr float kCriticalMemoryThresholdMB = 4096.0f;
 
 // Graph configuration
 constexpr float kGraphHeight = 80.0f;
