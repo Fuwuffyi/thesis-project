@@ -567,7 +567,7 @@ void LoadBaseScene(Scene& scene, ResourceManager& resourceManager, const Graphic
    LightComponent* lightSun = sunNode->AddComponent<LightComponent>();
    lightSun->SetType(LightComponent::LightType::Directional);
    lightSun->SetColor(glm::vec3(1.0f, 1.0f, 1.0f));
-   lightSun->SetIntensity(1.0f);
+   lightSun->SetIntensity(0.6f);
    // Create testing lights
    std::random_device rd;
    std::mt19937 gen(rd());
