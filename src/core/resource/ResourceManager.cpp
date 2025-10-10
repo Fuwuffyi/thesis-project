@@ -363,7 +363,7 @@ void ResourceManager::SetupMaterialTemplates() {
    std::unique_ptr<MaterialTemplate> pbrTemplate = std::make_unique<MaterialTemplate>("PBR");
    // PBR Params
    pbrTemplate->AddParameter("albedo", ParameterDescriptor::Type::Vec3, glm::vec3(1.0f));
-   pbrTemplate->AddParameter("metallic", ParameterDescriptor::Type::Float, 0.0f);
+   pbrTemplate->AddParameter("metallic", ParameterDescriptor::Type::Float, 1.0f);
    pbrTemplate->AddParameter("roughness", ParameterDescriptor::Type::Float, 1.0f);
    pbrTemplate->AddParameter("ao", ParameterDescriptor::Type::Float, 1.0f);
    // PBR Textures

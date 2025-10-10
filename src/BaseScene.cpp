@@ -235,12 +235,324 @@ void LoadBaseScene(Scene& scene, ResourceManager& resourceManager, const Graphic
    const auto t110 = resourceManager.LoadTexture("stone_01_tile_Normal",
                                                  "resources/textures/stone_01_tile_Normal.png");
    // Create the model's materials
-
+   const auto m1 = resourceManager.CreateMaterial("material_1", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m1)) {
+      mat->SetTexture("albedoTexture", t59);
+      mat->SetTexture("normalTexture", t74);
+      mat->SetTexture("roughnessTexture", t10);
+      mat->SetTexture("metallicTexture", t62);
+   }
+   const auto m2 = resourceManager.CreateMaterial("material_2", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m2)) {
+      mat->SetTexture("albedoTexture", t27);
+      mat->SetTexture("normalTexture", t98);
+      mat->SetTexture("roughnessTexture", t77);
+      mat->SetTexture("metallicTexture", t58);
+   }
+   const auto m3 = resourceManager.CreateMaterial("material_3", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m3)) {
+      mat->SetTexture("albedoTexture", t36);
+      mat->SetTexture("normalTexture", t43);
+      mat->SetTexture("roughnessTexture", t82);
+      mat->SetTexture("metallicTexture", t105);
+   }
+   const auto m4 = resourceManager.CreateMaterial("material_4", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m4)) {
+      mat->SetTexture("albedoTexture", t18);
+      mat->SetTexture("normalTexture", t46);
+      mat->SetTexture("roughnessTexture", t3);
+      mat->SetTexture("metallicTexture", t2);
+   }
+   const auto m5 = resourceManager.CreateMaterial("material_5", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m5)) {
+      mat->SetTexture("albedoTexture", t59);
+      mat->SetTexture("normalTexture", t74);
+      mat->SetTexture("roughnessTexture", t10);
+      mat->SetTexture("metallicTexture", t62);
+   }
+   const auto m6 = resourceManager.CreateMaterial("material_6", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m6)) {
+      mat->SetTexture("albedoTexture", t27);
+      mat->SetTexture("normalTexture", t98);
+      mat->SetTexture("roughnessTexture", t77);
+      mat->SetTexture("metallicTexture", t58);
+   }
+   const auto m7 = resourceManager.CreateMaterial("material_7", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m7)) {
+      mat->SetTexture("albedoTexture", t42);
+      mat->SetTexture("normalTexture", t69);
+      mat->SetTexture("roughnessTexture", t84);
+      mat->SetTexture("metallicTexture", t45);
+   }
+   const auto m8 = resourceManager.CreateMaterial("material_8", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m8)) {
+      mat->SetTexture("albedoTexture", t68);
+      mat->SetTexture("normalTexture", t110);
+      mat->SetTexture("roughnessTexture", t33);
+      mat->SetTexture("metallicTexture", t52);
+   }
+   const auto m9 = resourceManager.CreateMaterial("material_9", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m9)) {
+      mat->SetTexture("albedoTexture", t103);
+      mat->SetTexture("normalTexture", t47);
+      mat->SetTexture("roughnessTexture", t25);
+      mat->SetTexture("metallicTexture", t51);
+   }
+   const auto m10 = resourceManager.CreateMaterial("material_10", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m10)) {
+      mat->SetTexture("albedoTexture", t109);
+      mat->SetTexture("normalTexture", t53);
+      mat->SetTexture("roughnessTexture", t100);
+      mat->SetTexture("metallicTexture", t81);
+   }
+   const auto m11 = resourceManager.CreateMaterial("material_11", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m11)) {
+      mat->SetTexture("albedoTexture", t36);
+      mat->SetTexture("normalTexture", t43);
+      mat->SetTexture("roughnessTexture", t82);
+      mat->SetTexture("metallicTexture", t105);
+   }
+   const auto m12 = resourceManager.CreateMaterial("material_12", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m12)) {
+      mat->SetParameter("albedo", glm::vec3(1.0f, 1.0f, 1.0f));
+      mat->SetParameter("roughness", 0.1f);
+      mat->SetParameter("metallic", 0.0f);
+   }
+   const auto m13 = resourceManager.CreateMaterial("material_13", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m13)) {
+      mat->SetTexture("albedoTexture", t18);
+      mat->SetTexture("normalTexture", t46);
+      mat->SetTexture("roughnessTexture", t3);
+      mat->SetTexture("metallicTexture", t2);
+   }
+   const auto m14 = resourceManager.CreateMaterial("material_14", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m14)) {
+      mat->SetTexture("albedoTexture", t41);
+      mat->SetTexture("normalTexture", t91);
+      mat->SetTexture("roughnessTexture", t40);
+      mat->SetTexture("metallicTexture", t22);
+   }
+   const auto m15 = resourceManager.CreateMaterial("material_15", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m15)) {
+      mat->SetTexture("albedoTexture", t109);
+      mat->SetTexture("normalTexture", t53);
+      mat->SetTexture("roughnessTexture", t100);
+      mat->SetTexture("metallicTexture", t81);
+   }
+   const auto m16 = resourceManager.CreateMaterial("material_16", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m16)) {
+      mat->SetTexture("albedoTexture", t38);
+      mat->SetTexture("normalTexture", t79);
+      mat->SetTexture("roughnessTexture", t93);
+      mat->SetTexture("metallicTexture", t108);
+   }
+   const auto m17 = resourceManager.CreateMaterial("material_17", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m17)) {
+      mat->SetTexture("albedoTexture", t41);
+      mat->SetTexture("normalTexture", t91);
+      mat->SetTexture("roughnessTexture", t56);
+      mat->SetTexture("metallicTexture", t60);
+   }
+   const auto m18 = resourceManager.CreateMaterial("material_18", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m18)) {
+      mat->SetTexture("albedoTexture", t42);
+      mat->SetTexture("normalTexture", t69);
+      mat->SetTexture("roughnessTexture", t84);
+      mat->SetTexture("metallicTexture", t45);
+   }
+   const auto m19 = resourceManager.CreateMaterial("material_19", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m19)) {
+      mat->SetTexture("albedoTexture", t68);
+      mat->SetTexture("normalTexture", t110);
+      mat->SetTexture("roughnessTexture", t33);
+      mat->SetTexture("metallicTexture", t52);
+   }
+   const auto m20 = resourceManager.CreateMaterial("material_20", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m20)) {
+      mat->SetTexture("albedoTexture", t85);
+      mat->SetTexture("normalTexture", t107);
+      mat->SetTexture("roughnessTexture", t23);
+      mat->SetTexture("metallicTexture", t20);
+   }
+   const auto m21 = resourceManager.CreateMaterial("material_21", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m21)) {
+      mat->SetTexture("albedoTexture", t65);
+      mat->SetTexture("normalTexture", t73);
+      mat->SetTexture("roughnessTexture", t54);
+      mat->SetTexture("metallicTexture", t72);
+   }
+   const auto m22 = resourceManager.CreateMaterial("material_22", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m22)) {
+      mat->SetTexture("albedoTexture", t67);
+      mat->SetTexture("normalTexture", t5);
+      mat->SetTexture("roughnessTexture", t48);
+      mat->SetTexture("metallicTexture", t55);
+   }
+   const auto m23 = resourceManager.CreateMaterial("material_23", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m23)) {
+      mat->SetParameter("albedo", glm::vec3(1.0f, 1.0f, 1.0f));
+      mat->SetParameter("roughness", 0.1f);
+      mat->SetParameter("metallic", 0.0f);
+   }
+   const auto m24 = resourceManager.CreateMaterial("material_24", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m24)) {
+      mat->SetParameter("albedo", glm::vec3(1.0f, 1.0f, 1.0f));
+      mat->SetParameter("roughness", 0.1f);
+      mat->SetParameter("metallic", 0.0f);
+   }
+   const auto m25 = resourceManager.CreateMaterial("material_25", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m25)) {
+      mat->SetTexture("albedoTexture", t61);
+      mat->SetTexture("normalTexture", t66);
+      mat->SetTexture("roughnessTexture", t96);
+      mat->SetTexture("metallicTexture", t95);
+   }
+   const auto m26 = resourceManager.CreateMaterial("material_26", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m26)) {
+      mat->SetTexture("albedoTexture", t78);
+      mat->SetTexture("normalTexture", t11);
+      mat->SetTexture("roughnessTexture", t50);
+      mat->SetTexture("metallicTexture", t97);
+   }
+   const auto m27 = resourceManager.CreateMaterial("material_27", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m27)) {
+      mat->SetParameter("albedo", glm::vec3(1.0f, 1.0f, 1.0f));
+      mat->SetParameter("roughness", 0.1f);
+      mat->SetParameter("metallic", 0.0f);
+   }
+   const auto m28 = resourceManager.CreateMaterial("material_28", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m28)) {
+      mat->SetTexture("albedoTexture", t6);
+      mat->SetTexture("normalTexture", t102);
+      mat->SetTexture("roughnessTexture", t11);
+      mat->SetTexture("metallicTexture", t16);
+   }
+   const auto m29 = resourceManager.CreateMaterial("material_29", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m29)) {
+      mat->SetTexture("albedoTexture", t67);
+      mat->SetTexture("normalTexture", t46);
+      mat->SetTexture("roughnessTexture", t48);
+      mat->SetTexture("metallicTexture", t55);
+   }
+   const auto m30 = resourceManager.CreateMaterial("material_30", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m30)) {
+      mat->SetTexture("albedoTexture", t38);
+      mat->SetTexture("normalTexture", t79);
+      mat->SetTexture("roughnessTexture", t93);
+      mat->SetTexture("metallicTexture", t108);
+   }
+   const auto m31 = resourceManager.CreateMaterial("material_31", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m31)) {
+      mat->SetTexture("albedoTexture", t78);
+      mat->SetTexture("normalTexture", t11);
+      mat->SetTexture("roughnessTexture", t50);
+      mat->SetTexture("metallicTexture", t97);
+   }
+   const auto m32 = resourceManager.CreateMaterial("material_32", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m32)) {
+      mat->SetTexture("albedoTexture", t26);
+      mat->SetTexture("normalTexture", t90);
+      mat->SetTexture("roughnessTexture", t14);
+      mat->SetTexture("metallicTexture", t76);
+   }
+   const auto m33 = resourceManager.CreateMaterial("material_33", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m33)) {
+      mat->SetTexture("albedoTexture", t101);
+      mat->SetTexture("normalTexture", t71);
+      mat->SetTexture("roughnessTexture", t63);
+      mat->SetTexture("metallicTexture", t31);
+   }
+   const auto m34 = resourceManager.CreateMaterial("material_34", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m34)) {
+      mat->SetTexture("albedoTexture", t30);
+      mat->SetTexture("normalTexture", t91);
+      mat->SetTexture("roughnessTexture", t40);
+      mat->SetTexture("metallicTexture", t22);
+   }
+   const auto m35 = resourceManager.CreateMaterial("material_35", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m35)) {
+      mat->SetTexture("albedoTexture", t13);
+      mat->SetTexture("normalTexture", t57);
+      mat->SetTexture("roughnessTexture", t29);
+      mat->SetTexture("metallicTexture", t34);
+   }
+   const auto m36 = resourceManager.CreateMaterial("material_36", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m36)) {
+      mat->SetTexture("albedoTexture", t1);
+      mat->SetTexture("normalTexture", t80);
+      mat->SetTexture("roughnessTexture", t19);
+      mat->SetTexture("metallicTexture", t94);
+   }
+   const auto m37 = resourceManager.CreateMaterial("material_37", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m37)) {
+      mat->SetTexture("albedoTexture", t99);
+      mat->SetTexture("normalTexture", t28);
+      mat->SetTexture("roughnessTexture", t88);
+      mat->SetTexture("metallicTexture", t89);
+   }
+   const auto m38 = resourceManager.CreateMaterial("material_38", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m38)) {
+      mat->SetTexture("albedoTexture", t103);
+      mat->SetTexture("normalTexture", t47);
+      mat->SetTexture("roughnessTexture", t25);
+      mat->SetTexture("metallicTexture", t51);
+   }
+   const auto m39 = resourceManager.CreateMaterial("material_39", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m39)) {
+      mat->SetTexture("albedoTexture", t6);
+      mat->SetTexture("normalTexture", t102);
+      mat->SetTexture("roughnessTexture", t16);
+      mat->SetTexture("metallicTexture", t15);
+   }
+   const auto m40 = resourceManager.CreateMaterial("roof_tiles", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m40)) {
+      mat->SetTexture("albedoTexture", t104);
+      mat->SetTexture("normalTexture", t83);
+      mat->SetTexture("roughnessTexture", t21);
+      mat->SetTexture("metallicTexture", t35);
+   }
+   const auto m41 = resourceManager.CreateMaterial("ornament", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m41)) {
+      mat->SetTexture("albedoTexture", t92);
+      mat->SetTexture("normalTexture", t44);
+      mat->SetTexture("roughnessTexture", t7);
+      mat->SetTexture("metallicTexture", t37);
+   }
+   const auto m42 = resourceManager.CreateMaterial("curtain_red", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m42)) {
+      mat->SetTexture("albedoTexture", t87);
+      mat->SetTexture("normalTexture", t4);
+      mat->SetTexture("roughnessTexture", t75);
+      mat->SetTexture("metallicTexture", t32);
+   }
+   const auto m43 = resourceManager.CreateMaterial("material_43", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m43)) {
+      mat->SetTexture("albedoTexture", t36);
+      mat->SetTexture("normalTexture", t43);
+      mat->SetTexture("roughnessTexture", t82);
+      mat->SetTexture("metallicTexture", t105);
+   }
+   const auto m44 = resourceManager.CreateMaterial("curtain_blue", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m44)) {
+      mat->SetTexture("albedoTexture", t8);
+      mat->SetTexture("normalTexture", t4);
+      mat->SetTexture("roughnessTexture", t75);
+      mat->SetTexture("metallicTexture", t32);
+   }
+   const auto m45 = resourceManager.CreateMaterial("curtain_green", "PBR");
+   if (const auto mat = resourceManager.GetMaterial(m45)) {
+      mat->SetTexture("albedoTexture", t70);
+      mat->SetTexture("normalTexture", t4);
+      mat->SetTexture("roughnessTexture", t75);
+      mat->SetTexture("metallicTexture", t32);
+   }
    // Load the main model
    Node* sponzaNode = MeshLoaderHelper::LoadSceneAsChildNode(
-      scene, scene.GetRootNode(), resourceManager, "sponza", "resources/meshes/sponza.fbx", {}, {});
+      scene, scene.GetRootNode(), resourceManager, "sponza", "resources/meshes/sponza.fbx", {},
+      {m1,  m2,  m3,  m4,  m5,  m6,  m7,  m8,  m9,  m10, m11, m12, m13, m14, m15,
+       m16, m17, m18, m19, m20, m21, m22, m23, m24, m25, m26, m27, m28, m29, m30,
+       m31, m32, m33, m34, m35, m36, m37, m38, m39, m40, m41, m42, m43, m44, m45});
    sponzaNode->GetTransform()->SetScale(glm::vec3(0.01f));
-   sponzaNode->GetTransform()->SetRotation(glm::radians(glm::vec3(-90.0f, 0.0f, 0.0f)));
    // Setup base particle node
    Node* particlesNode = scene.CreateNode("particles");
    particlesNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 2.0f, 0.0f));
