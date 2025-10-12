@@ -35,21 +35,22 @@ VulkanTexture::VulkanTexture(const VulkanDevice& device, const CreateInfo& info)
 VulkanTexture::VulkanTexture(const VulkanDevice& device, const std::string& filepath,
                              const bool generateMipmaps, const bool sRGB)
     : m_device(&device) {
-   int texWidth, texHeight, texChannels;
+   int32_t texWidth, texHeight, texChannels;
    stbi_uc* pixels = stbi_load(filepath.c_str(), &texWidth, &texHeight, &texChannels, 4);
    if (!pixels)
       throw std::runtime_error("Failed to load texture image: " + filepath);
-
    m_width = static_cast<uint32_t>(texWidth);
    m_height = static_cast<uint32_t>(texHeight);
    m_depth = 1;
-   m_format = Format::RGBA8;
+   if (sRGB)
+      m_format = Format::SRGB8_ALPHA8;
+   else
+      m_format = Format::RGBA8;
    m_vkFormat = ConvertFormat(m_format);
    m_mipLevels = generateMipmaps
                     ? static_cast<uint32_t>(std::floor(std::log2(std::max(m_width, m_height)))) + 1
                     : 1;
    VkDeviceSize imageSize = static_cast<VkDeviceSize>(m_width) * m_height * BytesPerPixel(m_format);
-
    VulkanBuffer staging(*m_device, imageSize, VulkanBuffer::Usage::TransferSrc,
                         VulkanBuffer::MemoryType::CPUToGPU);
    staging.Map();
