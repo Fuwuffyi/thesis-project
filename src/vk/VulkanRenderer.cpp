@@ -1378,20 +1378,22 @@ void VulkanRenderer::CreateUtilityMeshes() {
    const std::vector<uint32_t> quadIndVec(quadInds.begin(), quadInds.end());
    m_fullscreenQuad = m_resourceManager->LoadMesh("quad", quadVertVec, quadIndVec);
    // Create wireframe cube for gizmos
-   constexpr std::array<Vertex, 8> cubeVerts = {{
-      // Front face
+   constexpr std::array<Vertex, 10> cubeVerts = {{
+      // Cube vertices
       {glm::vec3(-0.5f, -0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(0, 0)},
       {glm::vec3(0.5f, -0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(1, 0)},
       {glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(1, 1)},
       {glm::vec3(-0.5f, 0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(0, 1)},
-      // Back face
       {glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(0, 0)},
       {glm::vec3(0.5f, -0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(1, 0)},
       {glm::vec3(0.5f, 0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(1, 1)},
       {glm::vec3(-0.5f, 0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(0, 1)},
+      // Arrow line vertices
+      {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0, 0, 1), glm::vec2(0, 0)},
+      {glm::vec3(0.0f, 0.0f, -0.8f), glm::vec3(0, 0, -1), glm::vec2(0, 1)}
    }};
-   constexpr std::array<uint32_t, 24> cubeInds = {0, 1, 1, 5, 5, 4, 4, 0, 3, 2, 2, 6,
-                                                  6, 7, 7, 3, 0, 3, 1, 2, 5, 6, 4, 7};
+   constexpr std::array<uint32_t, 26> cubeInds = {0, 1, 1, 5, 5, 4, 4, 0, 3, 2, 2, 6, 6,
+                                                  7, 7, 3, 0, 3, 1, 2, 5, 6, 4, 7, 8, 9};
    const std::vector<Vertex> cubeVertVec(cubeVerts.begin(), cubeVerts.end());
    const std::vector<uint32_t> cubeIndVec(cubeInds.begin(), cubeInds.end());
    m_lineCube = m_resourceManager->LoadMesh("unit_cube", cubeVertVec, cubeIndVec);
