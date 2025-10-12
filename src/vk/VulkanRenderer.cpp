@@ -52,6 +52,11 @@ struct LightsData {
    std::array<LightData, VulkanRenderer::MAX_LIGHTS> lights;
 };
 
+struct GizmoPushConstantData {
+   alignas(16) glm::mat4 model;
+   alignas(16) glm::vec3 color;
+};
+
 VulkanRenderer::VulkanRenderer(Window* windowHandle)
     : IRenderer(windowHandle),
       m_instance(),
@@ -478,16 +483,12 @@ void VulkanRenderer::CreateGizmoPipeline() {
    const VulkanShaderModule fragShader(m_device,
                                        std::string("resources/shaders/vk/gizmo_pass.frag.spv"));
    VkPushConstantRange transformPushConstant{};
-   transformPushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+   transformPushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
    transformPushConstant.offset = 0;
-   transformPushConstant.size = sizeof(glm::mat4);
-   VkPushConstantRange colorPushConstant{};
-   colorPushConstant.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-   colorPushConstant.offset = 0;
-   colorPushConstant.size = sizeof(glm::vec3);
+   transformPushConstant.size = sizeof(glm::mat4) + sizeof(glm::vec3);
    m_gizmoPipelineLayout = std::make_unique<VulkanPipelineLayout>(
       m_device, std::vector<VkDescriptorSetLayout>{m_gizmoDescriptorSetLayout},
-      std::vector<VkPushConstantRange>{transformPushConstant, colorPushConstant});
+      std::vector<VkPushConstantRange>{transformPushConstant});
    // Build pipeline using the builder
    VulkanGraphicsPipelineBuilder builder(m_device);
    builder.SetVertexShader(vertShader.Get())
@@ -520,6 +521,7 @@ void VulkanRenderer::CreateGizmoPipeline() {
    VulkanGraphicsPipeline pipelineObj = builder.Build();
    m_gizmoGraphicsPipeline = std::make_unique<VulkanGraphicsPipeline>(std::move(pipelineObj));
 }
+
 void VulkanRenderer::CreateParticleDescriptorSetLayout() {
    VkDescriptorSetLayoutBinding cameraUboBinding{};
    cameraUboBinding.binding = 0;
@@ -795,16 +797,12 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
             if (!node->IsActive())
                return;
             if (const auto* lightComp = node->GetComponent<LightComponent>()) {
-               // If has position, load it in
-               if (const Transform* worldTransform = node->GetWorldTransform()) {
-                  // Set up transformation matrix for rendering
-                  vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame),
-                                     m_gizmoPipelineLayout->Get(), VK_SHADER_STAGE_VERTEX_BIT, 0,
-                                     sizeof(glm::mat4), &worldTransform->GetTransformMatrix());
-               }
+               GizmoPushConstantData pc{node->GetWorldTransform()->GetTransformMatrix(),
+                                        lightComp->GetColor()};
                vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame),
-                                  m_gizmoPipelineLayout->Get(), VK_SHADER_STAGE_FRAGMENT_BIT,
-                                  sizeof(glm::mat4), sizeof(glm::vec3), &lightComp->GetColor());
+                                  m_gizmoPipelineLayout->Get(),
+                                  VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                                  sizeof(GizmoPushConstantData), &pc);
                if (const IMesh* mesh = m_resourceManager->GetMesh(m_lineCube)) {
                   const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
                   vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
@@ -1378,20 +1376,19 @@ void VulkanRenderer::CreateUtilityMeshes() {
    const std::vector<uint32_t> quadIndVec(quadInds.begin(), quadInds.end());
    m_fullscreenQuad = m_resourceManager->LoadMesh("quad", quadVertVec, quadIndVec);
    // Create wireframe cube for gizmos
-   constexpr std::array<Vertex, 10> cubeVerts = {{
-      // Cube vertices
-      {glm::vec3(-0.5f, -0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(0, 0)},
-      {glm::vec3(0.5f, -0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(1, 0)},
-      {glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(1, 1)},
-      {glm::vec3(-0.5f, 0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(0, 1)},
-      {glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(0, 0)},
-      {glm::vec3(0.5f, -0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(1, 0)},
-      {glm::vec3(0.5f, 0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(1, 1)},
-      {glm::vec3(-0.5f, 0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(0, 1)},
-      // Arrow line vertices
-      {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0, 0, 1), glm::vec2(0, 0)},
-      {glm::vec3(0.0f, 0.0f, -0.8f), glm::vec3(0, 0, -1), glm::vec2(0, 1)}
-   }};
+   constexpr std::array<Vertex, 10> cubeVerts = {
+      {// Cube vertices
+       {glm::vec3(-0.5f, -0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(0, 0)},
+       {glm::vec3(0.5f, -0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(1, 0)},
+       {glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(1, 1)},
+       {glm::vec3(-0.5f, 0.5f, 0.5f), glm::vec3(0, 0, 1), glm::vec2(0, 1)},
+       {glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(0, 0)},
+       {glm::vec3(0.5f, -0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(1, 0)},
+       {glm::vec3(0.5f, 0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(1, 1)},
+       {glm::vec3(-0.5f, 0.5f, -0.5f), glm::vec3(0, 0, -1), glm::vec2(0, 1)},
+       // Arrow line vertices
+       {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0, 0, 1), glm::vec2(0, 0)},
+       {glm::vec3(0.0f, 0.0f, -0.8f), glm::vec3(0, 0, -1), glm::vec2(0, 1)}}};
    constexpr std::array<uint32_t, 26> cubeInds = {0, 1, 1, 5, 5, 4, 4, 0, 3, 2, 2, 6, 6,
                                                   7, 7, 3, 0, 3, 1, 2, 5, 6, 4, 7, 8, 9};
    const std::vector<Vertex> cubeVertVec(cubeVerts.begin(), cubeVerts.end());

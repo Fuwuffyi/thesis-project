@@ -1,6 +1,7 @@
 #version 460
 
 layout(push_constant) uniform GizmoData {
+   mat4 model;
    vec3 color;
 } object;
 
