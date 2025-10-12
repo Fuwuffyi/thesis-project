@@ -45,7 +45,6 @@ GLTexture::GLTexture(const std::string& filepath, const bool generateMipmaps, co
     : m_depth(1), m_format(Format::RGBA8), m_isDepth(false), m_samples(1) {
    glGenTextures(1, &m_id);
    int32_t w = 0, h = 0, channels = 0;
-   stbi_set_flip_vertically_on_load(true);
    unsigned char* data = stbi_load(filepath.c_str(), &w, &h, &channels, 0);
    if (!data) {
       glDeleteTextures(1, &m_id);

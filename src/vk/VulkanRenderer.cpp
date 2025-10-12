@@ -350,7 +350,7 @@ void VulkanRenderer::CreateLightingPass() {
    colorAtt.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
    desc.attachments.push_back(colorAtt);
    AttachmentDescription depthAtt{};
-   depthAtt.format = VK_FORMAT_D32_SFLOAT; // TODO: check
+   depthAtt.format = VK_FORMAT_D32_SFLOAT;
    depthAtt.samples = VK_SAMPLE_COUNT_1_BIT;
    depthAtt.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
    depthAtt.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
