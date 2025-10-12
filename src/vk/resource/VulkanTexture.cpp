@@ -175,7 +175,7 @@ VkFormat VulkanTexture::ConvertFormat(const Format fmt) const {
       case Format::RGBA32F:
          return VK_FORMAT_R32G32B32A32_SFLOAT;
       case Format::Depth24:
-         return VK_FORMAT_D24_UNORM_S8_UINT;
+         return VK_FORMAT_X8_D24_UNORM_PACK32;
       case Format::Depth32F:
          return VK_FORMAT_D32_SFLOAT;
       default:
