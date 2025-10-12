@@ -7,7 +7,7 @@ layout(location = 2) in vec2 aTexCoord;
 layout(location = 3) in mat4 instanceTransform;
 layout(location = 7) in vec4 instanceColor;
 
-layout(set = 0, binding = 0) uniform CameraData {
+layout(std140, set = 0, binding = 0) uniform CameraData {
     mat4 view;
     mat4 proj;
     vec3 viewPos;

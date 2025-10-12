@@ -4,13 +4,13 @@ layout(location = 0) in vec3 fragPos;
 layout(location = 1) in vec3 fragNormal;
 layout(location = 2) in vec2 fragUV;
 
-layout(set = 0, binding = 0) uniform CameraData {
+layout(std140, set = 0, binding = 0) uniform CameraData {
    mat4 view;
    mat4 proj;
    vec3 viewPos;
 } camera;
 
-layout(set = 1, binding = 16) uniform MaterialData {
+layout(std140, set = 1, binding = 16) uniform MaterialData {
    float ao;
    float roughness;
    float metallic;

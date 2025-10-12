@@ -18,14 +18,14 @@ struct LightData {
    float outerCone;
 };
 
-layout(set = 0, binding = 0) uniform CameraData {
+layout(std140, set = 0, binding = 0) uniform CameraData {
    mat4 view;
    mat4 proj;
    vec3 viewPos;
 } camera;
 
 #define MAX_LIGHTS 256
-layout(set = 0, binding = 1) uniform LightsData {
+layout(std140, set = 0, binding = 1) uniform LightsData {
    uint lightCount;
    LightData lights[MAX_LIGHTS];
 } lights;

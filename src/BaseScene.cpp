@@ -420,12 +420,12 @@ void LoadBaseScene(Scene& scene, ResourceManager& resourceManager, const Graphic
       mat->SetParameter("roughness", 0.1f);
       mat->SetParameter("metallic", 0.0f);
    }
-   const auto m28 = resourceManager.CreateMaterial("material_28", "PBR");
+   const auto m28 = resourceManager.CreateMaterial("door_stoneframe_01", "PBR");
    if (const auto mat = resourceManager.GetMaterial(m28)) {
       mat->SetTexture("albedoTexture", t6);
       mat->SetTexture("normalTexture", t102);
-      mat->SetTexture("roughnessTexture", t11);
-      mat->SetTexture("metallicTexture", t16);
+      mat->SetTexture("roughnessTexture", t16);
+      mat->SetTexture("metallicTexture", t15);
    }
    const auto m29 = resourceManager.CreateMaterial("material_29", "PBR");
    if (const auto mat = resourceManager.GetMaterial(m29)) {
