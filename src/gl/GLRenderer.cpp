@@ -186,7 +186,7 @@ void GLRenderer::CreateGeometryFBO() {
 void GLRenderer::CreateLightingFBO() {
    m_lightingFbo.reset();
    m_lightingColorTexture = m_resourceManager->CreateRenderTarget(
-      "lighting_color", m_window->GetWidth(), m_window->GetHeight(), ITexture::Format::RGBA8);
+      "lighting_color", m_window->GetWidth(), m_window->GetHeight(), ITexture::Format::SRGB8_ALPHA8);
    m_lightingDepthTexture = m_resourceManager->CreateDepthTexture(
       "lighting_depth", m_window->GetWidth(), m_window->GetHeight());
    const auto* colorTexPtr =
