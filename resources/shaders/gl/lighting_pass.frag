@@ -135,5 +135,8 @@ void main() {
    // AO
    vec3 ambient = vec3(0.03) * albedo * ao;
    finalColor += ambient;
-   fragColor = vec4(finalColor, 1.0);
+   vec4 tempColor = vec4(finalColor, 1.0);
+   // Gamma correction
+   float gamma = 2.2;
+   fragColor = vec4(pow(tempColor.rgb, vec3(1.0 / gamma)), 1.0);
 }

@@ -1,5 +1,6 @@
 #include "vk/VulkanSwapchain.hpp"
 #include <VkBootstrap.h>
+#include <vulkan/vulkan_core.h>
 
 #include "vk/VulkanDevice.hpp"
 #include "vk/VulkanSurface.hpp"
@@ -80,10 +81,10 @@ void VulkanSwapchain::CreateSwapchain() {
                                            m_surface->Get()};
    const auto swap_ret =
       swapchain_builder
-         .set_desired_format({VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR})
+         .set_desired_format({VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR})
          .set_desired_present_mode(VK_PRESENT_MODE_MAILBOX_KHR)
          .set_desired_extent(m_window->GetWidth(), m_window->GetHeight())
-         .add_fallback_format({VK_FORMAT_R8G8B8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR})
+         .add_fallback_format({VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR})
          .add_fallback_present_mode(VK_PRESENT_MODE_FIFO_KHR)
          .build();
    if (!swap_ret) {
