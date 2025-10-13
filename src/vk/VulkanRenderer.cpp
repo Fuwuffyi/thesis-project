@@ -1202,6 +1202,7 @@ void VulkanRenderer::UpdateDescriptorSets() {
 
 VulkanRenderer::~VulkanRenderer() {
    vkDeviceWaitIdle(m_device.Get());
+   m_resourceManager.reset();
    CleanupSwapchain();
    if (m_materialDescriptorPool != VK_NULL_HANDLE) {
       vkDestroyDescriptorPool(m_device.Get(), m_materialDescriptorPool, nullptr);
