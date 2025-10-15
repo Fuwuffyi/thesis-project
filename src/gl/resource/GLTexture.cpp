@@ -45,7 +45,7 @@ GLTexture::GLTexture(const std::string& filepath, const bool generateMipmaps, co
     : m_depth(1), m_format(Format::RGBA8), m_isDepth(false), m_samples(1) {
    glGenTextures(1, &m_id);
    int32_t w = 0, h = 0, channels = 0;
-   unsigned char* data = stbi_load(filepath.c_str(), &w, &h, &channels, 0);
+   uint8_t* data = stbi_load(filepath.c_str(), &w, &h, &channels, 4);
    if (!data) {
       glDeleteTextures(1, &m_id);
       m_id = 0;
@@ -54,34 +54,8 @@ GLTexture::GLTexture(const std::string& filepath, const bool generateMipmaps, co
    m_width = static_cast<uint32_t>(w);
    m_height = static_cast<uint32_t>(h);
    uint32_t externalFormat = GL_RGBA;
-   uint32_t internalFormat = GL_RGBA8;
-   switch (channels) {
-      case 1:
-         externalFormat = GL_RED;
-         internalFormat = GL_R8;
-         m_format = Format::R8;
-         break;
-      case 2:
-         externalFormat = GL_RG;
-         internalFormat = GL_RG8;
-         m_format = Format::RG8;
-         break;
-      case 3:
-         externalFormat = GL_RGB;
-         internalFormat = sRGB ? GL_SRGB8 : GL_RGB8;
-         m_format = Format::RGB8;
-         break;
-      case 4:
-         externalFormat = GL_RGBA;
-         internalFormat = sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
-         m_format = sRGB ? Format::SRGB8_ALPHA8 : Format::RGBA8;
-         break;
-      default:
-         externalFormat = GL_RGBA;
-         internalFormat = GL_RGBA8;
-         m_format = Format::RGBA8;
-         break;
-   }
+   uint32_t internalFormat = sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+   m_format = sRGB ? Format::SRGB8_ALPHA8 : Format::RGBA8;
    const uint32_t target = GL_TEXTURE_2D;
    glBindTexture(target, m_id);
    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
