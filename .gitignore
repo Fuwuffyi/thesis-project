@@ -70,3 +70,12 @@ compile_commands.json
 
 # ImGUI ini file
 *.ini
+
+# Doxygen output
+docs/
+html/
+latex/
+xml/
+man/
+rtf/
+doxydocs/

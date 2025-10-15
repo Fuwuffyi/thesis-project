@@ -35,6 +35,9 @@ pkgs.mkShell {
     vulkan-headers
     vulkan-validation-layers
     vulkan-tools
+    # Doxygen
+    doxygen
+    graphviz
   ];
 
   LD_LIBRARY_PATH = with pkgs;
