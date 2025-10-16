@@ -6,11 +6,8 @@ A simple C++23 PBR graphics engine that supports **OpenGL 4.6** and **Vulkan 1.4
 
 ## Requirements
 - CMake ≥ 3.25
-- C++23 compatible compiler:
-  - GCC ≥ 13
-  - Clang ≥ 16
-  - MSVC ≥ 2022
-- Vulkan SDK (with `glslangValidator`)
+- C++23 compatible compiler
+- Vulkan SDK 1.4
 - OpenGL 4.6 capable drivers
 
 On Linux, also requires:
@@ -56,3 +53,9 @@ src/
 CMakeLists.txt
 shell.nix
 ```
+
+---
+
+This repository contains the implementation described in my thesis:
+[Thesis on thesis-project-tex](https://github.com/Fuwuffyi/thesis-project-tex)
+
