@@ -17,11 +17,9 @@ On Linux, also requires:
 ---
 
 ## Development Environment (Nix)
-A reproducible build environment is provided with `shell.nix`.
-
-Enter the shell:
+Enter the devenv:
 ```bash
-nix-shell
+nix develop
 ```
 
 Build:
