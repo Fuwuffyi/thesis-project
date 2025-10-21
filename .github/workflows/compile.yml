@@ -1,0 +1,180 @@
+name: Build and Package ThesisProject
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        build_type: [Release]
+    
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      
+      - name: Setup CMake and Ninja
+        uses: lukka/get-cmake@latest
+      
+      # --- Linux dependencies ---
+      - name: Install build deps (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            gcc-14 \
+            g++-14 \
+            cmake \
+            ninja-build \
+            build-essential \
+            glslang-tools \
+            pkg-config \
+            libgl1-mesa-dev \
+            libx11-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxkbcommon-dev \
+            libwayland-dev \
+            wayland-protocols
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+          echo "VULKAN_SDK=/usr" >> $GITHUB_ENV
+
+      - name: Setup MSVC (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: microsoft/setup-msbuild@v2
+
+      # --- Windows Vulkan setup ---
+      - name: Install Vulkan SDK
+        uses: humbletim/setup-vulkan-sdk@v1.2.1
+        with:
+          vulkan-query-version: 1.4.304.1
+          vulkan-components: Vulkan-Headers, Vulkan-Loader, SPIRV-Tools, SPIRV-Headers, Glslang
+          vulkan-use-cache: true
+
+      - name: Add Vulkan SDK to PATH (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          echo "$env:VULKAN_SDK\Bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "Added $env:VULKAN_SDK\Bin to PATH"
+
+      # --- Setup Python ---
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # --- Install Python dependencies ---
+      - name: Install Python dependencies
+        run: python -m pip install jinja2
+
+      - name: Configure project (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cmake -S . -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Configure project (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      # --- Build ---
+      - name: Build project
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel
+
+      # --- Package results ---
+      - name: Prepare release folder (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          mkdir -p release
+          # Copy executable
+          cp build/ThesisProject release/
+          chmod +x release/ThesisProject
+          # Copy resources (shaders, textures, meshes)
+          cp -r build/resources release/
+          # Create simple run script
+          cat > release/run.sh << 'EOF'
+          #!/bin/bash
+          cd "$(dirname "$0")"
+          ./ThesisProject
+          EOF
+          chmod +x release/run.sh
+
+      - name: Prepare release folder (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release
+          # Copy executable
+          Copy-Item build/ThesisProject.exe release/
+          # Copy resources (shaders, textures, meshes)
+          Copy-Item -Recurse build/resources release/
+          # Copy required DLLs if any
+          $dllPaths = @(
+            "$env:VULKAN_SDK\Bin\vulkan-1.dll"
+          )
+          foreach ($dll in $dllPaths) {
+            if (Test-Path $dll) {
+              Copy-Item $dll release/
+            }
+          }
+          # Create simple run script
+          @"
+          @echo off
+          cd /d "%~dp0"
+          ThesisProject.exe
+          pause
+          "@ | Out-File -FilePath release/run.bat -Encoding ASCII
+
+      # --- Create archives ---
+      - name: Create archive (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd release
+          tar czf ../ThesisProject-linux-x64.tar.gz .
+
+      - name: Create archive (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd release
+          Compress-Archive -Path * -DestinationPath ../ThesisProject-windows-x64.zip
+      
+      # --- Upload artifacts ---
+      - name: Upload build artifact (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThesisProject-linux-x64
+          path: ThesisProject-linux-x64.tar.gz
+          retention-days: 30
+      
+      - name: Upload build artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThesisProject-windows-x64
+          path: ThesisProject-windows-x64.zip
+          retention-days: 30
+      
+      # --- Create GitHub Release ---
+      - name: Create Release
+        if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Build ${{ github.run_number }}
+          draft: false
+          prerelease: true
+          files: |
+            ThesisProject-*.tar.gz
+            ThesisProject-*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
