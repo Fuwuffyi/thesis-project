@@ -10,19 +10,13 @@ class TransformComponent final : public Component {
 
    void DrawInspector(Node* const node) override;
 
-   [[nodiscard]] constexpr const glm::vec3& GetPosition() const noexcept {
-      return m_transform.GetPosition();
-   }
+   [[nodiscard]] const glm::vec3& GetPosition() const noexcept;
    void SetPosition(const glm::vec3& newPos);
 
-   [[nodiscard]] constexpr const glm::vec3& GetRotation() const noexcept {
-      return m_transform.GetEulerAngles();
-   }
+   [[nodiscard]] const glm::vec3& GetRotation() const noexcept;
    void SetRotation(const glm::vec3& newRotation);
 
-   [[nodiscard]] constexpr const glm::vec3& GetScale() const noexcept {
-      return m_transform.GetScale();
-   }
+   [[nodiscard]] const glm::vec3& GetScale() const noexcept;
    void SetScale(const glm::vec3& newScale);
 
    [[nodiscard]] constexpr const Transform& GetTransform() const noexcept { return m_transform; }

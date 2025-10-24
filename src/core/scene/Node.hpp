@@ -6,6 +6,7 @@
 #include <typeindex>
 #include <memory>
 #include <ranges>
+#include <string>
 
 class Transform;
 class Component;

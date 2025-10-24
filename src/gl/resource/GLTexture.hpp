@@ -31,9 +31,7 @@ class GLTexture final : public ITexture {
    [[nodiscard]] constexpr uint32_t GetDepth() const noexcept override { return m_depth; }
    [[nodiscard]] constexpr Format GetFormat() const noexcept override { return m_format; }
    void Bind(const uint32_t unit = 0) const noexcept override;
-   [[nodiscard]] constexpr void* GetNativeHandle() const noexcept override {
-      return reinterpret_cast<void*>(static_cast<uintptr_t>(m_id));
-   }
+   [[nodiscard]] void* GetNativeHandle() const noexcept override;
 
    [[nodiscard]] constexpr uint32_t GetId() const noexcept { return m_id; }
 

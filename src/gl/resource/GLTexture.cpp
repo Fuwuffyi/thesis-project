@@ -169,6 +169,10 @@ void GLTexture::Bind(const uint32_t unit) const noexcept {
    glBindTexture(ConvertTarget(), m_id);
 }
 
+void* GLTexture::GetNativeHandle() const noexcept {
+   return reinterpret_cast<void*>(static_cast<uintptr_t>(m_id));
+}
+
 void GLTexture::CreateStorage() {
    assert(m_id != 0);
    const uint32_t target = ConvertTarget();

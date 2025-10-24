@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 #include <memory>
-#include <string_view>
+#include <string>
 
 class Node;
 class MaterialEditor;
@@ -46,7 +46,7 @@ class Scene final {
 
    // Scene management
    void Clear();
-   [[nodiscard]] constexpr size_t GetNodeCount() const noexcept { return m_nodeRegistry.size(); }
+   [[nodiscard]] size_t GetNodeCount() const noexcept;
 
    // Utility
    [[nodiscard]] constexpr const std::string& GetName() const noexcept { return m_name; }

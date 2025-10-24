@@ -254,6 +254,8 @@ void Scene::Clear() {
    m_nodeCounter = 0;
 }
 
+size_t Scene::GetNodeCount() const noexcept { return m_nodeRegistry.size(); }
+
 void Scene::SetName(std::string name) { m_name = std::move(name); }
 
 void Scene::RegisterNode(const Node* const node) {

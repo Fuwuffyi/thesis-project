@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_C_STANDARD 23)
-set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD_REQUIRED OFF)
 set(CMAKE_C_EXTENSIONS OFF)
 
 # Log compiler
@@ -144,11 +144,11 @@ endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
    # MSVC specific settings
    add_compile_options(
-      /W4
+      /W0
       /permissive-
       /Zc:__cplusplus
       /Zc:preprocessor
-      /utf-8
+      /source-charset:utf-8
       /w14242
       /w14254
       /w14263
