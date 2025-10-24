@@ -24,11 +24,22 @@ file(GLOB_RECURSE SOURCE_FILES
 )
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-add_dependencies(${PROJECT_NAME} compile_shaders)
+add_dependencies(${PROJECT_NAME}
+   compile_shaders
+   copy_textures
+   copy_meshes
+   copy_gl_shaders
+)
 
 # Setup resource copying
-set(TEXTURE_DIR "${CMAKE_SOURCE_DIR}/resources/textures")
-set(TEXTURE_OUT_DIR "${CMAKE_BINARY_DIR}/resources/textures")
+if(CMAKE_CONFIGURATION_TYPES)  # Multi-config (Visual Studio, Xcode)
+   set(RESOURCE_OUT_ROOT "${CMAKE_BINARY_DIR}/$<CONFIG>")
+else()  # Single-config (Makefile, Ninja)
+   set(RESOURCE_OUT_ROOT "${CMAKE_BINARY_DIR}")
+endif()
+
+set(TEXTURE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resources/textures")
+set(TEXTURE_OUT_DIR "${RESOURCE_OUT_ROOT}/resources/textures")
 file(GLOB_RECURSE TEXTURE_FILES
    "${TEXTURE_DIR}/*.png"
    "${TEXTURE_DIR}/*.jpg"
@@ -50,8 +61,8 @@ foreach(TEXTURE_FILE ${TEXTURE_FILES})
 endforeach()
 add_custom_target(copy_textures ALL DEPENDS ${COPIED_TEXTURE_FILES})
 
-set(MESH_DIR "${CMAKE_SOURCE_DIR}/resources/meshes")
-set(MESH_OUT_DIR "${CMAKE_BINARY_DIR}/resources/meshes")
+set(MESH_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resources/meshes")
+set(MESH_OUT_DIR "${RESOURCE_OUT_ROOT}/resources/meshes")
 file(GLOB_RECURSE MESH_FILES
    "${MESH_DIR}/*.obj"
    "${MESH_DIR}/*.fbx"
@@ -73,10 +84,10 @@ endforeach()
 add_custom_target(copy_meshes ALL DEPENDS ${COPIED_MESH_FILES})
 
 # Setup shader compilation
-set(GL_SHADER_SOURCE_DIR "${CMAKE_SOURCE_DIR}/resources/shaders/gl")
-set(VK_SHADER_SOURCE_DIR "${CMAKE_SOURCE_DIR}/resources/shaders/vk")
-set(GL_SHADER_BINARY_DIR "${CMAKE_BINARY_DIR}/resources/shaders/gl")
-set(VK_SHADER_BINARY_DIR "${CMAKE_BINARY_DIR}/resources/shaders/vk")
+set(GL_SHADER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/gl")
+set(VK_SHADER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/vk")
+set(GL_SHADER_BINARY_DIR "${RESOURCE_OUT_ROOT}/resources/shaders/gl")
+set(VK_SHADER_BINARY_DIR "${RESOURCE_OUT_ROOT}/resources/shaders/vk")
 
 file(GLOB_RECURSE GL_GLSL_SHADERS
    "${GL_SHADER_SOURCE_DIR}/*.vert"
