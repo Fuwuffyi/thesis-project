@@ -16,10 +16,15 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-      
+
+      - name: Setup Git LFS
+        run: |
+          git lfs install
+          git lfs pull
+
       - name: Setup CMake and Ninja
         uses: lukka/get-cmake@latest
-      
+
       # --- Linux dependencies ---
       - name: Install build deps (Linux)
         if: matrix.os == 'ubuntu-latest'
