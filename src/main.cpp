@@ -1,3 +1,6 @@
+#include "core/system/PerformanceLogger.hpp"
+#include "core/system/SystemInfo.hpp"
+
 #include "core/GraphicsAPI.hpp"
 #include "core/RendererFactory.hpp"
 #include "core/Window.hpp"
@@ -50,6 +53,14 @@ int main(int argc, char* argv[]) {
       // Create the renderer
       std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api, &window);
       float deltaTime = 0.0f;
+
+      // Create logger
+      PerformanceLogger perfLogger("benchmark_results");
+      PerformanceLogger::SystemInfo systemInfo =
+         SystemInfo::BuildSystemInfo(api, window, nullptr); // TODO: Pass vk ptr
+
+      // Start logger
+      perfLogger.StartSession("test_scene", systemInfo);
 
       // Create the scene
       ResourceManager* resourceManager = renderer->GetResourceManager();
@@ -156,14 +167,47 @@ int main(int argc, char* argv[]) {
 
       // Main loop
       auto lastTime = std::chrono::high_resolution_clock::now();
+      auto cpuStartTime = lastTime;
       while (!window.ShouldClose()) {
          const auto currentTime = std::chrono::high_resolution_clock::now();
          deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
          lastTime = currentTime;
 
          window.PollEvents();
+
+         cpuStartTime = std::chrono::high_resolution_clock::now();
+
          renderer->RenderFrame();
+
+         // Calculate CPU time (approximate)
+         auto cpuEndTime = std::chrono::high_resolution_clock::now();
+         const float cpuTimeMs =
+            std::chrono::duration<float, std::milli>(cpuEndTime - cpuStartTime).count();
+
+         // Build frame metrics
+         PerformanceLogger::FrameMetrics metrics;
+         metrics.frameTimeMs = deltaTime * 1000.0f;
+         metrics.cpuTimeMs = cpuTimeMs;
+         metrics.gpuTimeMs = metrics.frameTimeMs - cpuTimeMs; // Approximation
+
+         metrics.systemMemUsageMB = SystemInfo::GetSystemMemoryUsageMB();
+
+         if (api == GraphicsAPI::Vulkan && nullptr) {
+            const auto* device = static_cast<const VulkanDevice*>(nullptr);
+            metrics.vramUsageMB = SystemInfo::GetVulkanMemoryUsageMB(*device);
+            metrics.gpuUtilization = SystemInfo::GetVulkanGPUUtilization(*device);
+         } else if (api == GraphicsAPI::OpenGL) {
+            metrics.vramUsageMB = SystemInfo::GetOpenGLMemoryUsageMB();
+            metrics.gpuUtilization = SystemInfo::GetOpenGLGPUUtilization();
+         }
+
+         metrics.cpuUtilization = SystemInfo::GetCPUUtilization();
+
+         perfLogger.LogFrame(metrics);
       }
+
+      // End logger
+      perfLogger.EndSession();
    } catch (const std::exception& err) {
       std::println("Error: {}", err.what());
       return EXIT_FAILURE;
