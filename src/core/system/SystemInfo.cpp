@@ -7,16 +7,20 @@
 #include <sstream>
 #include <cstring>
 
+
 #ifdef _WIN32
 #include <windows.h>
 #include <pdh.h>
 #include <pdhmsg.h>
+#include <psapi.h>
 #pragma comment(lib, "pdh.lib")
+#pragma comment(lib, "psapi.lib")
 #elif __linux__
 #include <fstream>
 #include <unistd.h>
 #include <sys/sysinfo.h>
 #endif
+
 
 #include <glad/gl.h>
 #include <vulkan/vulkan.h>
@@ -91,7 +95,7 @@ float GetCPUUtilization() {
    static PDH_HCOUNTER counter = nullptr;
    if (!query) {
       PdhOpenQuery(nullptr, 0, &query);
-      PdhAddEnglishCounter(query, L"\\Processor(_Total)\\% Processor Time", 0, &counter);
+      PdhAddEnglishCounterW(query, L"\\Processor(_Total)\\% Processor Time", 0, &counter);
       PdhCollectQueryData(query);
    }
    PDH_FMT_COUNTERVALUE value;
