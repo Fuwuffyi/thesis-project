@@ -192,7 +192,7 @@ int main(int argc, char* argv[]) {
 
          metrics.systemMemUsageMB = SystemInfo::GetSystemMemoryUsageMB();
 
-         if (api == GraphicsAPI::Vulkan && nullptr) {
+         if (api == GraphicsAPI::Vulkan && nullptr) { // TODO: pass vk device instead of nullptr
             const auto* device = static_cast<const VulkanDevice*>(nullptr);
             metrics.vramUsageMB = SystemInfo::GetVulkanMemoryUsageMB(*device);
             metrics.gpuUtilization = SystemInfo::GetVulkanGPUUtilization(*device);
