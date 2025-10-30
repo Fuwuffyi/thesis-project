@@ -73,6 +73,15 @@ class VulkanRenderer : public IRenderer {
    void CreateCommandBuffers();
    void RecordCommandBuffer(const uint32_t imageIndex);
    void RenderParticlesInstanced(const uint32_t imageIndex);
+
+   void RenderGeometryPass(const VkViewport& viewport, const VkRect2D& scissor);
+   void TransitionGBufferLayouts();
+   void RenderLightingPass(const uint32_t imageIndex, const VkViewport& viewport,
+                           const VkRect2D& scissor);
+   void RenderGizmoPass(const VkViewport& viewport, const VkRect2D& scissor);
+   void RenderParticlePass(const uint32_t imageIndex, const VkViewport& viewport,
+                           const VkRect2D& scissor);
+   void ResizeParticleBuffers(const size_t newCapacity);
    // Functions to set up synchronization for drawing
    void CreateSynchronizationObjects();
    // Functions to setup swapchain recreation

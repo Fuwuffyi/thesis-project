@@ -104,12 +104,60 @@ void VulkanCommandBuffers::BindDescriptorSets(const VulkanPipelineLayout& layout
                            descriptorSets.size(), descriptorSets.data(), 0, nullptr);
 }
 
+void VulkanCommandBuffers::BindDescriptorSet(const VulkanPipelineLayout& layout,
+                                             const uint32_t firstSet,
+                                             const VkDescriptorSet& descriptorSet,
+                                             const VkPipelineBindPoint bindPoint,
+                                             const uint32_t index) {
+   vkCmdBindDescriptorSets(m_commandBuffers[index], bindPoint, layout.Get(), firstSet, 1,
+                           &descriptorSet, 0, nullptr);
+}
+
 void VulkanCommandBuffers::SetViewport(const VkViewport& viewport, const uint32_t index) {
    vkCmdSetViewport(m_commandBuffers[index], 0, 1, &viewport);
 }
 
 void VulkanCommandBuffers::SetScissor(const VkRect2D& scissor, const uint32_t index) {
    vkCmdSetScissor(m_commandBuffers[index], 0, 1, &scissor);
+}
+
+void VulkanCommandBuffers::PushConstants(const VulkanPipelineLayout& layout,
+                                         const VkShaderStageFlags stageFlags, const uint32_t offset,
+                                         const uint32_t size, const void* pValues,
+                                         const uint32_t index) {
+   vkCmdPushConstants(m_commandBuffers[index], layout.Get(), stageFlags, offset, size, pValues);
+}
+
+void VulkanCommandBuffers::BindVertexBuffers(const uint32_t firstBinding,
+                                             const std::vector<VkBuffer>& buffers,
+                                             const std::vector<VkDeviceSize>& offsets,
+                                             const uint32_t index) {
+   vkCmdBindVertexBuffers(m_commandBuffers[index], firstBinding,
+                          static_cast<uint32_t>(buffers.size()), buffers.data(), offsets.data());
+}
+
+void VulkanCommandBuffers::BindIndexBuffer(const VkBuffer buffer, const VkDeviceSize offset,
+                                           const VkIndexType indexType, const uint32_t index) {
+   vkCmdBindIndexBuffer(m_commandBuffers[index], buffer, offset, indexType);
+}
+
+void VulkanCommandBuffers::DrawIndexed(const uint32_t indexCount, const uint32_t instanceCount,
+                                       const uint32_t firstIndex, const int32_t vertexOffset,
+                                       const uint32_t firstInstance, const uint32_t index) {
+   vkCmdDrawIndexed(m_commandBuffers[index], indexCount, instanceCount, firstIndex, vertexOffset,
+                    firstInstance);
+}
+
+void VulkanCommandBuffers::PipelineBarrier(
+   const VkPipelineStageFlags srcStageMask, const VkPipelineStageFlags dstStageMask,
+   const VkDependencyFlags dependencyFlags, const std::vector<VkMemoryBarrier>& memoryBarriers,
+   const std::vector<VkBufferMemoryBarrier>& bufferMemoryBarriers,
+   const std::vector<VkImageMemoryBarrier>& imageMemoryBarriers, const uint32_t index) {
+   vkCmdPipelineBarrier(
+      m_commandBuffers[index], srcStageMask, dstStageMask, dependencyFlags,
+      static_cast<uint32_t>(memoryBarriers.size()), memoryBarriers.data(),
+      static_cast<uint32_t>(bufferMemoryBarriers.size()), bufferMemoryBarriers.data(),
+      static_cast<uint32_t>(imageMemoryBarriers.size()), imageMemoryBarriers.data());
 }
 
 void VulkanCommandBuffers::ExecuteImmediate(
@@ -124,7 +172,6 @@ void VulkanCommandBuffers::ExecuteImmediate(
    if (vkAllocateCommandBuffers(device.Get(), &allocInfo, &commandBuffer) != VK_SUCCESS) {
       throw std::runtime_error("Failed to allocate command buffer for immediate execution.");
    }
-
    VkCommandBufferBeginInfo beginInfo{};
    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;

@@ -28,6 +28,17 @@ class VulkanBuffer {
    VulkanBuffer& operator=(VulkanBuffer&& other) noexcept;
 
    void Update(const void* data, const VkDeviceSize size, const VkDeviceSize offset = 0);
+
+   template <typename T>
+   void UpdateTyped(const T& data, const VkDeviceSize offset = 0) {
+      Update(&data, sizeof(T), offset);
+   }
+
+   template <typename T>
+   void UpdateArray(const T* data, const size_t count, const VkDeviceSize offset = 0) {
+      Update(data, sizeof(T) * count, offset);
+   }
+
    void* Map();
    void Unmap();
 

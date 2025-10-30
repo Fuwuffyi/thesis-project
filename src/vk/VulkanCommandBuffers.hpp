@@ -38,8 +38,41 @@ class VulkanCommandBuffers {
                            const VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
                            const uint32_t index = 0);
 
+   void BindDescriptorSet(const VulkanPipelineLayout& layout, const uint32_t firstSet,
+                          const VkDescriptorSet& descriptorSet,
+                          const VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          const uint32_t index = 0);
+
    void SetViewport(const VkViewport& viewport, const uint32_t index = 0);
    void SetScissor(const VkRect2D& scissor, const uint32_t index = 0);
+
+   void PushConstants(const VulkanPipelineLayout& layout, const VkShaderStageFlags stageFlags,
+                      const uint32_t offset, const uint32_t size, const void* pValues,
+                      const uint32_t index = 0);
+
+   template <typename T>
+   void PushConstantsTyped(const VulkanPipelineLayout& layout, const VkShaderStageFlags stageFlags,
+                           const T& data, const uint32_t index = 0) {
+      PushConstants(layout, stageFlags, 0, sizeof(T), &data, index);
+   }
+
+   void BindVertexBuffers(const uint32_t firstBinding, const std::vector<VkBuffer>& buffers,
+                          const std::vector<VkDeviceSize>& offsets, const uint32_t index = 0);
+
+   void BindIndexBuffer(const VkBuffer buffer, const VkDeviceSize offset,
+                        const VkIndexType indexType, const uint32_t index = 0);
+
+   void DrawIndexed(const uint32_t indexCount, const uint32_t instanceCount,
+                    const uint32_t firstIndex, const int32_t vertexOffset,
+                    const uint32_t firstInstance, const uint32_t index = 0);
+
+   void PipelineBarrier(const VkPipelineStageFlags srcStageMask,
+                        const VkPipelineStageFlags dstStageMask,
+                        const VkDependencyFlags dependencyFlags,
+                        const std::vector<VkMemoryBarrier>& memoryBarriers,
+                        const std::vector<VkBufferMemoryBarrier>& bufferMemoryBarriers,
+                        const std::vector<VkImageMemoryBarrier>& imageMemoryBarriers,
+                        const uint32_t index = 0);
 
    static void ExecuteImmediate(const VulkanDevice& device, const VkCommandPool& commandPool,
                                 const VkQueue& queue,

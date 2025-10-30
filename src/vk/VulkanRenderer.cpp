@@ -22,7 +22,6 @@
 
 #include <GLFW/glfw3.h>
 #include <memory>
-#include <print>
 #include <stdexcept>
 #include <vector>
 #include <stb_image.h>
@@ -625,231 +624,253 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    // Setup record
    m_commandBuffers->Begin(0, m_currentFrame);
    // Calculate dynamic viewport and scissor
-   VkViewport viewport{};
-   viewport.x = 0.0f;
-   viewport.y = 0.0f;
-   viewport.width = static_cast<float>(m_swapchain.GetExtent().width);
-   viewport.height = static_cast<float>(m_swapchain.GetExtent().height);
-   viewport.minDepth = 0.0f;
-   viewport.maxDepth = 1.0f;
-   VkRect2D scissor{};
-   scissor.offset = {0, 0};
-   scissor.extent = m_swapchain.GetExtent();
+   const VkViewport viewport{.x = 0.0f,
+                             .y = 0.0f,
+                             .width = static_cast<float>(m_swapchain.GetExtent().width),
+                             .height = static_cast<float>(m_swapchain.GetExtent().height),
+                             .minDepth = 0.0f,
+                             .maxDepth = 1.0f};
+   const VkRect2D scissor{.offset = {0, 0}, .extent = m_swapchain.GetExtent()};
    if (m_activeScene) [[likely]] {
       m_activeScene->UpdateScene(m_deltaTime);
       m_activeScene->UpdateTransforms();
    }
    // GEOMETRY PASS
-   {
-      std::vector<VkClearValue> clearValues(3);
-      clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-      clearValues[1].color = {{0.5f, 0.5f, 1.0f, 0.0f}};
-      clearValues[2].depthStencil = {1.0f, 0};
-      m_commandBuffers->BeginRenderPass(*m_geometryRenderPass,
-                                        m_geometryFramebuffers[m_currentFrame],
-                                        m_swapchain.GetExtent(), clearValues, m_currentFrame);
-      m_commandBuffers->BindPipeline(m_geometryGraphicsPipeline->GetPipeline(),
-                                     VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
-      vkCmdBindDescriptorSets(m_commandBuffers->Get(m_currentFrame),
-                              VK_PIPELINE_BIND_POINT_GRAPHICS, m_geometryPipelineLayout->Get(), 0,
-                              1, &m_geometryDescriptorSets[m_currentFrame], 0, nullptr);
-      m_commandBuffers->SetViewport(viewport, m_currentFrame);
-      m_commandBuffers->SetScissor(scissor, m_currentFrame);
-      // Draw the scene
-      if (m_activeScene) {
-         // Update transforms
-         m_activeScene->ForEachNode([&](const Node* node) {
-            // Skip inactive nodes
-            if (!node->IsActive())
-               return;
-            if (const auto* renderer = node->GetComponent<RendererComponent>()) {
-               // If not visible, do not render
-               if (!renderer->IsVisible() || !renderer->HasMesh())
-                  return;
-               // If has position, load it in
-               if (const Transform* worldTransform = node->GetWorldTransform()) {
-                  // Set up transformation matrix for rendering
-                  vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame),
-                                     m_geometryPipelineLayout->Get(), VK_SHADER_STAGE_VERTEX_BIT, 0,
-                                     sizeof(glm::mat4), &worldTransform->GetTransformMatrix());
-               }
-               if (IMaterial* material = m_resourceManager->GetMaterial(renderer->GetMaterial())) {
-                  VulkanMaterial* vkMaterial = reinterpret_cast<VulkanMaterial*>(material);
-                  if (vkMaterial->GetDescriptorSet() == VK_NULL_HANDLE) {
-                     vkMaterial->CreateDescriptorSet(m_materialDescriptorPool,
-                                                     m_materialDescriptorSetLayout);
-                  }
-                  vkMaterial->Bind(0, *m_resourceManager);
-                  const VkDescriptorSet materialDescSet = vkMaterial->GetDescriptorSet();
-                  vkCmdBindDescriptorSets(
-                     m_commandBuffers->Get(m_currentFrame), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                     m_geometryPipelineLayout->Get(), 1, 1, &materialDescSet, 0, nullptr);
-               }
-               if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
-                  const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
-                  vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
-               }
-            }
-         });
-      }
-      m_commandBuffers->EndRenderPass(m_currentFrame);
-   }
-   // Transition G-buffer textures from attachment layouts to shader-read-only layouts
-   {
-      std::vector<VkImageMemoryBarrier> layoutTransitions;
-      layoutTransitions.reserve(3);
-      ITexture* albedoTex = m_resourceManager->GetTexture(m_gAlbedoTexture[m_currentFrame]);
-      ITexture* normalTex = m_resourceManager->GetTexture(m_gNormalTexture[m_currentFrame]);
-      ITexture* depthTex = m_resourceManager->GetTexture(m_gDepthTexture[m_currentFrame]);
-      if (albedoTex && normalTex && depthTex) {
-         VulkanTexture* vkAlbedo = reinterpret_cast<VulkanTexture*>(albedoTex);
-         VulkanTexture* vkNormal = reinterpret_cast<VulkanTexture*>(normalTex);
-         VulkanTexture* vkDepth = reinterpret_cast<VulkanTexture*>(depthTex);
-         // Albedo texture transition
-         VkImageMemoryBarrier albedoBarrier{};
-         albedoBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-         albedoBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-         albedoBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-         albedoBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         albedoBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         albedoBarrier.image = vkAlbedo->GetImage();
-         albedoBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-         albedoBarrier.subresourceRange.baseMipLevel = 0;
-         albedoBarrier.subresourceRange.levelCount = 1;
-         albedoBarrier.subresourceRange.baseArrayLayer = 0;
-         albedoBarrier.subresourceRange.layerCount = 1;
-         albedoBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-         albedoBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-         layoutTransitions.push_back(albedoBarrier);
-         // Normal texture transition
-         VkImageMemoryBarrier normalBarrier{};
-         normalBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-         normalBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-         normalBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-         normalBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         normalBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         normalBarrier.image = vkNormal->GetImage();
-         normalBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-         normalBarrier.subresourceRange.baseMipLevel = 0;
-         normalBarrier.subresourceRange.levelCount = 1;
-         normalBarrier.subresourceRange.baseArrayLayer = 0;
-         normalBarrier.subresourceRange.layerCount = 1;
-         normalBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-         normalBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-         layoutTransitions.push_back(normalBarrier);
-         // Depth texture transition
-         VkImageMemoryBarrier depthBarrier{};
-         depthBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-         depthBarrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-         depthBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-         depthBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         depthBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         depthBarrier.image = vkDepth->GetImage();
-         depthBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-         depthBarrier.subresourceRange.baseMipLevel = 0;
-         depthBarrier.subresourceRange.levelCount = 1;
-         depthBarrier.subresourceRange.baseArrayLayer = 0;
-         depthBarrier.subresourceRange.layerCount = 1;
-         depthBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-         depthBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-         layoutTransitions.push_back(depthBarrier);
-         // Execute the pipeline barrier
-         vkCmdPipelineBarrier(m_commandBuffers->Get(m_currentFrame),
-                              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                                 VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, // srcStageMask
-                              VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr,
-                              static_cast<uint32_t>(layoutTransitions.size()),
-                              layoutTransitions.data());
-      }
-   }
+   RenderGeometryPass(viewport, scissor);
+   // Transition G-buffer layouts
+   TransitionGBufferLayouts();
    // LIGHTING PASS
-   {
-      std::vector<VkClearValue> clearValues(2);
-      clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-      clearValues[1].depthStencil = {1.0f, 0};
-      m_commandBuffers->BeginRenderPass(*m_lightingRenderPass, m_lightingFramebuffers[imageIndex],
-                                        m_swapchain.GetExtent(), clearValues, m_currentFrame);
-      m_commandBuffers->BindPipeline(m_lightingGraphicsPipeline->GetPipeline(),
-                                     VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
-      vkCmdBindDescriptorSets(m_commandBuffers->Get(m_currentFrame),
-                              VK_PIPELINE_BIND_POINT_GRAPHICS, m_lightingPipelineLayout->Get(), 0,
-                              1, &m_lightingDescriptorSets[m_currentFrame], 0, nullptr);
-      m_commandBuffers->SetViewport(viewport, m_currentFrame);
-      m_commandBuffers->SetScissor(scissor, m_currentFrame);
-
-      if (const IMesh* mesh = m_resourceManager->GetMesh(m_fullscreenQuad)) {
-         const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
-         vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
-      }
-   }
+   RenderLightingPass(imageIndex, viewport, scissor);
    // GIZMO PASS
-   {
-      m_commandBuffers->BindPipeline(m_gizmoGraphicsPipeline->GetPipeline(),
-                                     VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
-      vkCmdBindDescriptorSets(m_commandBuffers->Get(m_currentFrame),
-                              VK_PIPELINE_BIND_POINT_GRAPHICS, m_gizmoPipelineLayout->Get(), 0, 1,
-                              &m_gizmoDescriptorSets[m_currentFrame], 0, nullptr);
-      m_commandBuffers->SetViewport(viewport, m_currentFrame);
-      m_commandBuffers->SetScissor(scissor, m_currentFrame);
-      if (m_activeScene) {
-         m_activeScene->ForEachNode([&](const Node* node) {
-            // Skip inactive nodes
-            if (!node->IsActive())
-               return;
-            if (const auto* lightComp = node->GetComponent<LightComponent>()) {
-               GizmoPushConstantData pc{node->GetWorldTransform()->GetTransformMatrix(),
-                                        lightComp->GetColor()};
-               vkCmdPushConstants(m_commandBuffers->Get(m_currentFrame),
-                                  m_gizmoPipelineLayout->Get(),
-                                  VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-                                  sizeof(GizmoPushConstantData), &pc);
-               if (const IMesh* mesh = m_resourceManager->GetMesh(m_lineCube)) {
-                  const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
-                  vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
-               }
-            }
-         });
-      }
-   }
+   RenderGizmoPass(viewport, scissor);
    // PARTICLE PASS
-   {
-      // Check particle buffer size
-      if (m_activeScene) {
-         uint32_t maxParticles = 0;
-         m_activeScene->ForEachNode([&](const Node* node) {
-            if (auto* ps = node->GetComponent<ParticleSystemComponent>()) {
-               maxParticles = std::max(maxParticles, ps->GetActiveParticleCount());
-            }
-         });
-         if (maxParticles > m_particleInstanceCapacity) {
-            vkDeviceWaitIdle(m_device.Get()); // Wait before reallocation
-            m_particleInstanceCapacity = maxParticles * 2;
-            // Reallocate all buffers
-            for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-               const VkDeviceSize newSize =
-                  m_particleInstanceCapacity * sizeof(ParticleInstanceData);
-               m_particleInstanceBuffers[i] =
-                  std::make_unique<VulkanBuffer>(m_device, newSize, VulkanBuffer::Usage::Vertex,
-                                                 VulkanBuffer::MemoryType::CPUToGPU);
-               m_particleInstanceBuffers[i]->Map();
-            }
-         }
-      }
-      if (m_activeScene) {
-         m_commandBuffers->BindPipeline(m_particleGraphicsPipeline->GetPipeline(),
-                                        VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
-         vkCmdBindDescriptorSets(m_commandBuffers->Get(m_currentFrame),
-                                 VK_PIPELINE_BIND_POINT_GRAPHICS, m_particlePipelineLayout->Get(),
-                                 0, 1, &m_particleDescriptorSets[m_currentFrame], 0, nullptr);
-         m_commandBuffers->SetViewport(viewport, m_currentFrame);
-         m_commandBuffers->SetScissor(scissor, m_currentFrame);
-         RenderParticlesInstanced(imageIndex);
-      }
-   }
+   RenderParticlePass(imageIndex, viewport, scissor);
    // Render ImGUI
    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers->Get(m_currentFrame));
    m_commandBuffers->EndRenderPass(m_currentFrame);
    m_commandBuffers->End(m_currentFrame);
+}
+
+void VulkanRenderer::RenderGeometryPass(const VkViewport& viewport, const VkRect2D& scissor) {
+   const std::vector<VkClearValue> clearValues = {VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
+                                                  VkClearValue{.color = {{0.5f, 0.5f, 1.0f, 0.0f}}},
+                                                  VkClearValue{.depthStencil = {1.0f, 0}}};
+
+   m_commandBuffers->BeginRenderPass(*m_geometryRenderPass, m_geometryFramebuffers[m_currentFrame],
+                                     m_swapchain.GetExtent(), clearValues, m_currentFrame);
+
+   m_commandBuffers->BindPipeline(m_geometryGraphicsPipeline->GetPipeline(),
+                                  VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
+
+   m_commandBuffers->BindDescriptorSet(*m_geometryPipelineLayout, 0,
+                                       m_geometryDescriptorSets[m_currentFrame],
+                                       VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
+
+   m_commandBuffers->SetViewport(viewport, m_currentFrame);
+   m_commandBuffers->SetScissor(scissor, m_currentFrame);
+
+   if (m_activeScene) {
+      m_activeScene->ForEachNode([&](const Node* node) {
+         if (!node->IsActive())
+            return;
+
+         const auto* renderer = node->GetComponent<RendererComponent>();
+         if (!renderer || !renderer->IsVisible() || !renderer->HasMesh())
+            return;
+
+         // Push model matrix
+         if (const Transform* worldTransform = node->GetWorldTransform()) {
+            m_commandBuffers->PushConstantsTyped(
+               *m_geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
+               worldTransform->GetTransformMatrix(), m_currentFrame);
+         }
+
+         // Bind material
+         if (IMaterial* material = m_resourceManager->GetMaterial(renderer->GetMaterial())) {
+            VulkanMaterial* vkMaterial = reinterpret_cast<VulkanMaterial*>(material);
+            if (vkMaterial->GetDescriptorSet() == VK_NULL_HANDLE) {
+               vkMaterial->CreateDescriptorSet(m_materialDescriptorPool,
+                                               m_materialDescriptorSetLayout);
+            }
+            vkMaterial->Bind(0, *m_resourceManager);
+
+            m_commandBuffers->BindDescriptorSet(*m_geometryPipelineLayout, 1,
+                                                vkMaterial->GetDescriptorSet(),
+                                                VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
+         }
+
+         // Draw mesh
+         if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
+            const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
+            vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
+         }
+      });
+   }
+
+   m_commandBuffers->EndRenderPass(m_currentFrame);
+}
+
+void VulkanRenderer::TransitionGBufferLayouts() {
+   ITexture* albedoTex = m_resourceManager->GetTexture(m_gAlbedoTexture[m_currentFrame]);
+   ITexture* normalTex = m_resourceManager->GetTexture(m_gNormalTexture[m_currentFrame]);
+   ITexture* depthTex = m_resourceManager->GetTexture(m_gDepthTexture[m_currentFrame]);
+
+   if (!albedoTex || !normalTex || !depthTex)
+      return;
+
+   VulkanTexture* vkAlbedo = reinterpret_cast<VulkanTexture*>(albedoTex);
+   VulkanTexture* vkNormal = reinterpret_cast<VulkanTexture*>(normalTex);
+   VulkanTexture* vkDepth = reinterpret_cast<VulkanTexture*>(depthTex);
+
+   std::vector<VkImageMemoryBarrier> barriers;
+   barriers.reserve(3);
+
+   // Albedo transition
+   barriers.push_back(
+      VkImageMemoryBarrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                           .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                           .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+                           .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                           .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                           .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                           .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                           .image = vkAlbedo->GetImage(),
+                           .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                                .baseMipLevel = 0,
+                                                .levelCount = 1,
+                                                .baseArrayLayer = 0,
+                                                .layerCount = 1}});
+
+   // Normal transition
+   barriers.push_back(
+      VkImageMemoryBarrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                           .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                           .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+                           .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                           .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                           .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                           .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                           .image = vkNormal->GetImage(),
+                           .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                                .baseMipLevel = 0,
+                                                .levelCount = 1,
+                                                .baseArrayLayer = 0,
+                                                .layerCount = 1}});
+
+   // Depth transition
+   barriers.push_back(
+      VkImageMemoryBarrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                           .srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                           .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+                           .oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                           .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                           .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                           .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                           .image = vkDepth->GetImage(),
+                           .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+                                                .baseMipLevel = 0,
+                                                .levelCount = 1,
+                                                .baseArrayLayer = 0,
+                                                .layerCount = 1}});
+
+   m_commandBuffers->PipelineBarrier(
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+      VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, {}, {}, barriers, m_currentFrame);
+}
+
+void VulkanRenderer::RenderLightingPass(uint32_t imageIndex, const VkViewport& viewport,
+                                        const VkRect2D& scissor) {
+   const std::vector<VkClearValue> clearValues = {VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
+                                                  VkClearValue{.depthStencil = {1.0f, 0}}};
+
+   m_commandBuffers->BeginRenderPass(*m_lightingRenderPass, m_lightingFramebuffers[imageIndex],
+                                     m_swapchain.GetExtent(), clearValues, m_currentFrame);
+
+   m_commandBuffers->BindPipeline(m_lightingGraphicsPipeline->GetPipeline(),
+                                  VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
+
+   m_commandBuffers->BindDescriptorSet(*m_lightingPipelineLayout, 0,
+                                       m_lightingDescriptorSets[m_currentFrame],
+                                       VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
+
+   m_commandBuffers->SetViewport(viewport, m_currentFrame);
+   m_commandBuffers->SetScissor(scissor, m_currentFrame);
+
+   if (const IMesh* mesh = m_resourceManager->GetMesh(m_fullscreenQuad)) {
+      const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
+      vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
+   }
+}
+
+void VulkanRenderer::RenderGizmoPass(const VkViewport& viewport, const VkRect2D& scissor) {
+   m_commandBuffers->BindPipeline(m_gizmoGraphicsPipeline->GetPipeline(),
+                                  VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
+
+   m_commandBuffers->BindDescriptorSet(*m_gizmoPipelineLayout, 0,
+                                       m_gizmoDescriptorSets[m_currentFrame],
+                                       VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
+
+   m_commandBuffers->SetViewport(viewport, m_currentFrame);
+   m_commandBuffers->SetScissor(scissor, m_currentFrame);
+
+   if (!m_activeScene)
+      return;
+
+   m_activeScene->ForEachNode([&](const Node* node) {
+      if (!node->IsActive())
+         return;
+
+      const auto* lightComp = node->GetComponent<LightComponent>();
+      if (!lightComp)
+         return;
+
+      const GizmoPushConstantData pc{.model = node->GetWorldTransform()->GetTransformMatrix(),
+                                     .color = lightComp->GetColor()};
+
+      m_commandBuffers->PushConstantsTyped(
+         *m_gizmoPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, pc,
+         m_currentFrame);
+
+      if (const IMesh* mesh = m_resourceManager->GetMesh(m_lineCube)) {
+         const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
+         vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
+      }
+   });
+}
+
+void VulkanRenderer::RenderParticlePass(const uint32_t imageIndex, const VkViewport& viewport,
+                                        const VkRect2D& scissor) {
+   if (!m_activeScene)
+      return;
+   // Check and resize particle buffers if needed
+   uint32_t maxParticles = 0;
+   m_activeScene->ForEachNode([&](const Node* node) {
+      if (auto* ps = node->GetComponent<ParticleSystemComponent>()) {
+         maxParticles = std::max(maxParticles, ps->GetActiveParticleCount());
+      }
+   });
+   if (maxParticles > m_particleInstanceCapacity) {
+      ResizeParticleBuffers(maxParticles * 2);
+   }
+   m_commandBuffers->BindPipeline(m_particleGraphicsPipeline->GetPipeline(),
+                                  VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
+   m_commandBuffers->BindDescriptorSet(*m_particlePipelineLayout, 0,
+                                       m_particleDescriptorSets[m_currentFrame],
+                                       VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
+   m_commandBuffers->SetViewport(viewport, m_currentFrame);
+   m_commandBuffers->SetScissor(scissor, m_currentFrame);
+   RenderParticlesInstanced(imageIndex);
+}
+
+void VulkanRenderer::ResizeParticleBuffers(const size_t newCapacity) {
+   vkDeviceWaitIdle(m_device.Get());
+   m_particleInstanceCapacity = newCapacity;
+   const VkDeviceSize newSize = m_particleInstanceCapacity * sizeof(ParticleInstanceData);
+   for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+      m_particleInstanceBuffers[i] = std::make_unique<VulkanBuffer>(
+         m_device, newSize, VulkanBuffer::Usage::Vertex, VulkanBuffer::MemoryType::CPUToGPU);
+      m_particleInstanceBuffers[i]->Map();
+   }
 }
 
 void VulkanRenderer::RenderParticlesInstanced(const uint32_t imageIndex) {
@@ -862,7 +883,7 @@ void VulkanRenderer::RenderParticlesInstanced(const uint32_t imageIndex) {
    m_activeScene->ForEachNode([&](const Node* node) {
       if (!node->IsActive())
          return;
-      const auto* particles = node->GetComponent<ParticleSystemComponent>();
+      const ParticleSystemComponent* particles = node->GetComponent<ParticleSystemComponent>();
       if (!particles)
          return;
       const uint32_t activeCount = particles->GetActiveParticleCount();
@@ -870,17 +891,16 @@ void VulkanRenderer::RenderParticlesInstanced(const uint32_t imageIndex) {
          return;
       // Upload instance data
       const auto& instanceData = particles->GetInstanceData();
-      const VkDeviceSize dataSize = activeCount * sizeof(ParticleInstanceData);
-      m_particleInstanceBuffers[m_currentFrame]->Update(instanceData.data(), dataSize);
-      // Bind and draw
-      const VkBuffer vertexBuffers[] = {vkMesh->GetVertexBuffer(),
-                                        m_particleInstanceBuffers[m_currentFrame]->Get()};
-      const VkDeviceSize offsets[] = {0, 0};
-      vkCmdBindVertexBuffers(m_commandBuffers->Get(m_currentFrame), 0, 2, vertexBuffers, offsets);
-      vkCmdBindIndexBuffer(m_commandBuffers->Get(m_currentFrame), vkMesh->GetIndexBuffer(), 0,
-                           vkMesh->GetIndexType());
-      vkCmdDrawIndexed(m_commandBuffers->Get(m_currentFrame),
-                       static_cast<uint32_t>(vkMesh->GetIndexCount()), activeCount, 0, 0, 0);
+      m_particleInstanceBuffers[m_currentFrame]->UpdateArray(instanceData.data(), activeCount);
+      // Bind buffers and draw
+      const std::vector<VkBuffer> vertexBuffers = {
+         vkMesh->GetVertexBuffer(), m_particleInstanceBuffers[m_currentFrame]->Get()};
+      const std::vector<VkDeviceSize> offsets = {0, 0};
+      m_commandBuffers->BindVertexBuffers(0, vertexBuffers, offsets, m_currentFrame);
+      m_commandBuffers->BindIndexBuffer(vkMesh->GetIndexBuffer(), 0, vkMesh->GetIndexType(),
+                                        m_currentFrame);
+      m_commandBuffers->DrawIndexed(static_cast<uint32_t>(vkMesh->GetIndexCount()), activeCount, 0,
+                                    0, 0, m_currentFrame);
    });
 }
 
