@@ -22,6 +22,8 @@ class VulkanCommandBuffers {
    const VkCommandBuffer& Get(const uint32_t index = 0) const;
 
    void Begin(const VkCommandBufferUsageFlags flags = 0, const uint32_t index = 0);
+   void BeginSecondary(const VulkanRenderPass& renderPass, const VkFramebuffer& framebuffer,
+                       const uint32_t subpass = 0, const uint32_t index = 0);
    void End(const uint32_t index = 0);
    void Reset(const uint32_t index = 0);
 
@@ -29,6 +31,9 @@ class VulkanCommandBuffers {
                         const VkExtent2D& extent, const std::vector<VkClearValue>& clearValues,
                         const uint32_t index = 0);
    void EndRenderPass(const uint32_t index = 0);
+
+   void ExecuteCommands(const std::vector<VkCommandBuffer>& secondaryBuffers,
+                        const uint32_t index = 0);
 
    void BindPipeline(const VkPipeline& pipeline,
                      const VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -82,4 +87,5 @@ class VulkanCommandBuffers {
    const VulkanDevice* m_device;
    VkCommandPool m_commandPool = VK_NULL_HANDLE;
    std::vector<VkCommandBuffer> m_commandBuffers;
+   VkCommandBufferLevel m_level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 };

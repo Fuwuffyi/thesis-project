@@ -9,11 +9,14 @@
 VulkanCommandBuffers::VulkanCommandBuffers(const VulkanDevice& device,
                                            const VkCommandPool& commandPool,
                                            const VkCommandBufferLevel level, const uint32_t count)
-    : m_device(&device), m_commandPool(commandPool), m_commandBuffers(count, VK_NULL_HANDLE) {
+    : m_device(&device),
+      m_commandPool(commandPool),
+      m_commandBuffers(count, VK_NULL_HANDLE),
+      m_level(level) {
    VkCommandBufferAllocateInfo allocInfo{};
    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
    allocInfo.commandPool = m_commandPool;
-   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+   allocInfo.level = level;
    allocInfo.commandBufferCount = count;
    if (vkAllocateCommandBuffers(m_device->Get(), &allocInfo, m_commandBuffers.data()) !=
        VK_SUCCESS) {
@@ -26,7 +29,8 @@ VulkanCommandBuffers::~VulkanCommandBuffers() = default;
 VulkanCommandBuffers::VulkanCommandBuffers(VulkanCommandBuffers&& other) noexcept
     : m_device(other.m_device),
       m_commandPool(other.m_commandPool),
-      m_commandBuffers(std::move(other.m_commandBuffers)) {
+      m_commandBuffers(std::move(other.m_commandBuffers)),
+      m_level(other.m_level) {
    other.m_commandBuffers.clear();
    other.m_commandPool = VK_NULL_HANDLE;
    other.m_device = nullptr;
@@ -37,6 +41,7 @@ VulkanCommandBuffers& VulkanCommandBuffers::operator=(VulkanCommandBuffers&& oth
       m_device = other.m_device;
       m_commandPool = other.m_commandPool;
       m_commandBuffers = std::move(other.m_commandBuffers);
+      m_level = other.m_level;
       other.m_commandBuffers.clear();
       other.m_commandPool = VK_NULL_HANDLE;
       other.m_device = nullptr;
@@ -57,6 +62,23 @@ void VulkanCommandBuffers::Begin(const VkCommandBufferUsageFlags flags, const ui
    beginInfo.pInheritanceInfo = nullptr;
    if (vkBeginCommandBuffer(m_commandBuffers[index], &beginInfo) != VK_SUCCESS) {
       throw std::runtime_error("Failed to begin recording command buffer.");
+   }
+}
+
+void VulkanCommandBuffers::BeginSecondary(const VulkanRenderPass& renderPass,
+                                          const VkFramebuffer& framebuffer, const uint32_t subpass,
+                                          const uint32_t index) {
+   VkCommandBufferInheritanceInfo inheritanceInfo{};
+   inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+   inheritanceInfo.renderPass = renderPass.Get();
+   inheritanceInfo.subpass = subpass;
+   inheritanceInfo.framebuffer = framebuffer;
+   VkCommandBufferBeginInfo beginInfo{};
+   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+   beginInfo.pInheritanceInfo = &inheritanceInfo;
+   if (vkBeginCommandBuffer(m_commandBuffers[index], &beginInfo) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to begin recording secondary command buffer.");
    }
 }
 
@@ -83,11 +105,20 @@ void VulkanCommandBuffers::BeginRenderPass(const VulkanRenderPass& renderPass,
    renderPassInfo.renderArea.extent = extent;
    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
    renderPassInfo.pClearValues = clearValues.data();
-   vkCmdBeginRenderPass(m_commandBuffers[index], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+   vkCmdBeginRenderPass(m_commandBuffers[index], &renderPassInfo,
+                        VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 }
 
 void VulkanCommandBuffers::EndRenderPass(const uint32_t index) {
    vkCmdEndRenderPass(m_commandBuffers[index]);
+}
+
+void VulkanCommandBuffers::ExecuteCommands(const std::vector<VkCommandBuffer>& secondaryBuffers,
+                                           const uint32_t index) {
+   if (!secondaryBuffers.empty()) {
+      vkCmdExecuteCommands(m_commandBuffers[index], static_cast<uint32_t>(secondaryBuffers.size()),
+                           secondaryBuffers.data());
+   }
 }
 
 void VulkanCommandBuffers::BindPipeline(const VkPipeline& pipeline,

@@ -97,6 +97,27 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
 
    CreateSynchronizationObjects();
 
+   m_numRenderThreads = std::max(1u, std::thread::hardware_concurrency() - 1);
+   m_threadPool = std::make_unique<ThreadPool>(m_numRenderThreads);
+   m_threadCommandPools.resize(m_numRenderThreads);
+   for (uint32_t i = 0; i < m_numRenderThreads; ++i) {
+      VkCommandPoolCreateInfo poolInfo{};
+      poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+      poolInfo.queueFamilyIndex = m_device.GetGraphicsQueueFamily();
+      poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+      if (vkCreateCommandPool(m_device.Get(), &poolInfo, nullptr, &m_threadCommandPools[i]) !=
+          VK_SUCCESS) {
+         throw std::runtime_error("Failed to create per-thread command pool");
+      }
+   }
+   m_secondaryCommandBuffers.resize(m_numRenderThreads);
+   for (uint32_t i = 0; i < m_numRenderThreads; ++i) {
+      for (uint32_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame) {
+         m_secondaryCommandBuffers[i][frame] = std::make_unique<VulkanCommandBuffers>(
+            m_device, m_threadCommandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+      }
+   }
+
    CreateUtilityMeshes();
    CreateDefaultMaterial();
 
@@ -655,58 +676,99 @@ void VulkanRenderer::RenderGeometryPass(const VkViewport& viewport, const VkRect
    const std::vector<VkClearValue> clearValues = {VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
                                                   VkClearValue{.color = {{0.5f, 0.5f, 1.0f, 0.0f}}},
                                                   VkClearValue{.depthStencil = {1.0f, 0}}};
-
    m_commandBuffers->BeginRenderPass(*m_geometryRenderPass, m_geometryFramebuffers[m_currentFrame],
                                      m_swapchain.GetExtent(), clearValues, m_currentFrame);
-
-   m_commandBuffers->BindPipeline(m_geometryGraphicsPipeline->GetPipeline(),
-                                  VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
-
-   m_commandBuffers->BindDescriptorSet(*m_geometryPipelineLayout, 0,
-                                       m_geometryDescriptorSets[m_currentFrame],
-                                       VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
-
-   m_commandBuffers->SetViewport(viewport, m_currentFrame);
-   m_commandBuffers->SetScissor(scissor, m_currentFrame);
-
-   if (m_activeScene) {
-      m_activeScene->ForEachNode([&](const Node* node) {
-         if (!node->IsActive())
-            return;
-
-         const auto* renderer = node->GetComponent<RendererComponent>();
-         if (!renderer || !renderer->IsVisible() || !renderer->HasMesh())
-            return;
-
-         // Push model matrix
-         if (const Transform* worldTransform = node->GetWorldTransform()) {
-            m_commandBuffers->PushConstantsTyped(
-               *m_geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
-               worldTransform->GetTransformMatrix(), m_currentFrame);
-         }
-
-         // Bind material
-         if (IMaterial* material = m_resourceManager->GetMaterial(renderer->GetMaterial())) {
-            VulkanMaterial* vkMaterial = reinterpret_cast<VulkanMaterial*>(material);
-            if (vkMaterial->GetDescriptorSet() == VK_NULL_HANDLE) {
-               vkMaterial->CreateDescriptorSet(m_materialDescriptorPool,
-                                               m_materialDescriptorSetLayout);
-            }
-            vkMaterial->Bind(0, *m_resourceManager);
-
-            m_commandBuffers->BindDescriptorSet(*m_geometryPipelineLayout, 1,
-                                                vkMaterial->GetDescriptorSet(),
-                                                VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
-         }
-
-         // Draw mesh
-         if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
-            const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
-            vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
-         }
-      });
+   if (!m_activeScene) {
+      m_commandBuffers->EndRenderPass(m_currentFrame);
+      return;
    }
-
+   static std::vector<const Node*> renderableNodes;
+   renderableNodes.clear();
+   renderableNodes.reserve(m_activeScene->GetNodeCount());
+   m_activeScene->ForEachNode([&](const Node* node) {
+      if (!node->IsActive())
+         return;
+      const auto* renderer = node->GetComponent<RendererComponent>();
+      if (renderer && renderer->IsVisible() && renderer->HasMesh()) {
+         renderableNodes.push_back(node);
+      }
+   });
+   const size_t nodesPerThread =
+      (renderableNodes.size() + m_numRenderThreads - 1) / m_numRenderThreads;
+   auto nodesPtr = &renderableNodes;
+   std::vector<std::future<void>> futures;
+   futures.reserve(m_numRenderThreads);
+   for (uint32_t threadIdx = 0; threadIdx < m_numRenderThreads; ++threadIdx) {
+      const size_t startIdx = threadIdx * nodesPerThread;
+      const size_t endIdx = std::min(startIdx + nodesPerThread, renderableNodes.size());
+      if (startIdx >= renderableNodes.size())
+         break;
+      // Each thread works on its own command buffer from its own command pool
+      futures.push_back(
+         m_threadPool->Submit([this, nodesPtr, threadIdx, startIdx, endIdx, viewport, scissor]() {
+            const auto& nodes = *nodesPtr;
+            // Get this thread's command buffer for the current frame
+            auto& cmdBuf = m_secondaryCommandBuffers[threadIdx][m_currentFrame];
+            // Reset command buffer
+            cmdBuf->Reset(0);
+            // Begin secondary command buffer
+            cmdBuf->BeginSecondary(*m_geometryRenderPass, m_geometryFramebuffers[m_currentFrame], 0,
+                                   0);
+            // Bind pipeline and descriptor sets
+            cmdBuf->BindPipeline(m_geometryGraphicsPipeline->GetPipeline(),
+                                 VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
+            cmdBuf->BindDescriptorSet(*m_geometryPipelineLayout, 0,
+                                      m_geometryDescriptorSets[m_currentFrame],
+                                      VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
+            cmdBuf->SetViewport(viewport, 0);
+            cmdBuf->SetScissor(scissor, 0);
+            // Render assigned nodes
+            for (size_t i = startIdx; i < endIdx; ++i) {
+               const Node* node = nodes[i];
+               const auto* renderer = node->GetComponent<RendererComponent>();
+               // Push model matrix
+               if (const Transform* worldTransform = node->GetWorldTransform()) {
+                  cmdBuf->PushConstantsTyped(*m_geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
+                                             worldTransform->GetTransformMatrix(), 0);
+               }
+               // Bind material
+               if (IMaterial* material = m_resourceManager->GetMaterial(renderer->GetMaterial())) {
+                  VulkanMaterial* vkMaterial = reinterpret_cast<VulkanMaterial*>(material);
+                  if (vkMaterial->GetDescriptorSet() == VK_NULL_HANDLE) {
+                     vkMaterial->CreateDescriptorSet(m_materialDescriptorPool,
+                                                     m_materialDescriptorSetLayout);
+                  }
+                  vkMaterial->Bind(0, *m_resourceManager);
+                  cmdBuf->BindDescriptorSet(*m_geometryPipelineLayout, 1,
+                                            vkMaterial->GetDescriptorSet(),
+                                            VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
+               }
+               // Draw mesh
+               if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
+                  const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
+                  vkMesh->Draw(cmdBuf->Get(0));
+               }
+            }
+            // End secondary command buffer
+            cmdBuf->End(0);
+         }));
+   }
+   for (auto& future : futures) {
+      future.wait();
+   }
+   // Collect secondary command buffers that were actually used
+   std::vector<VkCommandBuffer> secondaryBuffers;
+   secondaryBuffers.reserve(m_numRenderThreads);
+   for (uint32_t i = 0; i < m_numRenderThreads; ++i) {
+      const size_t startIdx = i * nodesPerThread;
+      if (startIdx < renderableNodes.size()) {
+         secondaryBuffers.push_back(m_secondaryCommandBuffers[i][m_currentFrame]->Get(0));
+      }
+   }
+   // Execute secondary command buffers
+   if (!secondaryBuffers.empty()) {
+      m_commandBuffers->ExecuteCommands(secondaryBuffers, m_currentFrame);
+   }
    m_commandBuffers->EndRenderPass(m_currentFrame);
 }
 
@@ -940,6 +1002,13 @@ void VulkanRenderer::RecreateSwapchain() {
    CreateLightingPass();
    CreateLightingFBO();
    UpdateDescriptorSets();
+   m_secondaryCommandBuffers.resize(m_numRenderThreads);
+   for (uint32_t i = 0; i < m_numRenderThreads; ++i) {
+      for (uint32_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame) {
+         m_secondaryCommandBuffers[i][frame] = std::make_unique<VulkanCommandBuffers>(
+            m_device, m_threadCommandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+      }
+   }
    if (m_activeCamera) {
       m_activeCamera->SetAspectRatio(static_cast<float>(m_swapchain.GetExtent().width) /
                                      static_cast<float>(m_swapchain.GetExtent().height));
@@ -1223,6 +1292,13 @@ void VulkanRenderer::UpdateDescriptorSets() {
 VulkanRenderer::~VulkanRenderer() {
    vkDeviceWaitIdle(m_device.Get());
    m_resourceManager.reset();
+   m_secondaryCommandBuffers.clear();
+   for (VkCommandPool pool : m_threadCommandPools) {
+      if (pool != VK_NULL_HANDLE) {
+         vkDestroyCommandPool(m_device.Get(), pool, nullptr);
+      }
+   }
+   m_threadCommandPools.clear();
    CleanupSwapchain();
    if (m_materialDescriptorPool != VK_NULL_HANDLE) {
       vkDestroyDescriptorPool(m_device.Get(), m_materialDescriptorPool, nullptr);

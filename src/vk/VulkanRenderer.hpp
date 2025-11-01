@@ -10,6 +10,7 @@
 #include "vk/VulkanRenderPass.hpp"
 #include "vk/VulkanBuffer.hpp"
 
+#include "core/ThreadPool.hpp"
 #include "core/editor/MaterialEditor.hpp"
 #include "core/resource/ResourceManager.hpp"
 #include "resource/VulkanTexture.hpp"
@@ -156,7 +157,10 @@ class VulkanRenderer : public IRenderer {
    std::array<std::unique_ptr<VulkanBuffer>, MAX_FRAMES_IN_FLIGHT> m_particleInstanceBuffers;
    size_t m_particleInstanceCapacity{0};
 
-   std::unique_ptr<VulkanCommandBuffers> m_commandBuffers;
+   std::unique_ptr<VulkanCommandBuffers> m_commandBuffers; // Per frame in flight
+   std::vector<VkCommandPool> m_threadCommandPools;
+   std::vector<std::array<std::unique_ptr<VulkanCommandBuffers>, MAX_FRAMES_IN_FLIGHT>>
+      m_secondaryCommandBuffers; // Per thread per frame (per frame in flight)
    std::vector<VkSemaphore> m_imageAvailableSemaphores;
    std::vector<VkSemaphore> m_renderFinishedSemaphores;
    std::vector<VkFence> m_inFlightFences;
@@ -164,4 +168,7 @@ class VulkanRenderer : public IRenderer {
    VkDescriptorPool m_descriptorPool;
    std::unique_ptr<ResourceManager> m_resourceManager;
    std::unique_ptr<MaterialEditor> m_materialEditor;
+
+   std::unique_ptr<ThreadPool> m_threadPool;
+   uint32_t m_numRenderThreads{0};
 };
