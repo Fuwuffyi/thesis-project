@@ -12,6 +12,8 @@
 #include "core/editor/PerformanceGUI.hpp"
 #include "core/editor/MaterialEditor.hpp"
 
+#include "core/system/SystemInfo.hpp"
+
 #include "vk/resource/VulkanMaterial.hpp"
 #include "vk/resource/VulkanMesh.hpp"
 #include "vk/resource/VulkanResourceFactory.hpp"
@@ -1398,6 +1400,7 @@ void VulkanRenderer::RenderFrame() {
    const double currentTime = glfwGetTime();
    m_deltaTime = static_cast<float>(currentTime - m_lastFrameTime);
    m_lastFrameTime = currentTime;
+   const auto cpuFrameStart = std::chrono::high_resolution_clock::now();
    ImGuiIO& io = ImGui::GetIO();
    io.DeltaTime = m_deltaTime;
    // Wait for previous farme
@@ -1456,6 +1459,26 @@ void VulkanRenderer::RenderFrame() {
    }
    // Increase frame counter
    m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+   // End time
+   const auto cpuFrameEnd = std::chrono::high_resolution_clock::now();
+   const float cpuTimeMs =
+      std::chrono::duration<float, std::milli>(cpuFrameEnd - cpuFrameStart).count();
+   // Build performance metrics
+   m_currentFrameMetrics.frameTimeMs = m_deltaTime * 1000.0f;
+   m_currentFrameMetrics.cpuTimeMs = cpuTimeMs;
+   m_currentFrameMetrics.geometryPassMs = m_gpuTimer.GetElapsedMs("GeometryPass");
+   m_currentFrameMetrics.lightingPassMs = m_gpuTimer.GetElapsedMs("LightingPass");
+   m_currentFrameMetrics.gizmoPassMs = m_gpuTimer.GetElapsedMs("GizmoPass");
+   m_currentFrameMetrics.particlePassMs = m_gpuTimer.GetElapsedMs("ParticlePass");
+   m_currentFrameMetrics.imguiPassMs = m_gpuTimer.GetElapsedMs("ImGuiPass");
+   m_currentFrameMetrics.gpuTimeMs =
+      m_currentFrameMetrics.geometryPassMs + m_currentFrameMetrics.lightingPassMs +
+      m_currentFrameMetrics.gizmoPassMs + m_currentFrameMetrics.particlePassMs +
+      m_currentFrameMetrics.imguiPassMs;
+   m_currentFrameMetrics.vramUsageMB = SystemInfoN::GetOpenGLMemoryUsageMB();
+   m_currentFrameMetrics.systemMemUsageMB = SystemInfoN::GetSystemMemoryUsageMB();
+   m_currentFrameMetrics.gpuUtilization = SystemInfoN::GetOpenGLGPUUtilization();
+   m_currentFrameMetrics.cpuUtilization = SystemInfoN::GetCPUUtilization();
 }
 
 ResourceManager* VulkanRenderer::GetResourceManager() const noexcept {

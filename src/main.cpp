@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
       SystemInfo systemInfo = SystemInfoN::BuildSystemInfo(
          api, window,
          api == GraphicsAPI::Vulkan
-            ? dynamic_cast<VulkanRenderer*>(renderer.get())->GetDevice().GetPhysicalDevice()
+            ? &dynamic_cast<VulkanRenderer*>(renderer.get())->GetDevice()
             : nullptr);
       perfLogger.StartSession(scene.GetName(), systemInfo);
 
