@@ -10,6 +10,8 @@
 #include "vk/VulkanRenderPass.hpp"
 #include "vk/VulkanBuffer.hpp"
 
+#include "vk/VulkanGPUTimer.hpp"
+
 #include "core/ThreadPool.hpp"
 #include "core/editor/MaterialEditor.hpp"
 #include "core/resource/ResourceManager.hpp"
@@ -170,6 +172,8 @@ class VulkanRenderer : public IRenderer {
    VkDescriptorPool m_descriptorPool;
    std::unique_ptr<ResourceManager> m_resourceManager;
    std::unique_ptr<MaterialEditor> m_materialEditor;
+
+   VulkanGPUTimer m_gpuTimer;
 
    std::unique_ptr<ThreadPool> m_threadPool;
    uint32_t m_numRenderThreads{0};

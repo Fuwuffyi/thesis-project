@@ -11,6 +11,8 @@
 #include "core/editor/PerformanceGUI.hpp"
 #include "core/resource/ResourceManager.hpp"
 
+#include "core/system/SystemInfo.hpp"
+
 #include "gl/GLFramebuffer.hpp"
 #include "gl/GLRenderPass.hpp"
 #include "gl/GLShader.hpp"
@@ -495,11 +497,13 @@ void GLRenderer::RenderFrame() {
    const double currentTime = glfwGetTime();
    m_deltaTime = static_cast<float>(currentTime - m_lastFrameTime);
    m_lastFrameTime = currentTime;
+   const auto cpuFrameStart = std::chrono::high_resolution_clock::now();
    ImGuiIO& io = ImGui::GetIO();
    io.DeltaTime = m_deltaTime;
    // Update UBOs
    UpdateCameraUBO();
    UpdateLightsUBO();
+   m_gpuTimer.Begin("GeometryPass");
    // Geometry pass
    m_geometryPass->Begin();
    if (m_activeScene) [[likely]] {
@@ -508,28 +512,57 @@ void GLRenderer::RenderFrame() {
       RenderGeometry();
    }
    m_geometryPass->End();
+   m_gpuTimer.End("GeometryPass");
    // Copy depth buffer from G-buffer to lighting framebuffer
    m_gBuffer->BlitTo(*m_lightingFbo, 0, 0, m_window->GetWidth(), m_window->GetHeight(), 0, 0,
                      m_window->GetWidth(), m_window->GetHeight(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
    // Lighting pass
+   m_gpuTimer.Begin("LightingPass");
    m_lightingPass->Begin();
    RenderLighting();
    m_lightingPass->End();
+   m_gpuTimer.End("LightingPass");
    // Gizmo pass
+   m_gpuTimer.Begin("GizmoPass");
    m_gizmoPass->Begin();
    RenderGizmos();
    m_gizmoPass->End();
+   m_gpuTimer.End("GizmoPass");
    // Particle pass
+   m_gpuTimer.Begin("ParticlePass");
    m_particlePass->Begin();
    RenderParticles();
    m_particlePass->End();
+   m_gpuTimer.End("ParticlePass");
    // Blit final result to screen
    m_lightingFbo->BlitToScreen(m_window->GetWidth(), m_window->GetHeight(), GL_COLOR_BUFFER_BIT,
                                GL_NEAREST);
    // Render UI
+   m_gpuTimer.Begin("ImGuiPass");
    RenderImgui();
+   m_gpuTimer.End("ImGuiPass");
    // Swap buffers
    glfwSwapBuffers(m_window->GetNativeWindow());
+   // End time
+   const auto cpuFrameEnd = std::chrono::high_resolution_clock::now();
+   const float cpuTimeMs =
+      std::chrono::duration<float, std::milli>(cpuFrameEnd - cpuFrameStart).count();
+   // Build performance metrics
+   m_currentFrameMetrics.frameTimeMs = m_deltaTime * 1000.0f;
+   m_currentFrameMetrics.cpuTimeMs = cpuTimeMs;
+   m_currentFrameMetrics.geometryPassMs = m_gpuTimer.GetElapsedMs("GeometryPass");
+   m_currentFrameMetrics.lightingPassMs = m_gpuTimer.GetElapsedMs("LightingPass");
+   m_currentFrameMetrics.gizmoPassMs = m_gpuTimer.GetElapsedMs("GizmoPass");
+   m_currentFrameMetrics.particlePassMs = m_gpuTimer.GetElapsedMs("ParticlePass");
+   m_currentFrameMetrics.imguiPassMs = m_gpuTimer.GetElapsedMs("ImGuiPass");
+   m_currentFrameMetrics.gpuTimeMs =
+      m_currentFrameMetrics.geometryPassMs + m_currentFrameMetrics.lightingPassMs +
+      m_currentFrameMetrics.gizmoPassMs + m_currentFrameMetrics.particlePassMs +
+      m_currentFrameMetrics.imguiPassMs;
+   m_currentFrameMetrics.vramUsageMB = SystemInfoN::GetOpenGLMemoryUsageMB();
+   m_currentFrameMetrics.systemMemUsageMB = SystemInfoN::GetSystemMemoryUsageMB();
+   m_currentFrameMetrics.gpuUtilization = SystemInfoN::GetOpenGLGPUUtilization();
+   m_currentFrameMetrics.cpuUtilization = SystemInfoN::GetCPUUtilization();
 }
 
 ResourceManager* GLRenderer::GetResourceManager() const noexcept { return m_resourceManager.get(); }

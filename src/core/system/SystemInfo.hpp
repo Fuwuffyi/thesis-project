@@ -1,13 +1,12 @@
 #pragma once
 
 #include "core/GraphicsAPI.hpp"
+#include "core/system/PerformanceMetrics.hpp"
 
 #include <string>
 
 class Window;
 class VulkanDevice;
-
-struct SystemInfo;
 
 namespace SystemInfoN {
 

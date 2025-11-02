@@ -1,7 +1,6 @@
 #include "core/system/SystemInfo.hpp"
 
 #include "core/Window.hpp"
-#include "core/system/PerformanceMetrics.hpp"
 #include "vk/VulkanDevice.hpp"
 
 #include <thread>

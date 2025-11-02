@@ -6,6 +6,7 @@
 #include "core/resource/ITexture.hpp"
 
 #include "gl/GLBuffer.hpp"
+#include "gl/GLGPUTimer.hpp"
 
 #include <memory>
 
@@ -91,6 +92,8 @@ class GLRenderer : public IRenderer {
    std::unique_ptr<GLShader> m_particlePassShader;
    std::unique_ptr<GLBuffer> m_particleInstanceVBO;
    size_t m_particleInstanceCapacity{0};
+   // Timer
+   GLGPUTimer m_gpuTimer;
    // ResourceManager
    std::unique_ptr<ResourceManager> m_resourceManager;
    std::unique_ptr<MaterialEditor> m_materialEditor;

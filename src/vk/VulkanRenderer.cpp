@@ -61,6 +61,7 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
       m_instance(),
       m_surface(m_instance, m_window->GetNativeWindow()),
       m_device(m_instance, m_surface),
+      m_gpuTimer(m_device),
       m_swapchain(m_device, m_surface, *m_window) {
    m_resourceManager =
       std::make_unique<ResourceManager>(std::make_unique<VulkanResourceFactory>(m_device));
