@@ -682,8 +682,8 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    m_gpuTimer.Begin("ImGuiPass");
    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers->Get(m_currentFrame));
    m_commandBuffers->EndRenderPass(m_currentFrame);
-   m_commandBuffers->End(m_currentFrame);
    m_gpuTimer.End("ImGuiPass");
+   m_commandBuffers->End(m_currentFrame);
 }
 
 void VulkanRenderer::RenderGeometryPass(const VkViewport& viewport, const VkRect2D& scissor) {
