@@ -659,20 +659,31 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
       m_activeScene->UpdateScene(m_deltaTime);
       m_activeScene->UpdateTransforms();
    }
+   m_gpuTimer.BeginFrame(m_commandBuffers->Get(m_currentFrame), m_currentFrame);
    // GEOMETRY PASS
+   m_gpuTimer.Begin("GeometryPass");
    RenderGeometryPass(viewport, scissor);
+   m_gpuTimer.End("GeometryPass");
    // Transition G-buffer layouts
    TransitionGBufferLayouts();
    // LIGHTING PASS
+   m_gpuTimer.Begin("LightingPass");
    RenderLightingPass(imageIndex, viewport, scissor);
+   m_gpuTimer.End("LightingPass");
    // GIZMO PASS
+   m_gpuTimer.Begin("GizmoPass");
    RenderGizmoPass(viewport, scissor);
+   m_gpuTimer.End("GizmoPass");
    // PARTICLE PASS
+   m_gpuTimer.Begin("ParticlePass");
    RenderParticlePass(imageIndex, viewport, scissor);
+   m_gpuTimer.End("ParticlePass");
    // Render ImGUI
+   m_gpuTimer.Begin("ImGuiPass");
    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_commandBuffers->Get(m_currentFrame));
    m_commandBuffers->EndRenderPass(m_currentFrame);
    m_commandBuffers->End(m_currentFrame);
+   m_gpuTimer.End("ImGuiPass");
 }
 
 void VulkanRenderer::RenderGeometryPass(const VkViewport& viewport, const VkRect2D& scissor) {
@@ -1405,6 +1416,7 @@ void VulkanRenderer::RenderFrame() {
    io.DeltaTime = m_deltaTime;
    // Wait for previous farme
    vkWaitForFences(m_device.Get(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+   m_gpuTimer.EndFrame(m_currentFrame);
    // Get the next image of the swapchain
    uint32_t imageIndex;
    const VkResult nextImageResult = m_swapchain.AcquireNextImage(
@@ -1475,9 +1487,9 @@ void VulkanRenderer::RenderFrame() {
       m_currentFrameMetrics.geometryPassMs + m_currentFrameMetrics.lightingPassMs +
       m_currentFrameMetrics.gizmoPassMs + m_currentFrameMetrics.particlePassMs +
       m_currentFrameMetrics.imguiPassMs;
-   m_currentFrameMetrics.vramUsageMB = SystemInfoN::GetOpenGLMemoryUsageMB();
+   m_currentFrameMetrics.vramUsageMB = SystemInfoN::GetVulkanMemoryUsageMB(m_device);
    m_currentFrameMetrics.systemMemUsageMB = SystemInfoN::GetSystemMemoryUsageMB();
-   m_currentFrameMetrics.gpuUtilization = SystemInfoN::GetOpenGLGPUUtilization();
+   m_currentFrameMetrics.gpuUtilization = SystemInfoN::GetVulkanGPUUtilization(m_device);
    m_currentFrameMetrics.cpuUtilization = SystemInfoN::GetCPUUtilization();
 }
 

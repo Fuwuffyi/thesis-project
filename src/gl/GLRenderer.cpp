@@ -20,7 +20,6 @@
 #include "gl/resource/GLResourceFactory.hpp"
 
 #include <print>
-
 #include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -500,6 +499,7 @@ void GLRenderer::RenderFrame() {
    m_deltaTime = static_cast<float>(currentTime - m_lastFrameTime);
    m_lastFrameTime = currentTime;
    const auto cpuFrameStart = std::chrono::high_resolution_clock::now();
+   m_gpuTimer.Reset();
    ImGuiIO& io = ImGui::GetIO();
    io.DeltaTime = m_deltaTime;
    // Update UBOs
