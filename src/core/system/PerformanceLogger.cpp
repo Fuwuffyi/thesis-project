@@ -87,7 +87,7 @@ void PerformanceLogger::Flush() {
                          << "," << frame.lightingPassMs << "," << frame.gizmoPassMs << ","
                          << frame.particlePassMs << "," << frame.imguiPassMs << ","
                          << frame.vramUsageMB << "," << frame.systemMemUsageMB << ","
-                         << frame.gpuUtilization << "," << frame.cpuUtilization << "\n";
+                         << frame.cpuUtilization << "\n";
    }
    m_frameMetricsFile.flush();
    m_frameBuffer.clear();
@@ -112,7 +112,7 @@ void PerformanceLogger::WriteFrameMetricsHeader() {
    m_frameMetricsFile << "Frame,FrameTime(ms),CPUTime(ms),GPUTime(ms),FPS,"
                       << "GeometryPass(ms),LightingPass(ms),GizmoPass(ms),"
                       << "ParticlePass(ms),ImGuiPass(ms),"
-                      << "VRAM(MB),SystemMem(MB),GPUUtil(%),CPUUtil(%)\n";
+                      << "VRAM(MB),SystemMem(MB),CPUUtil(%)\n";
 }
 
 void PerformanceLogger::WriteRunSummary() {

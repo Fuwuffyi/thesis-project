@@ -21,7 +21,7 @@ constexpr float kGraphHeight = 80.0f;
 constexpr ImVec2 kGraphSize{0.0f, kGraphHeight};
 
 PerformanceStatistics PerformanceGUI::s_stats{};
-FrameTimeHistory<120> PerformanceGUI::s_history{};
+FrameTimeHistory<1024> PerformanceGUI::s_history{};
 
 void PerformanceGUI::RenderPerformanceGUI(const ResourceManager& resourceManager,
                                           const Scene& scene,
@@ -43,7 +43,7 @@ void PerformanceGUI::RenderPerformanceGUI(const ResourceManager& resourceManager
       ImGui::Separator();
       // CPU/GPU breakdown
       ImGui::Text("CPU: %.3f ms (%.1f%%)", currentMetrics.cpuTimeMs, currentMetrics.cpuUtilization);
-      ImGui::Text("GPU: %.3f ms (%.1f%%)", currentMetrics.gpuTimeMs, currentMetrics.gpuUtilization);
+      ImGui::Text("GPU: %.3f ms", currentMetrics.gpuTimeMs);
       ImGui::Separator();
       DrawMemoryInfo(resourceManager, currentMetrics);
       DrawSceneInfo(scene);
@@ -65,7 +65,7 @@ void PerformanceGUI::RenderPerformanceGUI(const ResourceManager& resourceManager
 
 void PerformanceGUI::ResetStats() noexcept {
    s_stats.Reset();
-   s_history = FrameTimeHistory<120>{};
+   s_history = FrameTimeHistory<1024>{};
 }
 
 constexpr float PerformanceGUI::CalculateMemoryUsageMB(const size_t memoryUsage) noexcept {

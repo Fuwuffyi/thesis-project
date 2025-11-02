@@ -19,7 +19,6 @@ struct PerformanceMetrics {
    size_t vramUsageMB{0};
    size_t systemMemUsageMB{0};
    // Utilization
-   float gpuUtilization{0.0f};
    float cpuUtilization{0.0f};
 
    [[nodiscard]] float GetFPS() const noexcept;
@@ -61,7 +60,7 @@ struct PerformanceStatistics {
 };
 
 // Frame time history for GUI graphing
-template <size_t Size = 120>
+template <size_t Size = 256>
 struct FrameTimeHistory {
    std::array<float, Size> frameTimeHistory{};
    size_t frameTimeIndex{0};

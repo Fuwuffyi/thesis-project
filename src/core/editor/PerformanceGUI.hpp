@@ -21,7 +21,7 @@ class PerformanceGUI final {
    static constexpr float kCriticalMemoryThresholdMB = 4096.0f;
 
    static PerformanceStatistics s_stats;
-   static FrameTimeHistory<120> s_history;
+   static FrameTimeHistory<1024> s_history;
 
    [[nodiscard]] static constexpr float CalculateMemoryUsageMB(const size_t memoryUsage) noexcept;
    static void DrawMemoryInfo(const ResourceManager& resourceManager,

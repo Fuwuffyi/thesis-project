@@ -200,12 +200,6 @@ size_t GetVulkanMemoryUsageMB(const VulkanDevice& device) {
    return stats.total.statistics.allocationBytes / (1024 * 1024);
 }
 
-float GetVulkanGPUUtilization(const VulkanDevice& device) {
-   // GPU utilization is not directly available through Vulkan
-   // Would require platform-specific extensions or external monitoring
-   return 0.0f;
-}
-
 // OpenGL implementations
 std::string GetOpenGLGPUModel() {
    const GLubyte* renderer = glGetString(GL_RENDERER);
@@ -262,11 +256,6 @@ size_t GetOpenGLMemoryUsageMB() {
       return memInfo[0] / 1024;
    }
    return 0;
-}
-
-float GetOpenGLGPUUtilization() {
-   // Not available through standard OpenGL
-   return 0.0f;
 }
 
 SystemInfo BuildSystemInfo(const GraphicsAPI api, const Window& window, const void* devicePtr) {

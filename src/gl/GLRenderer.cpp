@@ -563,7 +563,6 @@ void GLRenderer::RenderFrame() {
       m_currentFrameMetrics.imguiPassMs;
    m_currentFrameMetrics.vramUsageMB = SystemInfoN::GetOpenGLMemoryUsageMB();
    m_currentFrameMetrics.systemMemUsageMB = SystemInfoN::GetSystemMemoryUsageMB();
-   m_currentFrameMetrics.gpuUtilization = SystemInfoN::GetOpenGLGPUUtilization();
    m_currentFrameMetrics.cpuUtilization = SystemInfoN::GetCPUUtilization();
 }
 

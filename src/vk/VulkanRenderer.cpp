@@ -1489,7 +1489,6 @@ void VulkanRenderer::RenderFrame() {
       m_currentFrameMetrics.imguiPassMs;
    m_currentFrameMetrics.vramUsageMB = SystemInfoN::GetVulkanMemoryUsageMB(m_device);
    m_currentFrameMetrics.systemMemUsageMB = SystemInfoN::GetSystemMemoryUsageMB();
-   m_currentFrameMetrics.gpuUtilization = SystemInfoN::GetVulkanGPUUtilization(m_device);
    m_currentFrameMetrics.cpuUtilization = SystemInfoN::GetCPUUtilization();
 }
 
