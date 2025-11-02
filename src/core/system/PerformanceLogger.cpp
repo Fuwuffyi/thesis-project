@@ -21,7 +21,7 @@ void PerformanceLogger::StartSession(const std::string& sceneName, const SystemI
       EndSession();
    }
    m_systemInfo = sysInfo;
-   m_stats = RunStatistics{};
+   m_stats.Reset();
    m_frameBuffer.clear();
    // Generate timestamp for filenames
    const auto now = std::chrono::system_clock::now();
@@ -51,9 +51,8 @@ void PerformanceLogger::StartSession(const std::string& sceneName, const SystemI
 }
 
 void PerformanceLogger::EndSession() {
-   if (!m_sessionActive) {
+   if (!m_sessionActive)
       return;
-   }
    // Flush any remaining frames
    Flush();
    // Calculate total run time
@@ -68,30 +67,27 @@ void PerformanceLogger::EndSession() {
    m_sessionActive = false;
 }
 
-void PerformanceLogger::LogFrame(const FrameMetrics& metrics) {
-   if (!m_sessionActive) {
+void PerformanceLogger::LogFrame(const PerformanceMetrics& metrics) {
+   if (!m_sessionActive)
       return;
-   }
    m_frameBuffer.push_back(metrics);
-   UpdateStatistics(metrics);
-   // Flush buffer if it's full
-   if (m_frameBuffer.size() >= BUFFER_SIZE) {
+   m_stats.Update(metrics);
+   if (m_frameBuffer.size() >= BUFFER_SIZE)
       Flush();
-   }
 }
 
 void PerformanceLogger::Flush() {
-   if (m_frameBuffer.empty() || !m_sessionActive) {
+   if (m_frameBuffer.empty() || !m_sessionActive)
       return;
-   }
-   for (const FrameMetrics& frame : m_frameBuffer) {
-      m_frameMetricsFile << m_stats.totalFrames - m_frameBuffer.size() +
-                               (&frame - m_frameBuffer.data()) + 1
-                         << "," << frame.frameTimeMs << "," << frame.cpuTimeMs << ","
-                         << frame.gpuTimeMs << ","
-                         << (frame.frameTimeMs > 0.0f ? 1000.0f / frame.frameTimeMs : 0.0f) << ","
-                         << frame.systemMemUsageMB << "," << frame.gpuUtilization << ","
-                         << frame.cpuUtilization << "\n";
+   for (const PerformanceMetrics& frame : m_frameBuffer) {
+      const uint64_t frameNum =
+         m_stats.totalFrames - m_frameBuffer.size() + (&frame - m_frameBuffer.data()) + 1;
+      m_frameMetricsFile << frameNum << "," << frame.frameTimeMs << "," << frame.cpuTimeMs << ","
+                         << frame.gpuTimeMs << "," << frame.GetFPS() << "," << frame.geometryPassMs
+                         << "," << frame.lightingPassMs << "," << frame.gizmoPassMs << ","
+                         << frame.particlePassMs << "," << frame.imguiPassMs << ","
+                         << frame.vramUsageMB << "," << frame.systemMemUsageMB << ","
+                         << frame.gpuUtilization << "," << frame.cpuUtilization << "\n";
    }
    m_frameMetricsFile.flush();
    m_frameBuffer.clear();
@@ -114,6 +110,8 @@ void PerformanceLogger::WriteSystemInfoCSV(const SystemInfo& info) {
 
 void PerformanceLogger::WriteFrameMetricsHeader() {
    m_frameMetricsFile << "Frame,FrameTime(ms),CPUTime(ms),GPUTime(ms),FPS,"
+                      << "GeometryPass(ms),LightingPass(ms),GizmoPass(ms),"
+                      << "ParticlePass(ms),ImGuiPass(ms),"
                       << "VRAM(MB),SystemMem(MB),GPUUtil(%),CPUUtil(%)\n";
 }
 
@@ -131,28 +129,16 @@ void PerformanceLogger::WriteRunSummary() {
                  << m_stats.minFrameTime << "\n";
    m_summaryFile << "Maximum Frame Time (ms)," << std::fixed << std::setprecision(3)
                  << m_stats.maxFrameTime << "\n";
+   m_summaryFile << "\nRender Pass Timings (Average ms)\n";
+   m_summaryFile << "Geometry Pass," << std::fixed << std::setprecision(3)
+                 << m_stats.avgGeometryPassMs << "\n";
+   m_summaryFile << "Lighting Pass," << std::fixed << std::setprecision(3)
+                 << m_stats.avgLightingPassMs << "\n";
+   m_summaryFile << "Gizmo Pass," << std::fixed << std::setprecision(3) << m_stats.avgGizmoPassMs
+                 << "\n";
+   m_summaryFile << "Particle Pass," << std::fixed << std::setprecision(3)
+                 << m_stats.avgParticlePassMs << "\n";
+   m_summaryFile << "ImGui Pass," << std::fixed << std::setprecision(3) << m_stats.avgImguiPassMs
+                 << "\n";
    m_summaryFile.flush();
-}
-
-void PerformanceLogger::UpdateStatistics(const FrameMetrics& metrics) {
-   m_stats.totalFrames++;
-   const float fps = metrics.frameTimeMs > 0.0f ? 1000.0f / metrics.frameTimeMs : 0.0f;
-   // Update FPS stats
-   if (fps < m_stats.minFPS && fps > 0.0f) {
-      m_stats.minFPS = fps;
-   }
-   if (fps > m_stats.maxFPS) {
-      m_stats.maxFPS = fps;
-   }
-   // Update frame time stats
-   if (metrics.frameTimeMs < m_stats.minFrameTime && metrics.frameTimeMs > 0.0f) {
-      m_stats.minFrameTime = metrics.frameTimeMs;
-   }
-   if (metrics.frameTimeMs > m_stats.maxFrameTime) {
-      m_stats.maxFrameTime = metrics.frameTimeMs;
-   }
-   // Running average for FPS and frame time
-   const float alpha = 1.0f / static_cast<float>(m_stats.totalFrames);
-   m_stats.avgFPS = m_stats.avgFPS * (1.0f - alpha) + fps * alpha;
-   m_stats.avgFrameTime = m_stats.avgFrameTime * (1.0f - alpha) + metrics.frameTimeMs * alpha;
 }

@@ -30,6 +30,8 @@ class VulkanRenderer : public IRenderer {
    ~VulkanRenderer();
    void RenderFrame() override;
 
+   [[nodiscard]] const VulkanDevice& GetDevice() const noexcept;
+
   private:
    void SetupImgui() override;
    void RenderImgui() override;

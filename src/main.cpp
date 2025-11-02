@@ -10,6 +10,7 @@
 #include "glm/trigonometric.hpp"
 
 #include "BaseScene.hpp"
+#include "vk/VulkanRenderer.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -54,14 +55,6 @@ int main(int argc, char* argv[]) {
       std::unique_ptr<IRenderer> renderer = RendererFactory::CreateRenderer(api, &window);
       float deltaTime = 0.0f;
 
-      // Create logger
-      PerformanceLogger perfLogger("benchmark_results");
-      PerformanceLogger::SystemInfo systemInfo =
-         SystemInfo::BuildSystemInfo(api, window, nullptr); // TODO: Pass vk ptr
-
-      // Start logger
-      perfLogger.StartSession("test_scene", systemInfo);
-
       // Create the scene
       ResourceManager* resourceManager = renderer->GetResourceManager();
       Scene scene("Test scene");
@@ -77,6 +70,15 @@ int main(int argc, char* argv[]) {
       const float camSpeed = 3.0f;
       const float camRotateSpeed = glm::radians(60.0f);
       renderer->SetActiveCamera(&cam);
+
+      // Create logger
+      PerformanceLogger perfLogger("benchmark_results");
+      SystemInfo systemInfo = SystemInfoN::BuildSystemInfo(
+         api, window,
+         api == GraphicsAPI::Vulkan
+            ? dynamic_cast<VulkanRenderer*>(renderer.get())->GetDevice().GetPhysicalDevice()
+            : nullptr);
+      perfLogger.StartSession(scene.GetName(), systemInfo);
 
       // Setup events
       EventSystem* events = window.GetEventSystem();
@@ -174,35 +176,9 @@ int main(int argc, char* argv[]) {
          lastTime = currentTime;
 
          window.PollEvents();
-
-         cpuStartTime = std::chrono::high_resolution_clock::now();
-
          renderer->RenderFrame();
 
-         // Calculate CPU time (approximate)
-         auto cpuEndTime = std::chrono::high_resolution_clock::now();
-         const float cpuTimeMs =
-            std::chrono::duration<float, std::milli>(cpuEndTime - cpuStartTime).count();
-
-         // Build frame metrics
-         PerformanceLogger::FrameMetrics metrics;
-         metrics.frameTimeMs = deltaTime * 1000.0f;
-         metrics.cpuTimeMs = cpuTimeMs;
-         metrics.gpuTimeMs = metrics.frameTimeMs - cpuTimeMs; // Approximation
-
-         metrics.systemMemUsageMB = SystemInfo::GetSystemMemoryUsageMB();
-
-         if (api == GraphicsAPI::Vulkan && nullptr) { // TODO: pass vk device instead of nullptr
-            const auto* device = static_cast<const VulkanDevice*>(nullptr);
-            metrics.vramUsageMB = SystemInfo::GetVulkanMemoryUsageMB(*device);
-            metrics.gpuUtilization = SystemInfo::GetVulkanGPUUtilization(*device);
-         } else if (api == GraphicsAPI::OpenGL) {
-            metrics.vramUsageMB = SystemInfo::GetOpenGLMemoryUsageMB();
-            metrics.gpuUtilization = SystemInfo::GetOpenGLGPUUtilization();
-         }
-
-         metrics.cpuUtilization = SystemInfo::GetCPUUtilization();
-
+         const PerformanceMetrics& metrics = renderer->GetCurrentFrameMetrics();
          perfLogger.LogFrame(metrics);
       }
 

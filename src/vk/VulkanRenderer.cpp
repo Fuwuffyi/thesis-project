@@ -1386,7 +1386,8 @@ void VulkanRenderer::RenderImgui() {
    m_materialEditor->DrawMaterialProperties();
    m_materialEditor->DrawTextureBrowser();
    // FPS Overlay
-   PerformanceGUI::RenderPerformanceGUI(*m_resourceManager.get(), *m_activeScene);
+   PerformanceGUI::RenderPerformanceGUI(*m_resourceManager.get(), *m_activeScene,
+                                        m_currentFrameMetrics);
    // Imgui render end
    ImGui::Render();
 }
@@ -1459,6 +1460,8 @@ void VulkanRenderer::RenderFrame() {
 ResourceManager* VulkanRenderer::GetResourceManager() const noexcept {
    return m_resourceManager.get();
 }
+
+[[nodiscard]] const VulkanDevice& VulkanRenderer::GetDevice() const noexcept { return m_device; }
 
 void VulkanRenderer::CreateUtilityMeshes() {
    // Create fullscreen quad for lighting pass

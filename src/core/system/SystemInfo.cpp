@@ -1,12 +1,12 @@
 #include "core/system/SystemInfo.hpp"
 
 #include "core/Window.hpp"
+#include "core/system/PerformanceMetrics.hpp"
 #include "vk/VulkanDevice.hpp"
 
 #include <thread>
 #include <sstream>
 #include <cstring>
-
 
 #ifdef _WIN32
 #include <windows.h>
@@ -21,11 +21,10 @@
 #include <sys/sysinfo.h>
 #endif
 
-
 #include <glad/gl.h>
 #include <vulkan/vulkan.h>
 
-namespace SystemInfo {
+namespace SystemInfoN {
 
 std::string GetCPUModel() {
 #ifdef _WIN32
@@ -271,9 +270,8 @@ float GetOpenGLGPUUtilization() {
    return 0.0f;
 }
 
-PerformanceLogger::SystemInfo BuildSystemInfo(GraphicsAPI api, const Window& window,
-                                              const void* devicePtr) {
-   PerformanceLogger::SystemInfo info;
+SystemInfo BuildSystemInfo(const GraphicsAPI api, const Window& window, const void* devicePtr) {
+   SystemInfo info;
    // CPU info
    info.cpuModel = GetCPUModel();
    info.threadCount = GetCPUThreadCount();
@@ -297,4 +295,4 @@ PerformanceLogger::SystemInfo BuildSystemInfo(GraphicsAPI api, const Window& win
    return info;
 }
 
-} // namespace SystemInfo
+} // namespace SystemInfoN

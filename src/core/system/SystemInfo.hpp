@@ -1,6 +1,5 @@
 #pragma once
 
-#include "core/system/PerformanceLogger.hpp"
 #include "core/GraphicsAPI.hpp"
 
 #include <string>
@@ -8,7 +7,9 @@
 class Window;
 class VulkanDevice;
 
-namespace SystemInfo {
+struct SystemInfo;
+
+namespace SystemInfoN {
 
 std::string GetCPUModel();
 uint32_t GetCPUThreadCount();
@@ -32,6 +33,5 @@ std::string GetOpenGLAPIVersion();
 size_t GetOpenGLMemoryUsageMB();
 float GetOpenGLGPUUtilization();
 
-PerformanceLogger::SystemInfo BuildSystemInfo(GraphicsAPI api, const Window& window,
-                                              const void* devicePtr = nullptr);
-} // namespace SystemInfo
+SystemInfo BuildSystemInfo(const GraphicsAPI api, const Window& window, const void* devicePtr = nullptr);
+} // namespace SystemInfoN

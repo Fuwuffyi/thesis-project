@@ -21,7 +21,6 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-#include <print>
 
 // Structs for UBOs
 struct CameraData {
@@ -335,7 +334,8 @@ void GLRenderer::RenderImgui() {
    m_materialEditor->DrawMaterialProperties();
    m_materialEditor->DrawTextureBrowser();
    // FPS Overlay
-   PerformanceGUI::RenderPerformanceGUI(*m_resourceManager.get(), *m_activeScene);
+   PerformanceGUI::RenderPerformanceGUI(*m_resourceManager.get(), *m_activeScene,
+                                        m_currentFrameMetrics);
    // Render end
    ImGui::Render();
    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
