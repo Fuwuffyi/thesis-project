@@ -21,6 +21,17 @@ ThreadPool::~ThreadPool() {
    }
 }
 
+void ThreadPool::Submit(const std::function<void()> task) {
+   {
+      std::unique_lock<std::mutex> lock(m_queueMutex);
+      if (m_stop.load(std::memory_order_relaxed)) {
+         throw std::runtime_error("Cannot submit task to stopped ThreadPool");
+      }
+      m_tasks.emplace(std::move(task));
+   }
+   m_condition.notify_one();
+}
+
 void ThreadPool::WorkerThread() {
    while (true) {
       std::function<void()> task;
