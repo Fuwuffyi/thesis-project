@@ -29,7 +29,7 @@ class ThreadPool {
    std::vector<std::thread> m_threads;
    std::queue<std::function<void()>> m_tasks;
 
-   mutable std::mutex m_queueMutex;
+   std::mutex m_queueMutex;
    std::condition_variable m_condition;
    std::condition_variable m_waitCondition;
 
