@@ -44,8 +44,9 @@ class Node final {
    [[nodiscard]] const Node* GetRoot() const noexcept;
 
    // Tree iteration
-   void ForEachChild(const std::function<void(Node*)>& func, bool recursive = false);
-   void ForEachChild(const std::function<void(const Node*)>& func, bool recursive = false) const;
+   void ForEachChild(const std::function<void(Node*)>& func, const bool recursive = false);
+   void ForEachChild(const std::function<void(const Node*)>& func,
+                     const bool recursive = false) const;
 
    // Component management
    template <ComponentType T, typename... Args>
