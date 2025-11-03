@@ -709,7 +709,7 @@ void VulkanRenderer::RenderGeometryPass(const VkViewport& viewport, const VkRect
    });
    const size_t nodesPerThread =
       (renderableNodes.size() + m_numRenderThreads - 1) / m_numRenderThreads;
-   auto nodesPtr = &renderableNodes;
+   const std::vector<const Node*>* nodesPtr = &renderableNodes;
    for (uint32_t threadIdx = 0; threadIdx < m_numRenderThreads; ++threadIdx) {
       const size_t startIdx = threadIdx * nodesPerThread;
       const size_t endIdx = std::min(startIdx + nodesPerThread, renderableNodes.size());
@@ -766,7 +766,8 @@ void VulkanRenderer::RenderGeometryPass(const VkViewport& viewport, const VkRect
    }
    m_threadPool->WaitForAll();
    // Collect secondary command buffers that were actually used
-   std::vector<VkCommandBuffer> secondaryBuffers;
+   static std::vector<VkCommandBuffer> secondaryBuffers;
+   secondaryBuffers.clear();
    secondaryBuffers.reserve(m_numRenderThreads);
    for (uint32_t i = 0; i < m_numRenderThreads; ++i) {
       const size_t startIdx = i * nodesPerThread;
