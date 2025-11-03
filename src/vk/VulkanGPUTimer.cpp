@@ -17,7 +17,7 @@ void VulkanGPUTimer::CreateQueryPools() {
    poolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
    poolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
    poolInfo.queryCount = MAX_QUERIES_PER_FRAME;
-   for (auto& frame : m_frameQueries) {
+   for (FrameQueries& frame : m_frameQueries) {
       if (vkCreateQueryPool(m_device.Get(), &poolInfo, nullptr, &frame.queryPool) != VK_SUCCESS) {
          throw std::runtime_error("Failed to create timestamp query pool");
       }
@@ -25,7 +25,7 @@ void VulkanGPUTimer::CreateQueryPools() {
 }
 
 void VulkanGPUTimer::DestroyQueryPools() {
-   for (auto& frame : m_frameQueries) {
+   for (FrameQueries& frame : m_frameQueries) {
       if (frame.queryPool != VK_NULL_HANDLE) {
          vkDestroyQueryPool(m_device.Get(), frame.queryPool, nullptr);
          frame.queryPool = VK_NULL_HANDLE;
@@ -35,18 +35,17 @@ void VulkanGPUTimer::DestroyQueryPools() {
 
 void VulkanGPUTimer::BeginFrame(VkCommandBuffer commandBuffer, uint32_t frameIndex) {
    m_currentFrame = frameIndex % MAX_FRAMES_IN_FLIGHT;
-   auto& frame = m_frameQueries[m_currentFrame];
+   FrameQueries& frame = m_frameQueries[m_currentFrame];
    frame.activeCommandBuffer = commandBuffer;
+   frame.queries.clear();
    frame.nextQueryIndex = 0;
-   // Reset query pool
    vkCmdResetQueryPool(commandBuffer, frame.queryPool, 0, MAX_QUERIES_PER_FRAME);
 }
 
 void VulkanGPUTimer::Begin(const std::string& label) {
-   auto& frame = m_frameQueries[m_currentFrame];
-   if (frame.nextQueryIndex + 2 > MAX_QUERIES_PER_FRAME) {
+   FrameQueries& frame = m_frameQueries[m_currentFrame];
+   if (frame.nextQueryIndex + 2 > MAX_QUERIES_PER_FRAME)
       return;
-   }
    auto& query = frame.queries[label];
    query.startQuery = frame.nextQueryIndex++;
    query.active = true;
@@ -68,13 +67,11 @@ void VulkanGPUTimer::End(const std::string& label) {
                        frame.queryPool, query.endQuery);
 }
 
-void VulkanGPUTimer::EndFrame(uint32_t frameIndex) {
-   const uint32_t queryFrame = frameIndex % MAX_FRAMES_IN_FLIGHT;
-   auto& frame = m_frameQueries[queryFrame];
-   if (frame.nextQueryIndex == 0) {
-      return; // No queries this frame
-   }
-   // Retrieve query results
+void VulkanGPUTimer::EndFrame(const uint32_t frameIndex) {
+   const uint32_t resultsFrame = (frameIndex + MAX_FRAMES_IN_FLIGHT - 1) % MAX_FRAMES_IN_FLIGHT;
+   FrameQueries& frame = m_frameQueries[resultsFrame];
+   if (frame.nextQueryIndex == 0)
+      return;
    std::vector<uint64_t> timestamps(frame.nextQueryIndex);
    VkResult result =
       vkGetQueryPoolResults(m_device.Get(), frame.queryPool, 0, frame.nextQueryIndex,
@@ -96,9 +93,16 @@ void VulkanGPUTimer::EndFrame(uint32_t frameIndex) {
 }
 
 float VulkanGPUTimer::GetElapsedMs(const std::string& label) {
-   const auto& frame = m_frameQueries[m_currentFrame];
-   const auto it = frame.queries.find(label);
-   return it != frame.queries.end() && it->second.hasResult ? it->second.cachedResultMs : 0.0f;
+   for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+      const uint32_t checkFrame =
+         (m_currentFrame + MAX_FRAMES_IN_FLIGHT - 1 - i) % MAX_FRAMES_IN_FLIGHT;
+      const auto& frame = m_frameQueries[checkFrame];
+      const auto it = frame.queries.find(label);
+      if (it != frame.queries.end() && it->second.hasResult) {
+         return it->second.cachedResultMs;
+      }
+   }
+   return 0.0f;
 }
 
 void VulkanGPUTimer::Reset() {
@@ -109,7 +113,11 @@ void VulkanGPUTimer::Reset() {
 }
 
 bool VulkanGPUTimer::IsAvailable(const std::string& label) const {
-   const auto& frame = m_frameQueries[m_currentFrame];
-   const auto it = frame.queries.find(label);
-   return it != frame.queries.end() && it->second.hasResult;
+   for (const auto& frame : m_frameQueries) {
+      const auto it = frame.queries.find(label);
+      if (it != frame.queries.end() && it->second.hasResult) {
+         return true;
+      }
+   }
+   return false;
 }
