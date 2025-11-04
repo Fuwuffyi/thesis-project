@@ -13,34 +13,51 @@
 void LoadSponzaGeometry(Scene& scene, ResourceManager& resourceManager);
 
 // TODO: This is a test scene, add a serialization/deserialization system
-void LoadBaseScene(Scene& scene, ResourceManager& resourceManager, const GraphicsAPI api) {
+void LoadBaseScene(Scene& scene, ResourceManager& resourceManager, const GraphicsAPI api,
+                   const size_t lightCount, const size_t seed) {
    LoadSponzaGeometry(scene, resourceManager);
+   // Setup seeded randomness
+   std::seed_seq seq{seed};
+   std::mt19937 gen(seq);
    // Get light nodes
    std::vector<Node*> lightNodes;
    lightNodes.push_back(scene.FindNode("lamp_1stfloor_entrance"));
+   // Gather first floor lights
    for (uint32_t i = 0; i <= 12; ++i) {
       lightNodes.push_back(
          scene.FindNode(std::string("lamps_1stfloor_") + (i < 10 ? "0" : "") + std::to_string(i)));
    }
+   // Gather second floor lights
    for (uint32_t i = 1; i <= 8; ++i) {
       lightNodes.push_back(
          scene.FindNode(std::string("lamps_2ndfloor_") + (i < 10 ? "0" : "") + std::to_string(i)));
    }
    // Add lights
-   std::random_device rd;
-   std::mt19937 gen(rd());
+   std::uniform_int_distribution<uint8_t> typeDist(1, 2);
    std::uniform_real_distribution<float> colorDist(0.3f, 1.0f);
-   for (auto ln : lightNodes) {
-      Node* n = scene.CreateChildNode(ln, "light_object");
-      n->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 0.0f, -0.6f));
+   std::uniform_real_distribution<float> intensityDistSpot(0.8f, 2.5f);
+   std::uniform_real_distribution<float> intensityDistPoint(0.6f, 1.0f);
+   std::uniform_real_distribution<float> coneDist(10.f, 50.f);
+   for (uint32_t i = 0; i < lightCount; ++i) {
+      std::uniform_int_distribution<size_t> nodeDist(0, lightNodes.size() - 1);
+      const uint64_t idx = nodeDist(gen);
+      Node* base = lightNodes[idx];
+      lightNodes.erase(lightNodes.begin() + idx);
+      Node* n = scene.CreateChildNode(base, "light_object");
+      n->GetComponent<TransformComponent>()->SetScale(glm::vec3(.4f));
+      n->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 0.0f, -0.7f));
       LightComponent* light = n->AddComponent<LightComponent>();
-      light->SetType(LightComponent::LightType::Spot);
+      light->SetType(static_cast<LightComponent::LightType>(typeDist(gen)));
       light->SetColor(glm::vec3(colorDist(gen), colorDist(gen), colorDist(gen)));
-      light->SetIntensity(3.0f);
-      light->SetOuterCone(glm::radians(35.0f));
-      light->SetInnerCone(glm::radians(50.0f));
+      light->SetIntensity(intensityDistPoint(gen));
+      if (light->GetType() == LightComponent::LightType::Spot) {
+         const float baseCone = coneDist(gen);
+         light->SetIntensity(intensityDistSpot(gen));
+         light->SetInnerCone(glm::radians(baseCone + 10.f));
+         light->SetOuterCone(glm::radians(baseCone));
+      }
    }
-   // Setup base particle node
+   // Setup particle node
    Node* particlesNode = scene.CreateNode("particles");
    particlesNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 2.0f, 0.0f));
    particlesNode->AddComponent<ParticleSystemComponent>();
@@ -599,5 +616,5 @@ void LoadSponzaGeometry(Scene& scene, ResourceManager& resourceManager) {
    LightComponent* lightSun = sunNode->AddComponent<LightComponent>();
    lightSun->SetType(LightComponent::LightType::Directional);
    lightSun->SetColor(glm::vec3(1.0f, 1.0f, 0.95f));
-   lightSun->SetIntensity(1.0f);
+   lightSun->SetIntensity(.3f);
 }
