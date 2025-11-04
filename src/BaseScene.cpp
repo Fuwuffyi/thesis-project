@@ -10,8 +10,43 @@
 #include "core/scene/components/LightComponent.hpp"
 #include "core/scene/components/ParticleSystemComponent.hpp"
 
-// TODO: This is a test scene, I need to add a serialization/deserialization system
+void LoadSponzaGeometry(Scene& scene, ResourceManager& resourceManager);
+
+// TODO: This is a test scene, add a serialization/deserialization system
 void LoadBaseScene(Scene& scene, ResourceManager& resourceManager, const GraphicsAPI api) {
+   LoadSponzaGeometry(scene, resourceManager);
+   // Get light nodes
+   std::vector<Node*> lightNodes;
+   lightNodes.push_back(scene.FindNode("lamp_1stfloor_entrance"));
+   for (uint32_t i = 0; i <= 12; ++i) {
+      lightNodes.push_back(
+         scene.FindNode(std::string("lamps_1stfloor_") + (i < 10 ? "0" : "") + std::to_string(i)));
+   }
+   for (uint32_t i = 1; i <= 8; ++i) {
+      lightNodes.push_back(
+         scene.FindNode(std::string("lamps_2ndfloor_") + (i < 10 ? "0" : "") + std::to_string(i)));
+   }
+   // Add lights
+   std::random_device rd;
+   std::mt19937 gen(rd());
+   std::uniform_real_distribution<float> colorDist(0.3f, 1.0f);
+   for (auto ln : lightNodes) {
+      Node* n = scene.CreateChildNode(ln, "light_object");
+      n->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 0.0f, -0.6f));
+      LightComponent* light = n->AddComponent<LightComponent>();
+      light->SetType(LightComponent::LightType::Spot);
+      light->SetColor(glm::vec3(colorDist(gen), colorDist(gen), colorDist(gen)));
+      light->SetIntensity(3.0f);
+      light->SetOuterCone(glm::radians(35.0f));
+      light->SetInnerCone(glm::radians(50.0f));
+   }
+   // Setup base particle node
+   Node* particlesNode = scene.CreateNode("particles");
+   particlesNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 2.0f, 0.0f));
+   particlesNode->AddComponent<ParticleSystemComponent>();
+}
+
+void LoadSponzaGeometry(Scene& scene, ResourceManager& resourceManager) {
    const auto t1 = resourceManager.LoadTexture(
       "col_head_2ndfloor_03_BaseColor", "resources/textures/col_head_2ndfloor_03_BaseColor.png");
    const auto t2 = resourceManager.LoadTexture(
@@ -221,11 +256,11 @@ void LoadBaseScene(Scene& scene, ResourceManager& resourceManager, const Graphic
       "stones_2ndfloor_01_Roughness", "resources/textures/stones_2ndfloor_01_Roughness.png", true,
       false);
    const auto t97 = resourceManager.LoadTexture("wood_tile_01_BaseColor",
-                                                 "resources/textures/wood_tile_01_BaseColor.png");
+                                                "resources/textures/wood_tile_01_BaseColor.png");
    const auto t98 = resourceManager.LoadTexture(
       "door_stoneframe_01_Normal", "resources/textures/door_stoneframe_01_Normal.png", true, false);
    const auto t99 = resourceManager.LoadTexture("floor_tiles_01_BaseColor",
-                                                 "resources/textures/floor_tiles_01_BaseColor.png");
+                                                "resources/textures/floor_tiles_01_BaseColor.png");
    const auto t100 = resourceManager.LoadTexture("roof_tiles_01_BaseColor",
                                                  "resources/textures/roof_tiles_01_BaseColor.png");
    const auto t101 = resourceManager.LoadTexture(
@@ -557,41 +592,12 @@ void LoadBaseScene(Scene& scene, ResourceManager& resourceManager, const Graphic
        m16, m17, m18, m19, m20, m21, m22, m23, m24, m25, m26, m27, m28, m29, m30,
        m31, m32, m33, m34, m35, m36, m37, m38, m39, m40, m41, m42, m43, m44, m45});
    sponzaNode->GetTransform()->SetScale(glm::vec3(0.01f));
-   // Setup base particle node
-   Node* particlesNode = scene.CreateNode("particles");
-   particlesNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 2.0f, 0.0f));
-   particlesNode->AddComponent<ParticleSystemComponent>();
-   // Setup light node
-   Node* lightsNode = scene.CreateNode("lights");
-   lightsNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 7.0f, 0.0f));
    // Add a directional light for sun
-   Node* sunNode = scene.CreateChildNode(lightsNode, "light_sun");
+   Node* sunNode = scene.CreateNode("light_sun");
    TransformComponent* sunTransform = sunNode->GetComponent<TransformComponent>();
    sunTransform->SetRotation(glm::vec3(-45.0f, 45.0f, 0.0f));
    LightComponent* lightSun = sunNode->AddComponent<LightComponent>();
    lightSun->SetType(LightComponent::LightType::Directional);
-   lightSun->SetColor(glm::vec3(1.0f, 1.0f, 1.0f));
-   lightSun->SetIntensity(0.6f);
-   // Create testing lights
-   std::random_device rd;
-   std::mt19937 gen(rd());
-   std::uniform_real_distribution<float> unitDist(0.0f, 1.0f);
-   std::uniform_real_distribution<float> posDist(-7.0f, 7.0f);
-   std::uniform_real_distribution<float> angleDist(40.0f, 65.0f);
-   std::uniform_real_distribution<float> angleDistTransform(0.0f, 180.0f);
-   for (uint32_t i = 0; i < 25; ++i) {
-      Node* lightNode = scene.CreateChildNode(lightsNode, "light_" + std::to_string(i));
-      TransformComponent* transform = lightNode->GetComponent<TransformComponent>();
-      transform->SetPosition(glm::vec3(posDist(gen), posDist(gen), posDist(gen)));
-      transform->SetRotation(
-         glm::vec3(angleDistTransform(gen), angleDistTransform(gen), angleDistTransform(gen)));
-      transform->SetScale(glm::vec3(0.2f));
-      LightComponent* light = lightNode->AddComponent<LightComponent>();
-      light->SetType(LightComponent::LightType::Spot);
-      light->SetColor(glm::vec3(unitDist(gen), unitDist(gen), unitDist(gen)));
-      light->SetIntensity(3.0f);
-      const float outer = angleDist(gen);
-      light->SetOuterCone(glm::radians(outer));
-      light->SetInnerCone(glm::radians(5.0f + outer));
-   }
+   lightSun->SetColor(glm::vec3(1.0f, 1.0f, 0.95f));
+   lightSun->SetIntensity(1.0f);
 }
