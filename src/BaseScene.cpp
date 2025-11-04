@@ -33,7 +33,7 @@ void LoadBaseScene(Scene& scene, ResourceManager& resourceManager, const Graphic
          scene.FindNode(std::string("lamps_2ndfloor_") + (i < 10 ? "0" : "") + std::to_string(i)));
    }
    // Add lights
-   std::uniform_int_distribution<uint8_t> typeDist(1, 2);
+   std::uniform_int_distribution<uint16_t> typeDist(1, 2);
    std::uniform_real_distribution<float> colorDist(0.3f, 1.0f);
    std::uniform_real_distribution<float> intensityDistSpot(0.8f, 2.5f);
    std::uniform_real_distribution<float> intensityDistPoint(0.6f, 1.0f);
