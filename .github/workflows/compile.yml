@@ -105,19 +105,24 @@ jobs:
           chmod +x release/ThesisProject
           # Copy resources (shaders, textures, meshes)
           cp -r build/resources release/
-          # Create simple run script
-          cat > release/run_gl.sh << 'EOF'
+          # VK scripts
+          for s in 0 1 2 3 4; do
+          cat > "release/run_vk_s${s}.sh" << EOF
           #!/bin/bash
-          cd "$(dirname "$0")"
-          ./ThesisProject -g
+          cd "\$(dirname "\$0")"
+          ./ThesisProject -v -s${s}
           EOF
-          chmod +x release/run_gl.sh
-          cat > release/run_vk.sh << 'EOF'
+          chmod +x "release/run_vk_s${s}.sh"
+          done
+          # GL scripts
+          for s in 0 1 2 3 4; do
+          cat > "release/run_gl_s${s}.sh" << EOF
           #!/bin/bash
-          cd "$(dirname "$0")"
-          ./ThesisProject -v
+          cd "\$(dirname "\$0")"
+          ./ThesisProject -g -s${s}
           EOF
-          chmod +x release/run_vk.sh
+          chmod +x "release/run_gl_s${s}.sh"
+          done
 
       - name: Prepare release folder (Windows)
         if: matrix.os == 'windows-latest'
@@ -137,19 +142,24 @@ jobs:
               Copy-Item $dll release/
             }
           }
-          # Create simple run script
+          # VK scene scripts
+          0..4 | ForEach-Object {
           @"
           @echo off
           cd /d "%~dp0"
-          ThesisProject.exe -v
+          ThesisProject.exe -v -s$_
           pause
-          "@ | Out-File -FilePath release/run_vk.bat -Encoding ASCII
+          "@ | Out-File -FilePath "release/run_vk_s$_.bat" -Encoding ASCII
+          }
+          # GL scene scripts
+          0..4 | ForEach-Object {
           @"
           @echo off
           cd /d "%~dp0"
-          ThesisProject.exe -g
+          ThesisProject.exe -g -s$_
           pause
-          "@ | Out-File -FilePath release/run_gl.bat -Encoding ASCII
+          "@ | Out-File -FilePath "release/run_gl_s$_.bat" -Encoding ASCII
+          }
 
       # --- Create archives ---
       - name: Create archive (Linux)
@@ -180,18 +190,3 @@ jobs:
           name: ThesisProject-windows-x64
           path: ThesisProject-windows-x64.zip
           retention-days: 30
-
-      # --- Create GitHub Release ---
-      - name: Create Release
-        if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ github.run_number }}
-          name: Build ${{ github.run_number }}
-          draft: false
-          prerelease: true
-          files: |
-            ThesisProject-*.tar.gz
-            ThesisProject-*.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
