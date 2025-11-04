@@ -31,14 +31,22 @@ struct MouseState {
 int main(int argc, char* argv[]) {
    // Check argv for api
    GraphicsAPI api = GraphicsAPI::Vulkan;
+   uint8_t sceneIndex;
    for (int32_t i = 1; i < argc; ++i) {
       const std::string arg = argv[i];
       if (arg == "-v") {
          api = GraphicsAPI::Vulkan;
       } else if (arg == "-g") {
          api = GraphicsAPI::OpenGL;
+      } else if (arg.size() == 3 && arg[0] == '-' && arg[1] == 's') {
+         const char c = arg[2];
+         if (c >= '0' && c <= '4') {
+            sceneIndex = c - '0';
+         } else {
+            return EXIT_FAILURE;
+         }
       } else {
-         return 1;
+         return EXIT_FAILURE;
       }
    }
    // Main program
@@ -57,8 +65,36 @@ int main(int argc, char* argv[]) {
 
       // Create the scene
       ResourceManager* resourceManager = renderer->GetResourceManager();
-      Scene scene("Test scene");
-      LoadBaseScene(scene, *resourceManager, api);
+      Scene scene("Scene");
+      switch (sceneIndex) {
+         case 0:
+            // 5 lights, 1 particle system
+            // Partial scene 1
+            LoadBaseScene(scene, *resourceManager, api, 4);
+            break;
+         case 1:
+            // 9 lights, 1 particle system
+            // Partial scene 2
+            LoadBaseScene(scene, *resourceManager, api, 8);
+            break;
+         case 2:
+            // 17 lights, 1 particle system
+            // Partial scene 3
+            LoadBaseScene(scene, *resourceManager, api, 16);
+            break;
+         case 3:
+            // 22 lights, 0 particle system
+            // Full lit up scene
+            LoadBaseScene(scene, *resourceManager, api, 21);
+            break;
+         case 4:
+            // 1 lights, 2 particle systems
+            // Particle only scene
+            LoadBaseScene(scene, *resourceManager, api, 0);
+            break;
+         default:
+            return EXIT_FAILURE;
+      }
       renderer->SetActiveScene(&scene);
 
       // Create the camera
@@ -75,9 +111,8 @@ int main(int argc, char* argv[]) {
       PerformanceLogger perfLogger("benchmark_results");
       SystemInfo systemInfo = SystemInfoN::BuildSystemInfo(
          api, window,
-         api == GraphicsAPI::Vulkan
-            ? &dynamic_cast<VulkanRenderer*>(renderer.get())->GetDevice()
-            : nullptr);
+         api == GraphicsAPI::Vulkan ? &dynamic_cast<VulkanRenderer*>(renderer.get())->GetDevice()
+                                    : nullptr);
       perfLogger.StartSession(scene.GetName(), systemInfo);
 
       // Setup events
