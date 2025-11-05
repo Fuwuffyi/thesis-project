@@ -64,6 +64,7 @@ dkms.conf
 *.lai
 
 # Build files
+*.spv
 .cache
 build
 compile_commands.json
