@@ -31,7 +31,8 @@ struct MouseState {
 int main(int argc, char* argv[]) {
    // Check argv for api
    GraphicsAPI api = GraphicsAPI::Vulkan;
-   uint8_t sceneIndex;
+   bool inputEnabled = true;
+   uint8_t sceneIndex = 0;
    for (int32_t i = 1; i < argc; ++i) {
       const std::string arg = argv[i];
       if (arg == "-v") {
@@ -45,6 +46,8 @@ int main(int argc, char* argv[]) {
          } else {
             return EXIT_FAILURE;
          }
+      } else if (arg == "-noinput") {
+         inputEnabled = false;
       } else {
          return EXIT_FAILURE;
       }
@@ -53,10 +56,10 @@ int main(int argc, char* argv[]) {
    try {
       // Create the window
       WindowDesc windowDesc{.title = "Deferred Rendering Engine",
-                            .width = 900,
-                            .height = 900,
+                            .width = 1920,
+                            .height = 1080,
                             .vsync = false,
-                            .resizable = true};
+                            .resizable = false};
       Window window(api, windowDesc);
 
       // Create the renderer
@@ -102,8 +105,8 @@ int main(int argc, char* argv[]) {
       renderer->SetActiveScene(&scene);
 
       // Create the camera
-      const glm::vec3 startPos = glm::vec3(2.0f);
-      const glm::vec3 forward = glm::normalize(glm::vec3(0.0f) - startPos);
+      const glm::vec3 startPos = glm::vec3(8.5, 8.8, -2.0f);
+      const glm::vec3 forward = glm::normalize(-startPos);
       const glm::quat orientation = glm::quatLookAt(forward, glm::vec3(0.0f, 1.0f, 0.0f));
       const Transform camTransform(startPos, orientation);
       Camera cam(api, camTransform, glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 1.0f, 0.01f, 100.0f);
@@ -123,89 +126,92 @@ int main(int argc, char* argv[]) {
       // Setup events
       EventSystem* events = window.GetEventSystem();
 
-      // Movement key handlers using held callbacks
-      events->OnKeyHeld(GLFW_KEY_W, [&](const uint32_t, const uint32_t, const uint32_t) {
-         Transform& transform = cam.GetMutableTransform();
-         glm::vec3 position = transform.GetPosition();
-         position += cam.GetViewDirection() * camSpeed * deltaTime;
-         transform.SetPosition(position);
-      });
-      events->OnKeyHeld(GLFW_KEY_S, [&](const uint32_t, const uint32_t, const uint32_t) {
-         Transform& transform = cam.GetMutableTransform();
-         glm::vec3 position = transform.GetPosition();
-         position -= cam.GetViewDirection() * camSpeed * deltaTime;
-         transform.SetPosition(position);
-      });
-      events->OnKeyHeld(GLFW_KEY_A, [&](const uint32_t, const uint32_t, const uint32_t) {
-         Transform& transform = cam.GetMutableTransform();
-         glm::vec3 position = transform.GetPosition();
-         position -= cam.GetRightVector() * camSpeed * deltaTime;
-         transform.SetPosition(position);
-      });
-      events->OnKeyHeld(GLFW_KEY_D, [&](const uint32_t, const uint32_t, const uint32_t) {
-         Transform& transform = cam.GetMutableTransform();
-         glm::vec3 position = transform.GetPosition();
-         position += cam.GetRightVector() * camSpeed * deltaTime;
-         transform.SetPosition(position);
-      });
-      events->OnKeyHeld(GLFW_KEY_SPACE, [&](const uint32_t, const uint32_t, const uint32_t) {
-         Transform& transform = cam.GetMutableTransform();
-         glm::vec3 position = transform.GetPosition();
-         position += glm::vec3(0.0f, 1.0f, 0.0f) * camSpeed * deltaTime;
-         transform.SetPosition(position);
-      });
-      events->OnKeyHeld(GLFW_KEY_LEFT_SHIFT, [&](const uint32_t, const uint32_t, const uint32_t) {
-         Transform& transform = cam.GetMutableTransform();
-         glm::vec3 position = transform.GetPosition();
-         position -= glm::vec3(0.0f, 1.0f, 0.0f) * camSpeed * deltaTime;
-         transform.SetPosition(position);
-      });
-      // Rotation stuff
-      MouseState mouseState;
-      {
-         const glm::vec3 dir = cam.GetViewDirection();
-         mouseState.yaw = glm::degrees(std::atan2(dir.x, -dir.z));
-         mouseState.pitch = glm::degrees(std::asin(dir.y));
-      }
-      window.SetCursorVisible(false);
-      events->OnCursorPos([&](float xpos, float ypos) {
-         if (!mouseState.shouldUpdate)
-            return;
-         if (mouseState.firstMouse) {
-            mouseState.lastX = xpos;
-            mouseState.lastY = ypos;
-            mouseState.firstMouse = false;
-            return;
-         }
-         const float xoffset = (xpos - mouseState.lastX) * mouseState.sensitivity;
-         const float yoffset = (mouseState.lastY - ypos) * mouseState.sensitivity;
-         mouseState.lastX = xpos;
-         mouseState.lastY = ypos;
-         mouseState.yaw -= xoffset;
-         mouseState.pitch += yoffset;
-         if (mouseState.pitch > 89.0f)
-            mouseState.pitch = 89.0f;
-         if (mouseState.pitch < -89.0f)
-            mouseState.pitch = -89.0f;
-         const glm::quat qYaw = glm::angleAxis(glm::radians(mouseState.yaw), glm::vec3(0, 1, 0));
-         const glm::quat qPitch =
-            glm::angleAxis(glm::radians(mouseState.pitch), glm::vec3(1, 0, 0));
-         const glm::quat rotation = qYaw * qPitch;
-         cam.GetMutableTransform().SetRotation(rotation);
-      });
-      events->OnKeyDown(GLFW_KEY_LEFT_ALT, [&](const uint32_t, const uint32_t, const uint32_t) {
-         window.SetCursorVisible(true);
-         mouseState.shouldUpdate = false;
-      });
-      events->OnKeyUp(GLFW_KEY_LEFT_ALT, [&](const uint32_t, const uint32_t, const uint32_t) {
-         window.SetCursorVisible(false);
-         mouseState.shouldUpdate = true;
-         mouseState.firstMouse = true;
-      });
       // ESC to close window
       events->OnKeyDown(GLFW_KEY_ESCAPE, [&](const uint32_t, const uint32_t, const uint32_t) {
          glfwSetWindowShouldClose(window.GetNativeWindow(), true);
       });
+      if (inputEnabled) {
+         window.SetCursorVisible(false);
+         // Movement key handlers using held callbacks
+         events->OnKeyHeld(GLFW_KEY_W, [&](const uint32_t, const uint32_t, const uint32_t) {
+            Transform& transform = cam.GetMutableTransform();
+            glm::vec3 position = transform.GetPosition();
+            position += cam.GetViewDirection() * camSpeed * deltaTime;
+            transform.SetPosition(position);
+         });
+         events->OnKeyHeld(GLFW_KEY_S, [&](const uint32_t, const uint32_t, const uint32_t) {
+            Transform& transform = cam.GetMutableTransform();
+            glm::vec3 position = transform.GetPosition();
+            position -= cam.GetViewDirection() * camSpeed * deltaTime;
+            transform.SetPosition(position);
+         });
+         events->OnKeyHeld(GLFW_KEY_A, [&](const uint32_t, const uint32_t, const uint32_t) {
+            Transform& transform = cam.GetMutableTransform();
+            glm::vec3 position = transform.GetPosition();
+            position -= cam.GetRightVector() * camSpeed * deltaTime;
+            transform.SetPosition(position);
+         });
+         events->OnKeyHeld(GLFW_KEY_D, [&](const uint32_t, const uint32_t, const uint32_t) {
+            Transform& transform = cam.GetMutableTransform();
+            glm::vec3 position = transform.GetPosition();
+            position += cam.GetRightVector() * camSpeed * deltaTime;
+            transform.SetPosition(position);
+         });
+         events->OnKeyHeld(GLFW_KEY_SPACE, [&](const uint32_t, const uint32_t, const uint32_t) {
+            Transform& transform = cam.GetMutableTransform();
+            glm::vec3 position = transform.GetPosition();
+            position += glm::vec3(0.0f, 1.0f, 0.0f) * camSpeed * deltaTime;
+            transform.SetPosition(position);
+         });
+         events->OnKeyHeld(GLFW_KEY_LEFT_SHIFT,
+                           [&](const uint32_t, const uint32_t, const uint32_t) {
+                              Transform& transform = cam.GetMutableTransform();
+                              glm::vec3 position = transform.GetPosition();
+                              position -= glm::vec3(0.0f, 1.0f, 0.0f) * camSpeed * deltaTime;
+                              transform.SetPosition(position);
+                           });
+         // Rotation stuff
+         MouseState mouseState;
+         {
+            const glm::vec3 dir = cam.GetViewDirection();
+            mouseState.yaw = glm::degrees(std::atan2(dir.x, -dir.z));
+            mouseState.pitch = glm::degrees(std::asin(dir.y));
+         }
+         events->OnCursorPos([&](float xpos, float ypos) {
+            if (!mouseState.shouldUpdate)
+               return;
+            if (mouseState.firstMouse) {
+               mouseState.lastX = xpos;
+               mouseState.lastY = ypos;
+               mouseState.firstMouse = false;
+               return;
+            }
+            const float xoffset = (xpos - mouseState.lastX) * mouseState.sensitivity;
+            const float yoffset = (mouseState.lastY - ypos) * mouseState.sensitivity;
+            mouseState.lastX = xpos;
+            mouseState.lastY = ypos;
+            mouseState.yaw -= xoffset;
+            mouseState.pitch += yoffset;
+            if (mouseState.pitch > 89.0f)
+               mouseState.pitch = 89.0f;
+            if (mouseState.pitch < -89.0f)
+               mouseState.pitch = -89.0f;
+            const glm::quat qYaw = glm::angleAxis(glm::radians(mouseState.yaw), glm::vec3(0, 1, 0));
+            const glm::quat qPitch =
+               glm::angleAxis(glm::radians(mouseState.pitch), glm::vec3(1, 0, 0));
+            const glm::quat rotation = qYaw * qPitch;
+            cam.GetMutableTransform().SetRotation(rotation);
+         });
+         events->OnKeyDown(GLFW_KEY_LEFT_ALT, [&](const uint32_t, const uint32_t, const uint32_t) {
+            window.SetCursorVisible(true);
+            mouseState.shouldUpdate = false;
+         });
+         events->OnKeyUp(GLFW_KEY_LEFT_ALT, [&](const uint32_t, const uint32_t, const uint32_t) {
+            window.SetCursorVisible(false);
+            mouseState.shouldUpdate = true;
+            mouseState.firstMouse = true;
+         });
+      }
 
       // Main loop
       auto lastTime = std::chrono::high_resolution_clock::now();

@@ -110,7 +110,7 @@ jobs:
           cat > "release/run_vk_s${s}.sh" << EOF
           #!/bin/bash
           cd "\$(dirname "\$0")"
-          ./ThesisProject -v -s${s}
+          ./ThesisProject -v -s${s} -noinput
           EOF
           chmod +x "release/run_vk_s${s}.sh"
           done
@@ -119,7 +119,7 @@ jobs:
           cat > "release/run_gl_s${s}.sh" << EOF
           #!/bin/bash
           cd "\$(dirname "\$0")"
-          ./ThesisProject -g -s${s}
+          ./ThesisProject -g -s${s} -noinput
           EOF
           chmod +x "release/run_gl_s${s}.sh"
           done
@@ -147,7 +147,7 @@ jobs:
           @"
           @echo off
           cd /d "%~dp0"
-          ThesisProject.exe -v -s$_
+          ThesisProject.exe -v -s$_ -noinput
           pause
           "@ | Out-File -FilePath "release/run_vk_s$_.bat" -Encoding ASCII
           }
@@ -156,7 +156,7 @@ jobs:
           @"
           @echo off
           cd /d "%~dp0"
-          ThesisProject.exe -g -s$_
+          ThesisProject.exe -g -s$_ -noinput
           pause
           "@ | Out-File -FilePath "release/run_gl_s$_.bat" -Encoding ASCII
           }
