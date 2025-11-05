@@ -74,11 +74,11 @@ GLRenderer::GLRenderer(Window* window) : IRenderer(window) {
    CreateDefaultMaterial();
    LoadShaders();
    CreateUBOs();
-   // Setup initial viewport and framebuffers
-   FramebufferCallback(m_window->GetWidth(), m_window->GetHeight());
-   // Setup resize callback with lambda capture
+   // Setup resize callback
    m_window->SetResizeCallback(
       [this](int32_t width, int32_t height) noexcept { FramebufferCallback(width, height); });
+   // Setup initial viewport and framebuffers
+   FramebufferCallback(m_window->GetWidth(), m_window->GetHeight());
 }
 
 GLRenderer::~GLRenderer() { DestroyImgui(); }

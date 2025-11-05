@@ -1077,7 +1077,7 @@ void VulkanRenderer::RecreateSwapchain() {
             VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
       }
    }
-   if (m_activeCamera) {
+   if (m_activeCamera) [[likely]] {
       m_activeCamera->SetAspectRatio(static_cast<float>(m_swapchain.GetExtent().width) /
                                      static_cast<float>(m_swapchain.GetExtent().height));
    }

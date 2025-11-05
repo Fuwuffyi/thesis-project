@@ -109,7 +109,9 @@ int main(int argc, char* argv[]) {
       const glm::vec3 forward = glm::normalize(-startPos);
       const glm::quat orientation = glm::quatLookAt(forward, glm::vec3(0.0f, 1.0f, 0.0f));
       const Transform camTransform(startPos, orientation);
-      Camera cam(api, camTransform, glm::vec3(0.0f, 1.0f, 0.0f), 90.0f, 1.0f, 0.01f, 100.0f);
+      Camera cam(api, camTransform, glm::vec3(0.0f, 1.0f, 0.0f), 90.0f,
+                 static_cast<float>(window.GetWidth()) / static_cast<float>(window.GetHeight()),
+                 0.01f, 100.0f);
       const float camSpeed = 3.0f;
       const float camRotateSpeed = glm::radians(60.0f);
       renderer->SetActiveCamera(&cam);
