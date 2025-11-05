@@ -71,16 +71,19 @@ int main(int argc, char* argv[]) {
             // 5 lights, 1 particle system
             // Partial scene 1
             LoadBaseScene(scene, *resourceManager, api, 4);
+            AddParticles(scene, 1);
             break;
          case 1:
             // 9 lights, 1 particle system
             // Partial scene 2
             LoadBaseScene(scene, *resourceManager, api, 8);
+            AddParticles(scene, 1);
             break;
          case 2:
             // 17 lights, 1 particle system
             // Partial scene 3
             LoadBaseScene(scene, *resourceManager, api, 16);
+            AddParticles(scene, 1);
             break;
          case 3:
             // 22 lights, 0 particle system
@@ -91,6 +94,7 @@ int main(int argc, char* argv[]) {
             // 1 lights, 2 particle systems
             // Particle only scene
             LoadBaseScene(scene, *resourceManager, api, 0);
+            AddParticles(scene, 2);
             break;
          default:
             return EXIT_FAILURE;

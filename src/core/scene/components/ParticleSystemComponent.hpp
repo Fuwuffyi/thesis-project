@@ -85,6 +85,14 @@ class ParticleSystemComponent final : public Component {
    [[nodiscard]] PhysicsSettings& GetPhysicsSettings() noexcept { return m_physicsSettings; }
    [[nodiscard]] RenderSettings& GetRenderSettings() noexcept { return m_renderSettings; }
 
+   void SetEmissionSettings(const EmissionSettings& settings) noexcept {
+      m_emissionSettings = settings;
+   }
+   void SetPhysicsSettings(const PhysicsSettings& settings) noexcept {
+      m_physicsSettings = settings;
+   }
+   void SetRenderSettings(const RenderSettings& settings) noexcept { m_renderSettings = settings; }
+
   private:
    void EmitParticles(const float deltaTime, const glm::vec3& worldPosition) noexcept;
    void UpdateParticlesCombined(const float deltaTime) noexcept;

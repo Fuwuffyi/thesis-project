@@ -57,12 +57,79 @@ void LoadBaseScene(Scene& scene, ResourceManager& resourceManager, const Graphic
          light->SetOuterCone(glm::radians(baseCone));
       }
    }
-   // Setup particle node
-   /*
-   Node* particlesNode = scene.CreateNode("particles");
-   particlesNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 2.0f, 0.0f));
-   particlesNode->AddComponent<ParticleSystemComponent>();
-   */
+}
+
+void AddParticles(Scene& scene, const size_t particleCount, const size_t seed) {
+   // Setup seeded randomness
+   std::seed_seq seq{seed};
+   std::mt19937 gen(seq);
+   std::uniform_real_distribution<float> colorDist(0.3f, 1.0f);
+   if (particleCount == 1) {
+      Node* particlesNode = scene.CreateNode("particles");
+      particlesNode->GetComponent<TransformComponent>()->SetPosition(glm::vec3(0.0f, 2.0f, 0.0f));
+      ParticleSystemComponent* particles = particlesNode->AddComponent<ParticleSystemComponent>();
+      particles->SetMaxParticles(100000);
+      auto emSet = particles->GetEmissionSettings();
+      auto phSet = particles->GetPhysicsSettings();
+      auto reSet = particles->GetRenderSettings();
+      emSet.emissionRate = 8000;
+      emSet.emissionCone = glm::radians(70.0f);
+      emSet.initialSpeedMin = 1.0f;
+      emSet.initialSpeedMax = 7.0f;
+      phSet.damping = 0.995f;
+      phSet.collisionEnabled = true;
+      phSet.bounciness = 0.75f;
+      reSet.sizeOverLifetime = true;
+      reSet.endSizeMultiplier = 0.99f;
+      reSet.startColor = glm::vec4(colorDist(gen), colorDist(gen), colorDist(gen), 1.0f);
+      reSet.endColor = glm::vec4(colorDist(gen), colorDist(gen), colorDist(gen), 0.0f);
+      particles->SetEmissionSettings(emSet);
+      particles->SetPhysicsSettings(phSet);
+      particles->SetRenderSettings(reSet);
+      return;
+   }
+   Node* particlesNode0 = scene.CreateNode("particles_0");
+   particlesNode0->GetComponent<TransformComponent>()->SetPosition(glm::vec3(-7.0f, 2.0f, 0.0f));
+   ParticleSystemComponent* particles0 = particlesNode0->AddComponent<ParticleSystemComponent>();
+   particles0->SetMaxParticles(100000);
+   auto emSet0 = particles0->GetEmissionSettings();
+   auto phSet0 = particles0->GetPhysicsSettings();
+   auto reSet0 = particles0->GetRenderSettings();
+   emSet0.emissionRate = 8000;
+   emSet0.emissionCone = glm::radians(70.0f);
+   emSet0.initialSpeedMin = 1.0f;
+   emSet0.initialSpeedMax = 7.0f;
+   phSet0.damping = 0.995f;
+   phSet0.collisionEnabled = true;
+   phSet0.bounciness = 0.75f;
+   reSet0.sizeOverLifetime = true;
+   reSet0.endSizeMultiplier = 0.99f;
+   reSet0.startColor = glm::vec4(colorDist(gen), colorDist(gen), colorDist(gen), 1.0f);
+   reSet0.endColor = glm::vec4(colorDist(gen), colorDist(gen), colorDist(gen), 0.0f);
+   particles0->SetEmissionSettings(emSet0);
+   particles0->SetPhysicsSettings(phSet0);
+   particles0->SetRenderSettings(reSet0);
+   Node* particlesNode1 = scene.CreateNode("particles_1");
+   particlesNode1->GetComponent<TransformComponent>()->SetPosition(glm::vec3(7.0f, 2.0f, 0.0f));
+   ParticleSystemComponent* particles1 = particlesNode1->AddComponent<ParticleSystemComponent>();
+   particles1->SetMaxParticles(100000);
+   auto emSet1 = particles1->GetEmissionSettings();
+   auto phSet1 = particles1->GetPhysicsSettings();
+   auto reSet1 = particles1->GetRenderSettings();
+   emSet1.emissionRate = 8000;
+   emSet1.emissionCone = glm::radians(70.0f);
+   emSet1.initialSpeedMin = 1.0f;
+   emSet1.initialSpeedMax = 7.0f;
+   phSet1.damping = 0.995f;
+   phSet1.collisionEnabled = true;
+   phSet1.bounciness = 0.75f;
+   reSet1.sizeOverLifetime = true;
+   reSet1.endSizeMultiplier = 0.99f;
+   reSet1.startColor = glm::vec4(colorDist(gen), colorDist(gen), colorDist(gen), 1.0f);
+   reSet1.endColor = glm::vec4(colorDist(gen), colorDist(gen), colorDist(gen), 0.0f);
+   particles1->SetEmissionSettings(emSet1);
+   particles1->SetPhysicsSettings(phSet1);
+   particles1->SetRenderSettings(reSet1);
 }
 
 void LoadSponzaGeometry(Scene& scene, ResourceManager& resourceManager) {
