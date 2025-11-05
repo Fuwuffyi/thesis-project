@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
 
       // Create the scene
       ResourceManager* resourceManager = renderer->GetResourceManager();
-      Scene scene("Scene");
+      Scene scene("Scene_" + std::to_string(sceneIndex));
       switch (sceneIndex) {
          case 0:
             // 5 lights, 1 particle system
@@ -113,7 +113,8 @@ int main(int argc, char* argv[]) {
          api, window,
          api == GraphicsAPI::Vulkan ? &dynamic_cast<VulkanRenderer*>(renderer.get())->GetDevice()
                                     : nullptr);
-      perfLogger.StartSession(scene.GetName(), systemInfo);
+      perfLogger.StartSession(
+         scene.GetName() + (api == GraphicsAPI::Vulkan ? "_vulkan" : "_opengl"), systemInfo);
 
       // Setup events
       EventSystem* events = window.GetEventSystem();
