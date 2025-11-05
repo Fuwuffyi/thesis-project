@@ -77,7 +77,6 @@ class VulkanRenderer : public IRenderer {
    // Functions to set up command pool
    void CreateCommandBuffers();
    void RecordCommandBuffer(const uint32_t imageIndex);
-   void RenderParticlesInstanced(const uint32_t imageIndex);
 
    void RecordGeometryPass(const VkViewport& viewport, const VkRect2D& scissor,
                            VulkanCommandBuffers& cmdBuffer);

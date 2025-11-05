@@ -940,16 +940,39 @@ void VulkanRenderer::RecordParticlePass(const uint32_t imageIndex, const VkViewp
       cmdBuffer.End(0);
       return;
    }
-   // Check and resize particle buffers if needed
-   uint32_t maxParticles = 0;
+   // Count all particles
+   uint32_t totalParticles = 0;
    m_activeScene->ForEachNode([&](const Node* node) {
-      if (auto* ps = node->GetComponent<ParticleSystemComponent>()) {
-         maxParticles = std::max(maxParticles, ps->GetActiveParticleCount());
-      }
+      if (!node->IsActive())
+         return;
+      const auto* ps = node->GetComponent<ParticleSystemComponent>();
+      if (!ps)
+         return;
+      totalParticles += ps->GetActiveParticleCount();
    });
-   if (maxParticles > m_particleInstanceCapacity) {
-      ResizeParticleBuffers(maxParticles * 2);
+   if (totalParticles == 0) {
+      cmdBuffer.End(0);
+      return;
    }
+   if (totalParticles > m_particleInstanceCapacity) {
+      ResizeParticleBuffers(static_cast<size_t>(totalParticles) * 2);
+   }
+   // Flatten instance data
+   std::vector<ParticleInstanceData> instanceStaging;
+   instanceStaging.reserve(totalParticles);
+   m_activeScene->ForEachNode([&](const Node* node) {
+      if (!node->IsActive())
+         return;
+      const auto* ps = node->GetComponent<ParticleSystemComponent>();
+      if (!ps)
+         return;
+      const uint32_t count = ps->GetActiveParticleCount();
+      if (count == 0)
+         return;
+      const auto& src = ps->GetInstanceData();
+      instanceStaging.insert(instanceStaging.end(), src.begin(), src.begin() + count);
+   });
+   m_particleInstanceBuffers[m_currentFrame]->UpdateArray(instanceStaging.data(), totalParticles);
    cmdBuffer.BindPipeline(m_particleGraphicsPipeline->GetPipeline(),
                           VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
    cmdBuffer.BindDescriptorSet(*m_particlePipelineLayout, 0,
@@ -962,26 +985,14 @@ void VulkanRenderer::RecordParticlePass(const uint32_t imageIndex, const VkViewp
       cmdBuffer.End(0);
       return;
    }
-   const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
-   m_activeScene->ForEachNode([&](const Node* node) {
-      if (!node->IsActive())
-         return;
-      const ParticleSystemComponent* particles = node->GetComponent<ParticleSystemComponent>();
-      if (!particles)
-         return;
-      const uint32_t activeCount = particles->GetActiveParticleCount();
-      if (activeCount == 0)
-         return;
-      const auto& instanceData = particles->GetInstanceData();
-      m_particleInstanceBuffers[m_currentFrame]->UpdateArray(instanceData.data(), activeCount);
-      const std::vector<VkBuffer> vertexBuffers = {
-         vkMesh->GetVertexBuffer(), m_particleInstanceBuffers[m_currentFrame]->Get()};
-      const std::vector<VkDeviceSize> offsets = {0, 0};
-      cmdBuffer.BindVertexBuffers(0, vertexBuffers, offsets, 0);
-      cmdBuffer.BindIndexBuffer(vkMesh->GetIndexBuffer(), 0, vkMesh->GetIndexType(), 0);
-      cmdBuffer.DrawIndexed(static_cast<uint32_t>(vkMesh->GetIndexCount()), activeCount, 0, 0, 0,
-                            0);
-   });
+   const auto* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
+   const std::vector<VkBuffer> vertexBuffers = {vkMesh->GetVertexBuffer(),
+                                                m_particleInstanceBuffers[m_currentFrame]->Get()};
+   const std::vector<VkDeviceSize> offsets = {0, 0};
+   cmdBuffer.BindVertexBuffers(0, vertexBuffers, offsets, 0);
+   cmdBuffer.BindIndexBuffer(vkMesh->GetIndexBuffer(), 0, vkMesh->GetIndexType(), 0);
+   cmdBuffer.DrawIndexed(static_cast<uint32_t>(vkMesh->GetIndexCount()), totalParticles, 0, 0, 0,
+                         0);
    cmdBuffer.End(0);
 }
 
@@ -994,37 +1005,6 @@ void VulkanRenderer::ResizeParticleBuffers(const size_t newCapacity) {
          m_device, newSize, VulkanBuffer::Usage::Vertex, VulkanBuffer::MemoryType::CPUToGPU);
       m_particleInstanceBuffers[i]->Map();
    }
-}
-
-void VulkanRenderer::RenderParticlesInstanced(const uint32_t imageIndex) {
-   if (!m_activeScene)
-      return;
-   const IMesh* mesh = m_resourceManager->GetMesh(m_fullscreenQuad);
-   if (!mesh)
-      return;
-   const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
-   m_activeScene->ForEachNode([&](const Node* node) {
-      if (!node->IsActive())
-         return;
-      const ParticleSystemComponent* particles = node->GetComponent<ParticleSystemComponent>();
-      if (!particles)
-         return;
-      const uint32_t activeCount = particles->GetActiveParticleCount();
-      if (activeCount == 0)
-         return;
-      // Upload instance data
-      const auto& instanceData = particles->GetInstanceData();
-      m_particleInstanceBuffers[m_currentFrame]->UpdateArray(instanceData.data(), activeCount);
-      // Bind buffers and draw
-      const std::vector<VkBuffer> vertexBuffers = {
-         vkMesh->GetVertexBuffer(), m_particleInstanceBuffers[m_currentFrame]->Get()};
-      const std::vector<VkDeviceSize> offsets = {0, 0};
-      m_commandBuffers->BindVertexBuffers(0, vertexBuffers, offsets, m_currentFrame);
-      m_commandBuffers->BindIndexBuffer(vkMesh->GetIndexBuffer(), 0, vkMesh->GetIndexType(),
-                                        m_currentFrame);
-      m_commandBuffers->DrawIndexed(static_cast<uint32_t>(vkMesh->GetIndexCount()), activeCount, 0,
-                                    0, 0, m_currentFrame);
-   });
 }
 
 void VulkanRenderer::CreateSynchronizationObjects() {
