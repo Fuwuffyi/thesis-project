@@ -79,13 +79,16 @@ class VulkanRenderer : public IRenderer {
    void RecordCommandBuffer(const uint32_t imageIndex);
    void RenderParticlesInstanced(const uint32_t imageIndex);
 
-   void RenderGeometryPass(const VkViewport& viewport, const VkRect2D& scissor);
+   void RecordGeometryPass(const VkViewport& viewport, const VkRect2D& scissor,
+                           VulkanCommandBuffers& cmdBuffer);
+   void RecordLightingPass(const uint32_t imageIndex, const VkViewport& viewport,
+                           const VkRect2D& scissor, VulkanCommandBuffers& cmdBuffer);
+   void RecordGizmoPass(const uint32_t imageIndex, const VkViewport& viewport, const VkRect2D& scissor,
+                        VulkanCommandBuffers& cmdBuffer);
+   void RecordParticlePass(const uint32_t imageIndex, const VkViewport& viewport,
+                           const VkRect2D& scissor, VulkanCommandBuffers& cmdBuffer);
+
    void TransitionGBufferLayouts();
-   void RenderLightingPass(const uint32_t imageIndex, const VkViewport& viewport,
-                           const VkRect2D& scissor);
-   void RenderGizmoPass(const VkViewport& viewport, const VkRect2D& scissor);
-   void RenderParticlePass(const uint32_t imageIndex, const VkViewport& viewport,
-                           const VkRect2D& scissor);
    void ResizeParticleBuffers(const size_t newCapacity);
    // Functions to set up synchronization for drawing
    void CreateSynchronizationObjects();
@@ -104,6 +107,7 @@ class VulkanRenderer : public IRenderer {
   private:
    // TODO: Remove unique ptrs in favour of stack variables once other abstractions are implemented
    constexpr static uint32_t MAX_FRAMES_IN_FLIGHT{2};
+   constexpr static uint32_t NUM_RENDER_PASSES{4};
    uint32_t m_currentFrame{0};
 
    double m_lastFrameTime{0};
@@ -163,8 +167,14 @@ class VulkanRenderer : public IRenderer {
 
    std::unique_ptr<VulkanCommandBuffers> m_commandBuffers; // Per frame in flight
    std::vector<VkCommandPool> m_threadCommandPools;
+   // Secondary command buffers for geometry pass object rendering
    std::vector<std::array<std::unique_ptr<VulkanCommandBuffers>, MAX_FRAMES_IN_FLIGHT>>
-      m_secondaryCommandBuffers; // Per thread per frame (per frame in flight)
+      m_secondaryCommandBuffers; // Per thread per frame in flight
+
+   // Secondary command buffers for parallel render pass recording
+   std::array<std::array<std::unique_ptr<VulkanCommandBuffers>, MAX_FRAMES_IN_FLIGHT>,
+              NUM_RENDER_PASSES>
+      m_renderPassCommandBuffers; // Per render pass per frame
    std::vector<VkSemaphore> m_imageAvailableSemaphores;
    std::vector<VkSemaphore> m_renderFinishedSemaphores;
    std::vector<VkFence> m_inFlightFences;
@@ -175,6 +185,9 @@ class VulkanRenderer : public IRenderer {
 
    VulkanGPUTimer m_gpuTimer;
 
-   std::unique_ptr<ThreadPool> m_threadPool;
-   uint32_t m_numRenderThreads{0};
+   std::unique_ptr<ThreadPool> m_passThreadPool;
+   std::unique_ptr<ThreadPool> m_geometryThreadPool;
+
+   uint32_t m_numPassThreads{0};
+   uint32_t m_numGeometryThreads{0};
 };

@@ -1,6 +1,8 @@
 #include "core/ThreadPool.hpp"
 #include <atomic>
 
+ThreadPool::ThreadPool() : ThreadPool(1) {}
+
 ThreadPool::ThreadPool(size_t numThreads) {
    if (numThreads == 0)
       numThreads = 1;
@@ -30,11 +32,13 @@ void ThreadPool::Submit(const std::function<void()> task) {
       if (m_stop.load(std::memory_order_relaxed)) {
          throw std::runtime_error("Cannot submit task to stopped ThreadPool");
       }
-      m_tasks.emplace(std::move(task));
       m_activeTasks.fetch_add(1, std::memory_order_release);
+      m_tasks.emplace(std::move(task));
    }
    m_condition.notify_one();
 }
+
+size_t ThreadPool::GetThreadCount() const noexcept { return m_threads.size(); }
 
 void ThreadPool::WorkerThread() {
    while (true) {
@@ -63,7 +67,6 @@ void ThreadPool::WorkerThread() {
 
 void ThreadPool::WaitForAll() {
    std::unique_lock<std::mutex> lock(m_queueMutex);
-   m_waitCondition.wait(lock, [this]() {
-      return m_tasks.empty() && m_activeTasks.load(std::memory_order_acquire) == 0;
-   });
+   m_waitCondition.wait(lock,
+                        [this]() { return m_activeTasks.load(std::memory_order_acquire) == 0; });
 }

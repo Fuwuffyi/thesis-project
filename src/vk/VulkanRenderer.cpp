@@ -100,10 +100,12 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
 
    CreateSynchronizationObjects();
 
-   m_numRenderThreads = std::max(1u, std::thread::hardware_concurrency() - 1);
-   m_threadPool = std::make_unique<ThreadPool>(m_numRenderThreads);
-   m_threadCommandPools.resize(m_numRenderThreads);
-   for (uint32_t i = 0; i < m_numRenderThreads; ++i) {
+   m_numGeometryThreads = std::max(1u, std::thread::hardware_concurrency());
+   m_geometryThreadPool = std::make_unique<ThreadPool>(m_numGeometryThreads);
+   m_numPassThreads = NUM_RENDER_PASSES;
+   m_passThreadPool = std::make_unique<ThreadPool>(m_numPassThreads);
+   m_threadCommandPools.resize(m_numGeometryThreads + NUM_RENDER_PASSES);
+   for (uint32_t i = 0; i < m_numGeometryThreads + NUM_RENDER_PASSES; ++i) {
       VkCommandPoolCreateInfo poolInfo{};
       poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
       poolInfo.queueFamilyIndex = m_device.GetGraphicsQueueFamily();
@@ -113,11 +115,18 @@ VulkanRenderer::VulkanRenderer(Window* windowHandle)
          throw std::runtime_error("Failed to create per-thread command pool");
       }
    }
-   m_secondaryCommandBuffers.resize(m_numRenderThreads);
-   for (uint32_t i = 0; i < m_numRenderThreads; ++i) {
+   m_secondaryCommandBuffers.resize(m_numGeometryThreads);
+   for (uint32_t i = 0; i < m_numGeometryThreads; ++i) {
       for (uint32_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame) {
          m_secondaryCommandBuffers[i][frame] = std::make_unique<VulkanCommandBuffers>(
             m_device, m_threadCommandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+      }
+   }
+   for (uint32_t passIdx = 0; passIdx < NUM_RENDER_PASSES; ++passIdx) {
+      for (uint32_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame) {
+         m_renderPassCommandBuffers[passIdx][frame] = std::make_unique<VulkanCommandBuffers>(
+            m_device, m_threadCommandPools[m_numGeometryThreads + passIdx],
+            VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
       }
    }
 
@@ -660,23 +669,58 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
       m_activeScene->UpdateTransforms();
    }
    m_gpuTimer.BeginFrame(m_commandBuffers->Get(m_currentFrame), m_currentFrame);
+   // Record passes in parallel
+   m_passThreadPool->Submit([this, viewport, scissor]() {
+      RecordGeometryPass(viewport, scissor, *m_renderPassCommandBuffers[0][m_currentFrame]);
+   });
+   m_passThreadPool->Submit([this, imageIndex, viewport, scissor]() {
+      RecordLightingPass(imageIndex, viewport, scissor,
+                         *m_renderPassCommandBuffers[1][m_currentFrame]);
+   });
+   m_passThreadPool->Submit([this, imageIndex, viewport, scissor]() {
+      RecordGizmoPass(imageIndex, viewport, scissor,
+                      *m_renderPassCommandBuffers[2][m_currentFrame]);
+   });
+   m_passThreadPool->Submit([this, imageIndex, viewport, scissor]() {
+      RecordParticlePass(imageIndex, viewport, scissor,
+                         *m_renderPassCommandBuffers[3][m_currentFrame]);
+   });
+   m_passThreadPool->WaitForAll();
    // GEOMETRY PASS
    m_gpuTimer.Begin("GeometryPass");
-   RenderGeometryPass(viewport, scissor);
+   const std::vector<VkClearValue> geometryClearValues = {
+      VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
+      VkClearValue{.color = {{0.5f, 0.5f, 1.0f, 0.0f}}}, VkClearValue{.depthStencil = {1.0f, 0}}};
+   m_commandBuffers->BeginRenderPass(*m_geometryRenderPass, m_geometryFramebuffers[m_currentFrame],
+                                     m_swapchain.GetExtent(), geometryClearValues, m_currentFrame);
+   std::vector<VkCommandBuffer> geometrySecondary = {
+      m_renderPassCommandBuffers[0][m_currentFrame]->Get(0)};
+   m_commandBuffers->ExecuteCommands(geometrySecondary, m_currentFrame);
+   m_commandBuffers->EndRenderPass(m_currentFrame);
    m_gpuTimer.End("GeometryPass");
    // Transition G-buffer layouts
    TransitionGBufferLayouts();
    // LIGHTING PASS
    m_gpuTimer.Begin("LightingPass");
-   RenderLightingPass(imageIndex, viewport, scissor);
+   const std::vector<VkClearValue> lightingClearValues = {
+      VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}}, VkClearValue{.depthStencil = {1.0f, 0}}};
+   m_commandBuffers->BeginRenderPass(*m_lightingRenderPass, m_lightingFramebuffers[imageIndex],
+                                     m_swapchain.GetExtent(), lightingClearValues, m_currentFrame);
+   std::vector<VkCommandBuffer> lightingSecondary = {
+      m_renderPassCommandBuffers[1][m_currentFrame]->Get(0)};
+   m_commandBuffers->ExecuteCommands(lightingSecondary, m_currentFrame);
    m_gpuTimer.End("LightingPass");
    // GIZMO PASS
    m_gpuTimer.Begin("GizmoPass");
-   RenderGizmoPass(viewport, scissor);
+   std::vector<VkCommandBuffer> gizmoSecondary = {
+      m_renderPassCommandBuffers[2][m_currentFrame]->Get(0)};
+   m_commandBuffers->ExecuteCommands(gizmoSecondary, m_currentFrame);
    m_gpuTimer.End("GizmoPass");
    // PARTICLE PASS
    m_gpuTimer.Begin("ParticlePass");
-   RenderParticlePass(imageIndex, viewport, scissor);
+   std::vector<VkCommandBuffer> particleSecondary = {
+      m_renderPassCommandBuffers[3][m_currentFrame]->Get(0)};
+   m_commandBuffers->ExecuteCommands(particleSecondary, m_currentFrame);
    m_gpuTimer.End("ParticlePass");
    // Render ImGUI
    m_gpuTimer.Begin("ImGuiPass");
@@ -686,14 +730,12 @@ void VulkanRenderer::RecordCommandBuffer(const uint32_t imageIndex) {
    m_commandBuffers->End(m_currentFrame);
 }
 
-void VulkanRenderer::RenderGeometryPass(const VkViewport& viewport, const VkRect2D& scissor) {
-   const std::vector<VkClearValue> clearValues = {VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
-                                                  VkClearValue{.color = {{0.5f, 0.5f, 1.0f, 0.0f}}},
-                                                  VkClearValue{.depthStencil = {1.0f, 0}}};
-   m_commandBuffers->BeginRenderPass(*m_geometryRenderPass, m_geometryFramebuffers[m_currentFrame],
-                                     m_swapchain.GetExtent(), clearValues, m_currentFrame);
+void VulkanRenderer::RecordGeometryPass(const VkViewport& viewport, const VkRect2D& scissor,
+                                        VulkanCommandBuffers& cmdBuffer) {
+   cmdBuffer.Reset(0);
+   cmdBuffer.BeginSecondary(*m_geometryRenderPass, m_geometryFramebuffers[m_currentFrame], 0, 0);
    if (!m_activeScene) {
-      m_commandBuffers->EndRenderPass(m_currentFrame);
+      cmdBuffer.End(0);
       return;
    }
    static std::vector<const Node*> renderableNodes;
@@ -708,78 +750,68 @@ void VulkanRenderer::RenderGeometryPass(const VkViewport& viewport, const VkRect
       }
    });
    const size_t nodesPerThread =
-      (renderableNodes.size() + m_numRenderThreads - 1) / m_numRenderThreads;
+      (renderableNodes.size() + m_numGeometryThreads - 1) / m_numGeometryThreads;
    const std::vector<const Node*>* nodesPtr = &renderableNodes;
-   for (uint32_t threadIdx = 0; threadIdx < m_numRenderThreads; ++threadIdx) {
+   for (uint32_t threadIdx = 0; threadIdx < m_numGeometryThreads; ++threadIdx) {
       const size_t startIdx = threadIdx * nodesPerThread;
       const size_t endIdx = std::min(startIdx + nodesPerThread, renderableNodes.size());
       if (startIdx >= renderableNodes.size())
          break;
-      // Each thread works on its own command buffer from its own command pool
-      m_threadPool->Submit([this, nodesPtr, threadIdx, startIdx, endIdx, viewport, scissor]() {
-         const auto& nodes = *nodesPtr;
-         // Get this thread's command buffer for the current frame
-         auto& cmdBuf = m_secondaryCommandBuffers[threadIdx][m_currentFrame];
-         // Reset command buffer
-         cmdBuf->Reset(0);
-         // Begin secondary command buffer
-         cmdBuf->BeginSecondary(*m_geometryRenderPass, m_geometryFramebuffers[m_currentFrame], 0,
-                                0);
-         // Bind pipeline and descriptor sets
-         cmdBuf->BindPipeline(m_geometryGraphicsPipeline->GetPipeline(),
-                              VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
-         cmdBuf->BindDescriptorSet(*m_geometryPipelineLayout, 0,
-                                   m_geometryDescriptorSets[m_currentFrame],
-                                   VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
-         cmdBuf->SetViewport(viewport, 0);
-         cmdBuf->SetScissor(scissor, 0);
-         // Render assigned nodes
-         for (size_t i = startIdx; i < endIdx; ++i) {
-            const Node* node = nodes[i];
-            const auto* renderer = node->GetComponent<RendererComponent>();
-            // Push model matrix
-            if (const Transform* worldTransform = node->GetWorldTransform()) {
-               cmdBuf->PushConstantsTyped(*m_geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
-                                          worldTransform->GetTransformMatrix(), 0);
-            }
-            // Bind material
-            if (IMaterial* material = m_resourceManager->GetMaterial(renderer->GetMaterial())) {
-               VulkanMaterial* vkMaterial = reinterpret_cast<VulkanMaterial*>(material);
-               if (vkMaterial->GetDescriptorSet() == VK_NULL_HANDLE) {
-                  vkMaterial->CreateDescriptorSet(m_materialDescriptorPool,
-                                                  m_materialDescriptorSetLayout);
+      m_geometryThreadPool->Submit(
+         [this, nodesPtr, threadIdx, startIdx, endIdx, viewport, scissor]() {
+            const auto& nodes = *nodesPtr;
+            auto& cmdBuf = m_secondaryCommandBuffers[threadIdx][m_currentFrame];
+            cmdBuf->Reset(0);
+            cmdBuf->BeginSecondary(*m_geometryRenderPass, m_geometryFramebuffers[m_currentFrame], 0,
+                                   0);
+            cmdBuf->BindPipeline(m_geometryGraphicsPipeline->GetPipeline(),
+                                 VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
+            cmdBuf->BindDescriptorSet(*m_geometryPipelineLayout, 0,
+                                      m_geometryDescriptorSets[m_currentFrame],
+                                      VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
+            cmdBuf->SetViewport(viewport, 0);
+            cmdBuf->SetScissor(scissor, 0);
+            for (size_t i = startIdx; i < endIdx; ++i) {
+               const Node* node = nodes[i];
+               const auto* renderer = node->GetComponent<RendererComponent>();
+               if (const Transform* worldTransform = node->GetWorldTransform()) {
+                  cmdBuf->PushConstantsTyped(*m_geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,
+                                             worldTransform->GetTransformMatrix(), 0);
                }
-               vkMaterial->Bind(0, *m_resourceManager);
-               cmdBuf->BindDescriptorSet(*m_geometryPipelineLayout, 1,
-                                         vkMaterial->GetDescriptorSet(),
-                                         VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
+               if (IMaterial* material = m_resourceManager->GetMaterial(renderer->GetMaterial())) {
+                  VulkanMaterial* vkMaterial = reinterpret_cast<VulkanMaterial*>(material);
+                  if (vkMaterial->GetDescriptorSet() == VK_NULL_HANDLE) {
+                     vkMaterial->CreateDescriptorSet(m_materialDescriptorPool,
+                                                     m_materialDescriptorSetLayout);
+                  }
+                  vkMaterial->Bind(0, *m_resourceManager);
+                  cmdBuf->BindDescriptorSet(*m_geometryPipelineLayout, 1,
+                                            vkMaterial->GetDescriptorSet(),
+                                            VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
+               }
+               if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
+                  const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
+                  vkMesh->Draw(cmdBuf->Get(0));
+               }
             }
-            // Draw mesh
-            if (const IMesh* mesh = m_resourceManager->GetMesh(renderer->GetMesh())) {
-               const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
-               vkMesh->Draw(cmdBuf->Get(0));
-            }
-         }
-         // End secondary command buffer
-         cmdBuf->End(0);
-      });
+            cmdBuf->End(0);
+         });
    }
-   m_threadPool->WaitForAll();
-   // Collect secondary command buffers that were actually used
+   m_geometryThreadPool->WaitForAll();
    static std::vector<VkCommandBuffer> secondaryBuffers;
    secondaryBuffers.clear();
-   secondaryBuffers.reserve(m_numRenderThreads);
-   for (uint32_t i = 0; i < m_numRenderThreads; ++i) {
+   secondaryBuffers.reserve(m_numGeometryThreads);
+   for (uint32_t i = 0; i < m_numGeometryThreads; ++i) {
       const size_t startIdx = i * nodesPerThread;
       if (startIdx < renderableNodes.size()) {
          secondaryBuffers.push_back(m_secondaryCommandBuffers[i][m_currentFrame]->Get(0));
       }
    }
-   // Execute secondary command buffers
    if (!secondaryBuffers.empty()) {
-      m_commandBuffers->ExecuteCommands(secondaryBuffers, m_currentFrame);
+      vkCmdExecuteCommands(cmdBuffer.Get(0), static_cast<uint32_t>(secondaryBuffers.size()),
+                           secondaryBuffers.data());
    }
-   m_commandBuffers->EndRenderPass(m_currentFrame);
+   cmdBuffer.End(0);
 }
 
 void VulkanRenderer::TransitionGBufferLayouts() {
@@ -850,70 +882,64 @@ void VulkanRenderer::TransitionGBufferLayouts() {
       VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, {}, {}, barriers, m_currentFrame);
 }
 
-void VulkanRenderer::RenderLightingPass(uint32_t imageIndex, const VkViewport& viewport,
-                                        const VkRect2D& scissor) {
-   const std::vector<VkClearValue> clearValues = {VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
-                                                  VkClearValue{.depthStencil = {1.0f, 0}}};
-
-   m_commandBuffers->BeginRenderPass(*m_lightingRenderPass, m_lightingFramebuffers[imageIndex],
-                                     m_swapchain.GetExtent(), clearValues, m_currentFrame);
-
-   m_commandBuffers->BindPipeline(m_lightingGraphicsPipeline->GetPipeline(),
-                                  VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
-
-   m_commandBuffers->BindDescriptorSet(*m_lightingPipelineLayout, 0,
-                                       m_lightingDescriptorSets[m_currentFrame],
-                                       VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
-
-   m_commandBuffers->SetViewport(viewport, m_currentFrame);
-   m_commandBuffers->SetScissor(scissor, m_currentFrame);
-
+void VulkanRenderer::RecordLightingPass(const uint32_t imageIndex, const VkViewport& viewport,
+                                        const VkRect2D& scissor, VulkanCommandBuffers& cmdBuffer) {
+   cmdBuffer.Reset(0);
+   cmdBuffer.BeginSecondary(*m_lightingRenderPass, m_lightingFramebuffers[imageIndex], 0, 0);
+   cmdBuffer.BindPipeline(m_lightingGraphicsPipeline->GetPipeline(),
+                          VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
+   cmdBuffer.BindDescriptorSet(*m_lightingPipelineLayout, 0,
+                               m_lightingDescriptorSets[m_currentFrame],
+                               VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
+   cmdBuffer.SetViewport(viewport, 0);
+   cmdBuffer.SetScissor(scissor, 0);
    if (const IMesh* mesh = m_resourceManager->GetMesh(m_fullscreenQuad)) {
       const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
-      vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
+      vkMesh->Draw(cmdBuffer.Get(0));
    }
+   cmdBuffer.End(0);
 }
 
-void VulkanRenderer::RenderGizmoPass(const VkViewport& viewport, const VkRect2D& scissor) {
-   m_commandBuffers->BindPipeline(m_gizmoGraphicsPipeline->GetPipeline(),
-                                  VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
-
-   m_commandBuffers->BindDescriptorSet(*m_gizmoPipelineLayout, 0,
-                                       m_gizmoDescriptorSets[m_currentFrame],
-                                       VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
-
-   m_commandBuffers->SetViewport(viewport, m_currentFrame);
-   m_commandBuffers->SetScissor(scissor, m_currentFrame);
-
-   if (!m_activeScene)
+void VulkanRenderer::RecordGizmoPass(const uint32_t imageIndex, const VkViewport& viewport,
+                                     const VkRect2D& scissor, VulkanCommandBuffers& cmdBuffer) {
+   cmdBuffer.Reset(0);
+   cmdBuffer.BeginSecondary(*m_lightingRenderPass, m_lightingFramebuffers[imageIndex], 0, 0);
+   cmdBuffer.BindPipeline(m_gizmoGraphicsPipeline->GetPipeline(), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          0);
+   cmdBuffer.BindDescriptorSet(*m_gizmoPipelineLayout, 0, m_gizmoDescriptorSets[m_currentFrame],
+                               VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
+   cmdBuffer.SetViewport(viewport, 0);
+   cmdBuffer.SetScissor(scissor, 0);
+   if (!m_activeScene) {
+      cmdBuffer.End(0);
       return;
-
+   }
    m_activeScene->ForEachNode([&](const Node* node) {
       if (!node->IsActive())
          return;
-
       const auto* lightComp = node->GetComponent<LightComponent>();
       if (!lightComp)
          return;
-
       const GizmoPushConstantData pc{.model = node->GetWorldTransform()->GetTransformMatrix(),
                                      .color = lightComp->GetColor()};
-
-      m_commandBuffers->PushConstantsTyped(
-         *m_gizmoPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, pc,
-         m_currentFrame);
-
+      cmdBuffer.PushConstantsTyped(
+         *m_gizmoPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, pc, 0);
       if (const IMesh* mesh = m_resourceManager->GetMesh(m_lineCube)) {
          const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
-         vkMesh->Draw(m_commandBuffers->Get(m_currentFrame));
+         vkMesh->Draw(cmdBuffer.Get(0));
       }
    });
+   cmdBuffer.End(0);
 }
 
-void VulkanRenderer::RenderParticlePass(const uint32_t imageIndex, const VkViewport& viewport,
-                                        const VkRect2D& scissor) {
-   if (!m_activeScene)
+void VulkanRenderer::RecordParticlePass(const uint32_t imageIndex, const VkViewport& viewport,
+                                        const VkRect2D& scissor, VulkanCommandBuffers& cmdBuffer) {
+   cmdBuffer.Reset(0);
+   cmdBuffer.BeginSecondary(*m_lightingRenderPass, m_lightingFramebuffers[imageIndex], 0, 0);
+   if (!m_activeScene) {
+      cmdBuffer.End(0);
       return;
+   }
    // Check and resize particle buffers if needed
    uint32_t maxParticles = 0;
    m_activeScene->ForEachNode([&](const Node* node) {
@@ -924,14 +950,39 @@ void VulkanRenderer::RenderParticlePass(const uint32_t imageIndex, const VkViewp
    if (maxParticles > m_particleInstanceCapacity) {
       ResizeParticleBuffers(maxParticles * 2);
    }
-   m_commandBuffers->BindPipeline(m_particleGraphicsPipeline->GetPipeline(),
-                                  VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
-   m_commandBuffers->BindDescriptorSet(*m_particlePipelineLayout, 0,
-                                       m_particleDescriptorSets[m_currentFrame],
-                                       VK_PIPELINE_BIND_POINT_GRAPHICS, m_currentFrame);
-   m_commandBuffers->SetViewport(viewport, m_currentFrame);
-   m_commandBuffers->SetScissor(scissor, m_currentFrame);
-   RenderParticlesInstanced(imageIndex);
+   cmdBuffer.BindPipeline(m_particleGraphicsPipeline->GetPipeline(),
+                          VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
+   cmdBuffer.BindDescriptorSet(*m_particlePipelineLayout, 0,
+                               m_particleDescriptorSets[m_currentFrame],
+                               VK_PIPELINE_BIND_POINT_GRAPHICS, 0);
+   cmdBuffer.SetViewport(viewport, 0);
+   cmdBuffer.SetScissor(scissor, 0);
+   const IMesh* mesh = m_resourceManager->GetMesh(m_fullscreenQuad);
+   if (!mesh) {
+      cmdBuffer.End(0);
+      return;
+   }
+   const VulkanMesh* vkMesh = reinterpret_cast<const VulkanMesh*>(mesh);
+   m_activeScene->ForEachNode([&](const Node* node) {
+      if (!node->IsActive())
+         return;
+      const ParticleSystemComponent* particles = node->GetComponent<ParticleSystemComponent>();
+      if (!particles)
+         return;
+      const uint32_t activeCount = particles->GetActiveParticleCount();
+      if (activeCount == 0)
+         return;
+      const auto& instanceData = particles->GetInstanceData();
+      m_particleInstanceBuffers[m_currentFrame]->UpdateArray(instanceData.data(), activeCount);
+      const std::vector<VkBuffer> vertexBuffers = {
+         vkMesh->GetVertexBuffer(), m_particleInstanceBuffers[m_currentFrame]->Get()};
+      const std::vector<VkDeviceSize> offsets = {0, 0};
+      cmdBuffer.BindVertexBuffers(0, vertexBuffers, offsets, 0);
+      cmdBuffer.BindIndexBuffer(vkMesh->GetIndexBuffer(), 0, vkMesh->GetIndexType(), 0);
+      cmdBuffer.DrawIndexed(static_cast<uint32_t>(vkMesh->GetIndexCount()), activeCount, 0, 0, 0,
+                            0);
+   });
+   cmdBuffer.End(0);
 }
 
 void VulkanRenderer::ResizeParticleBuffers(const size_t newCapacity) {
@@ -1012,11 +1063,18 @@ void VulkanRenderer::RecreateSwapchain() {
    CreateLightingPass();
    CreateLightingFBO();
    UpdateDescriptorSets();
-   m_secondaryCommandBuffers.resize(m_numRenderThreads);
-   for (uint32_t i = 0; i < m_numRenderThreads; ++i) {
+   m_secondaryCommandBuffers.resize(m_numGeometryThreads);
+   for (uint32_t i = 0; i < m_numGeometryThreads; ++i) {
       for (uint32_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame) {
          m_secondaryCommandBuffers[i][frame] = std::make_unique<VulkanCommandBuffers>(
             m_device, m_threadCommandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+      }
+   }
+   for (uint32_t passIdx = 0; passIdx < NUM_RENDER_PASSES; ++passIdx) {
+      for (uint32_t frame = 0; frame < MAX_FRAMES_IN_FLIGHT; ++frame) {
+         m_renderPassCommandBuffers[passIdx][frame] = std::make_unique<VulkanCommandBuffers>(
+            m_device, m_threadCommandPools[m_numGeometryThreads + passIdx],
+            VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
       }
    }
    if (m_activeCamera) {
@@ -1300,6 +1358,8 @@ void VulkanRenderer::UpdateDescriptorSets() {
 }
 
 VulkanRenderer::~VulkanRenderer() {
+   m_passThreadPool->WaitForAll();
+   m_geometryThreadPool->WaitForAll();
    vkDeviceWaitIdle(m_device.Get());
    m_resourceManager.reset();
    m_secondaryCommandBuffers.clear();

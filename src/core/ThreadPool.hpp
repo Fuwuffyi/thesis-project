@@ -10,7 +10,8 @@
 
 class ThreadPool {
   public:
-   explicit ThreadPool(const size_t numThreads = std::thread::hardware_concurrency());
+   ThreadPool();
+   explicit ThreadPool(const size_t numThreads);
    ~ThreadPool();
 
    ThreadPool(const ThreadPool&) = delete;
@@ -20,7 +21,7 @@ class ThreadPool {
 
    void Submit(const std::function<void()> task);
 
-   [[nodiscard]] size_t GetThreadCount() const noexcept { return m_threads.size(); }
+   [[nodiscard]] size_t GetThreadCount() const noexcept;
    void WaitForAll();
 
   private:
