@@ -1130,19 +1130,16 @@ void VulkanRenderer::UpdateLightsUBO(const uint32_t currentImage) {
 }
 
 void VulkanRenderer::CreateDescriptorPool() {
-   std::array<VkDescriptorPoolSize, 2> poolSizes{};
-   poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-   poolSizes[0].descriptorCount =
-      static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 3; // Camera/Lighting/Particle UBO
-   poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-   poolSizes[1].descriptorCount =
-      static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 3; // G-Buffer textures
+   std::array<VkDescriptorPoolSize, 3> poolSizes = {
+      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100},
+      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100},
+      VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100},
+   };
    VkDescriptorPoolCreateInfo poolInfo{};
    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-   poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+   poolInfo.poolSizeCount = poolSizes.size();
    poolInfo.pPoolSizes = poolSizes.data();
-   poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) *
-                      4; // Geometry + Lighting + Gizmo + Particle sets
+   poolInfo.maxSets = 400;
    if (vkCreateDescriptorPool(m_device.Get(), &poolInfo, nullptr, &m_descriptorPool) !=
        VK_SUCCESS) {
       throw std::runtime_error("Failed to create descriptor pool.");
