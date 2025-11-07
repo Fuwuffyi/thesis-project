@@ -182,8 +182,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
    # MSVC settings
    set(CMAKE_CXX_FLAGS_DEBUG "/Od /Zi /RTC1 /MDd")
    set(CMAKE_C_FLAGS_DEBUG "/Od /Zi /RTC1 /MDd")
-   set(CMAKE_CXX_FLAGS_RELEASE "/O3 /DNDEBUG /MD")
-   set(CMAKE_C_FLAGS_RELEASE "/O3 /DNDEBUG /MD")
+   set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG /MD /GL /fp:fast /arch:AVX2 /Oi /Ot /Ob3 /GT")
+   set(CMAKE_C_FLAGS_RELEASE "/O2 /DNDEBUG /MD /GL /fp:fast /arch:AVX2 /Oi /Ot /GT")
    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/O2 /Zi /DNDEBUG /MD")
    set(CMAKE_C_FLAGS_RELWITHDEBINFO "/O2 /Zi /DNDEBUG /MD")
    # Disable specific MSVC warnings
@@ -231,8 +231,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
    # GCC settings
    set(CMAKE_CXX_FLAGS_DEBUG "-g3 -O0 -fno-omit-frame-pointer")
    set(CMAKE_C_FLAGS_DEBUG "-g3 -O0 -fno-omit-frame-pointer")
-   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -ffast-math -funroll-loops")
-   set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -ffast-math -funroll-loops")
+   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -ffast-math -funroll-loops -fomit-frame-pointer -fno-math-errno -finline-functions -fipa-pta -ftree-vectorize")
+   set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -ffast-math -funroll-loops -fomit-frame-pointer -fno-math-errno -finline-functions -ftree-vectorize")
    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG")
    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG")
    set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -DNDEBUG")
@@ -543,11 +543,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
       $<$<CONFIG:MinSizeRel>:/Gy>
    )
    target_link_options(${PROJECT_NAME} PRIVATE
-      $<$<CONFIG:Release>:/LTCG>
+      $<$<CONFIG:Release>:/LTCG:incremental>
       $<$<CONFIG:Release>:/OPT:REF>
       $<$<CONFIG:Release>:/OPT:ICF>
+      $<$<CONFIG:Release>:/OPT:LT>
       $<$<CONFIG:Debug>:/INCREMENTAL>
-      $<$<CONFIG:MinSizeRel>:/LTCG>
+      $<$<CONFIG:MinSizeRel>:/LTCG:incremental>
       $<$<CONFIG:MinSizeRel>:/OPT:REF>
       $<$<CONFIG:MinSizeRel>:/OPT:ICF>
    )
@@ -558,8 +559,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
    )
    if(NOT WIN32)
       target_link_options(${PROJECT_NAME} PRIVATE
-         $<$<CONFIG:Release>:-flto=thin>
-         $<$<CONFIG:MinSizeRel>:-flto=thin>
+         $<$<CONFIG:Release>:-Wl,-O3 -Wl,--as-needed -Wl,--strip-all>
+         $<$<CONFIG:MinSizeRel>:-Wl,-O3 -Wl,--as-needed -Wl,--strip-all>
       )
    endif()
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
@@ -568,8 +569,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
       $<$<CONFIG:Release>:-fipa-pta>
    )
    target_link_options(${PROJECT_NAME} PRIVATE
-      $<$<CONFIG:Release>:-flto>
-      $<$<CONFIG:MinSizeRel>:-flto>
+      $<$<CONFIG:Release>:-Wl,-O3 -Wl,--as-needed -Wl,--strip-all>
+      $<$<CONFIG:MinSizeRel>:-Wl,-O3 -Wl,--as-needed -Wl,--strip-all>
    )
 endif()
 
