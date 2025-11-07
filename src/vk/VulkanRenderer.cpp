@@ -690,15 +690,10 @@ void VulkanRenderer::RenderGeometryPass(const VkViewport& viewport, const VkRect
    const std::vector<VkClearValue> clearValues = {VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
                                                   VkClearValue{.color = {{0.5f, 0.5f, 1.0f, 0.0f}}},
                                                   VkClearValue{.depthStencil = {1.0f, 0}}};
-   m_commandBuffers->BeginRenderPass(*m_geometryRenderPass, m_geometryFramebuffers[m_currentFrame],
-                                     m_swapchain.GetExtent(), clearValues, m_currentFrame);
-   if (!m_activeScene) {
-      m_commandBuffers->EndRenderPass(m_currentFrame);
+   if (!m_activeScene)
       return;
-   }
    static std::vector<const Node*> renderableNodes;
    renderableNodes.clear();
-   renderableNodes.reserve(m_activeScene->GetNodeCount());
    m_activeScene->ForEachNode([&](const Node* node) {
       if (!node->IsActive())
          return;
@@ -707,6 +702,8 @@ void VulkanRenderer::RenderGeometryPass(const VkViewport& viewport, const VkRect
          renderableNodes.push_back(node);
       }
    });
+   m_commandBuffers->BeginRenderPass(*m_geometryRenderPass, m_geometryFramebuffers[m_currentFrame],
+                                     m_swapchain.GetExtent(), clearValues, m_currentFrame);
    const size_t nodesPerThread =
       (renderableNodes.size() + m_numGeometryThreads - 1) / m_numGeometryThreads;
    const std::vector<const Node*>* nodesPtr = &renderableNodes;
