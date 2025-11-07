@@ -77,15 +77,14 @@ class VulkanRenderer : public IRenderer {
    // Functions to set up command pool
    void CreateCommandBuffers();
    void RecordCommandBuffer(const uint32_t imageIndex);
+   void RenderParticlesInstanced(const uint32_t imageIndex);
 
-   void RecordGeometryPass(const VkViewport& viewport, const VkRect2D& scissor,
-                           VulkanCommandBuffers& cmdBuffer);
-   void RecordLightingPass(const uint32_t imageIndex, const VkViewport& viewport,
-                           const VkRect2D& scissor, VulkanCommandBuffers& cmdBuffer);
-   void RecordGizmoPass(const uint32_t imageIndex, const VkViewport& viewport, const VkRect2D& scissor,
-                        VulkanCommandBuffers& cmdBuffer);
-   void RecordParticlePass(const uint32_t imageIndex, const VkViewport& viewport,
-                           const VkRect2D& scissor, VulkanCommandBuffers& cmdBuffer);
+   void RenderGeometryPass(const VkViewport& viewport, const VkRect2D& scissor);
+   void RenderLightingPass(const uint32_t imageIndex, const VkViewport& viewport,
+                           const VkRect2D& scissor);
+   void RenderGizmoPass(const VkViewport& viewport, const VkRect2D& scissor);
+   void RenderParticlePass(const uint32_t imageIndex, const VkViewport& viewport,
+                           const VkRect2D& scissor);
 
    void TransitionGBufferLayouts();
    void ResizeParticleBuffers(const size_t newCapacity);
@@ -169,11 +168,7 @@ class VulkanRenderer : public IRenderer {
    // Secondary command buffers for geometry pass object rendering
    std::vector<std::array<std::unique_ptr<VulkanCommandBuffers>, MAX_FRAMES_IN_FLIGHT>>
       m_secondaryCommandBuffers; // Per thread per frame in flight
-
-   // Secondary command buffers for parallel render pass recording
-   std::array<std::array<std::unique_ptr<VulkanCommandBuffers>, MAX_FRAMES_IN_FLIGHT>,
-              NUM_RENDER_PASSES>
-      m_renderPassCommandBuffers; // Per render pass per frame
+   //
    std::vector<VkSemaphore> m_imageAvailableSemaphores;
    std::vector<VkSemaphore> m_renderFinishedSemaphores;
    std::vector<VkFence> m_inFlightFences;
@@ -184,9 +179,7 @@ class VulkanRenderer : public IRenderer {
 
    VulkanGPUTimer m_gpuTimer;
 
-   std::unique_ptr<ThreadPool> m_passThreadPool;
    std::unique_ptr<ThreadPool> m_geometryThreadPool;
 
-   uint32_t m_numPassThreads{0};
    uint32_t m_numGeometryThreads{0};
 };

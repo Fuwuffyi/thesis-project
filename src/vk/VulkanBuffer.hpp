@@ -41,6 +41,9 @@ class VulkanBuffer {
 
    void* Map();
    void Unmap();
+   [[nodiscard]] constexpr void* GetMappedPtr() const { return m_mapped; }
+
+   void FlushRange(const VkDeviceSize& offset, const VkDeviceSize& size) const;
 
    VkBuffer Get() const;
    VkDeviceSize GetSize() const;

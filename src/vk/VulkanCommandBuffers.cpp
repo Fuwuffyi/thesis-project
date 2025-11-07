@@ -105,8 +105,7 @@ void VulkanCommandBuffers::BeginRenderPass(const VulkanRenderPass& renderPass,
    renderPassInfo.renderArea.extent = extent;
    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
    renderPassInfo.pClearValues = clearValues.data();
-   vkCmdBeginRenderPass(m_commandBuffers[index], &renderPassInfo,
-                        VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+   vkCmdBeginRenderPass(m_commandBuffers[index], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 void VulkanCommandBuffers::EndRenderPass(const uint32_t index) {

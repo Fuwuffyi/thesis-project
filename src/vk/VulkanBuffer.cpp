@@ -56,6 +56,23 @@ void VulkanBuffer::Update(const void* data, const VkDeviceSize size, const VkDev
    std::memcpy(static_cast<char*>(m_mapped) + offset, data, static_cast<size_t>(size));
 }
 
+void VulkanBuffer::FlushRange(const VkDeviceSize& offset, const VkDeviceSize& size) const {
+   if (!m_mapped)
+      return;
+   VkMemoryPropertyFlags memFlags = 0;
+   vmaGetAllocationMemoryProperties(m_allocator, m_allocation, &memFlags);
+   if (!(memFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
+      VmaAllocationInfo allocInfo{};
+      vmaGetAllocationInfo(m_allocator, m_allocation, &allocInfo);
+      VkMappedMemoryRange range{};
+      range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+      range.memory = allocInfo.deviceMemory;
+      range.offset = allocInfo.offset + offset;
+      range.size = size == VK_WHOLE_SIZE ? allocInfo.size : size;
+      vkFlushMappedMemoryRanges(m_device->Get(), 1, &range);
+   }
+}
+
 void* VulkanBuffer::Map() {
    if (m_memoryType == MemoryType::GPUOnly)
       return nullptr;
