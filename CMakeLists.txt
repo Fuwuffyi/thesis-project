@@ -546,7 +546,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
       $<$<CONFIG:Release>:/LTCG:incremental>
       $<$<CONFIG:Release>:/OPT:REF>
       $<$<CONFIG:Release>:/OPT:ICF>
-      $<$<CONFIG:Release>:/OPT:LT>
       $<$<CONFIG:Debug>:/INCREMENTAL>
       $<$<CONFIG:MinSizeRel>:/LTCG:incremental>
       $<$<CONFIG:MinSizeRel>:/OPT:REF>
