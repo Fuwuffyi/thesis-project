@@ -33,7 +33,6 @@ Run:
 ./build/ThesisProject -g    # For OpenGL API
 ./build/ThesisProject -v    # For Vulkan API
 ```
-```
 
 ---
 
