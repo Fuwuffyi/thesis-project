@@ -33,23 +33,6 @@ Run:
 ./build/ThesisProject -g    # For OpenGL API
 ./build/ThesisProject -v    # For Vulkan API
 ```
-
----
-
-## Directory Layout
-```graphql
-resources/
-  textures/   # Textures .png/.jpg
-  meshes/     # Models .obj/.fbx
-  shaders/
-    gl/       # GLSL shaders for OpenGL
-    vk/       # GLSL shaders for Vulkan
-src/
-  core/       # Cross API code
-  gl/         # OpenGL specific code
-  vk/         # Vulkan specific code
-CMakeLists.txt
-shell.nix
 ```
 
 ---
